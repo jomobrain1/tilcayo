@@ -1,15 +1,18 @@
-import {
-  createApp,
-  tilcayoVersion,
-} from "@tilcayo/core";
+import { createApp, tilcayoVersion } from "@tilcayo/core";
 
 const app = createApp();
 
-app.get("/", () => {
+app.route.get("/", () => {
   return {
     framework: "Tilcayo",
     version: tilcayoVersion,
     message: "Hello from Tilcayo",
+  };
+});
+
+app.route.get("/hello", () => {
+  return {
+    message: "Tilcayo routing works",
   };
 });
 

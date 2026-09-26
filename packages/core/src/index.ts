@@ -1,10 +1,11 @@
-export {
-  createApp,
-} from "./app.js";
+export { createApp } from "./app.js";
+
+export { createRouter } from "./routing/createRouter.js";
 
 export type {
-  TilcayoHandler,
-} from "./app.js";
+  HttpMethod,
+  RouteDefinition,
+  RouteHandler,
+} from "./routing/types.js";
 
-export const tilcayoVersion =
-  "0.0.1";
+export const tilcayoVersion = "0.0.1";
