@@ -1,19 +1,9 @@
-import { createApp, tilcayoVersion } from "@tilcayo/core";
+import { createApp } from "@tilcayo/core";
+
+import { registerApiRoutes } from "./routes/api.js";
 
 const app = createApp();
 
-app.route.get("/", () => {
-  return {
-    framework: "Tilcayo",
-    version: tilcayoVersion,
-    message: "Hello from Tilcayo",
-  };
-});
-
-app.route.get("/hello", () => {
-  return {
-    message: "Tilcayo routing works",
-  };
-});
+registerApiRoutes(app.route);
 
 app.listen(9149);
