@@ -1,0 +1,13 @@
+{
+  "name": "@tilcayo/basic-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@tilcayo/core": "^0.0.1"
+  }
+}
