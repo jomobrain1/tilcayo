@@ -1,3 +1,13 @@
-import { tilcayoVersion } from "@tilcayo/core";
+import { Tilcayo, tilcayoVersion } from "@tilcayo/core";
 
-console.log(`Tilcayo ${tilcayoVersion}`);
+const app = new Tilcayo();
+
+app.get("/", () => {
+  return {
+    framework: "Tilcayo",
+    version: tilcayoVersion,
+    message: "Hello from Tilcayo",
+  };
+});
+
+app.listen(9149);
