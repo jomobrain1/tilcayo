@@ -1,6 +1,9 @@
-import { Tilcayo, tilcayoVersion } from "@tilcayo/core";
+import {
+  createApp,
+  tilcayoVersion,
+} from "@tilcayo/core";
 
-const app = new Tilcayo();
+const app = createApp();
 
 app.get("/", () => {
   return {

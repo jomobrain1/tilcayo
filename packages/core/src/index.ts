@@ -1,6 +1,10 @@
-export { Application } from "./Application.js";
-export type { TilcayoHandler } from "./Application.js";
+export {
+  createApp,
+} from "./app.js";
 
-export { Application as Tilcayo } from "./Application.js";
+export type {
+  TilcayoHandler,
+} from "./app.js";
 
-export const tilcayoVersion = "0.0.1";
+export const tilcayoVersion =
+  "0.0.1";
