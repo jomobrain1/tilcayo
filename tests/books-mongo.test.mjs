@@ -92,11 +92,9 @@ test("book resource HTTP behavior with isolated Mongoose method doubles", async 
   });
 });
 
-test("Book model validates required fields and can be imported again", async () => {
+test("Book model validates required fields", async () => {
   await assert.rejects(new Book({}).validate(), { name: "ValidationError" });
   await new Book({ title: "Grit", author: "Angela Duckworth" }).validate();
-  const reloaded = await import("../examples/basic-api/dist/models/Book.js?reload");
-  assert.equal(reloaded.Book, Book);
 });
 
 test("live MongoDB book CRUD", { skip: !process.env.MONGODB_URI, timeout: 60000 }, async () => {

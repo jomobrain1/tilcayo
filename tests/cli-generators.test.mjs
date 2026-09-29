@@ -82,6 +82,41 @@ test("all individual generators produce compilable explicit-style files and prot
   compile(cwd);
 });
 
+test("model fields generate a simple schema with inferred TypeScript types", async (t) => {
+  const cwd = await fixture(t);
+  success(cwd, "make:model", "Customer", "--fields", "name:string, email:string,age:number,active:boolean,birthday:date");
+  const target = path.join(cwd, "src/models/Customer.ts");
+  const source = await readFile(target, "utf8");
+  assert.doesNotMatch(source, /InferSchemaType|modelNames|CustomerDocument/);
+  await writeFile(path.join(cwd, "src/check.ts"), `import { Customer } from "./models/Customer.js";
+const customer = new Customer();
+const name: string | null | undefined = customer.name;
+const email: string | null | undefined = customer.email;
+const age: number | null | undefined = customer.age;
+const active: boolean | null | undefined = customer.active;
+const birthday: Date | null | undefined = customer.birthday;
+// @ts-expect-error Number fields cannot be assigned strings.
+customer.age = "wrong";
+`);
+  compile(cwd);
+  assert.notEqual(run(cwd, "make:model", "Customer", "--fields", "other:string").status, 0);
+  assert.equal(await readFile(target, "utf8"), source);
+});
+
+test("invalid field options fail without creating files", async (t) => {
+  const cwd = await fixture(t);
+  for (const value of ["", "name", "name:unknown", "name:string,", "name:string,name:number", "../name:string", "name:string:extra", "__proto__:string", "constructor:string", "createdAt:date"]) {
+    assert.notEqual(run(cwd, "make:model", "Customer", "--fields", value).status, 0, value);
+  }
+  for (const args of [
+    ["make:model", "Customer", "--fields"],
+    ["make:model", "Customer", "--fields", "name:string", "--fields", "age:number"],
+    ["make:model", "Customer", "--fields", "name:string", "--resource"],
+    ["make:controller", "customers", "--fields", "name:string"],
+  ]) assert.notEqual(run(cwd, ...args).status, 0);
+  assert.ok(!(await readdir(cwd)).includes("src"));
+});
+
 test("resource-mode controllers and routes compile together", async (t) => {
   const cwd = await fixture(t);
   success(cwd, "make:model", "Category");

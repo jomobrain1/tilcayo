@@ -8,15 +8,16 @@ import { validatorTemplate } from "../generators/validator.js";
 import { routeTemplate } from "../generators/route.js";
 import { serviceTemplate } from "../generators/service.js";
 
-export const help = `Usage: tilcayo <command> <name> [--resource]
+export const help = `Usage: tilcayo <command> <name> [options]
 
 Commands:
-  make:model Book
+  make:model Book [--fields "title:string,year:number"]
   make:controller books [--resource]
   make:validator books
   make:route books [--resource]
   make:service books
 
+Model field types: string, number, boolean, date. Fields are optional by default.
 Run from an application directory containing package.json.
 Existing files are never overwritten.`;
 
@@ -36,7 +37,15 @@ export async function make(args: string[], root = process.cwd()): Promise<string
     throw new Error(`Unknown command: ${command}. Run tilcayo --help.`);
   }
   if (!input) throw new Error(`Missing name. Example: tilcayo ${command} Book`);
-  if (flags.some((flag) => flag !== "--resource") || flags.length > 1) throw new Error("Unsupported flags. Run tilcayo --help.");
+  let fields: string | undefined;
+  if (kind === "model" && flags[0] === "--fields") {
+    if (flags.length !== 2 || !flags[1]?.trim()) {
+      throw new Error('Use --fields "name:string,age:number".');
+    }
+    fields = flags[1];
+  } else if (flags.some((flag) => flag !== "--resource") || flags.length > 1) {
+    throw new Error("Unsupported flags. Run tilcayo --help.");
+  }
   const resource = flags.includes("--resource");
   if (resource && kind !== "controller" && kind !== "route") throw new Error("--resource is only supported for controllers and routes.");
   const names = resourceNames(input);
@@ -48,7 +57,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
   const filename = names.plural.toLowerCase();
   const messages: string[] = [];
   let source: string;
-  if (kind === "model") source = modelTemplate(names);
+  if (kind === "model") source = modelTemplate(names, fields);
   else if (kind === "controller") source = controllerTemplate(names, resource);
   else if (kind === "validator") source = validatorTemplate(names);
   else if (kind === "service") source = serviceTemplate(names);

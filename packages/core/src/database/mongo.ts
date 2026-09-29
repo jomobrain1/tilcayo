@@ -16,6 +16,7 @@ export const connectMongo = async (
   configureDns();
   if (mongoose.connection.readyState === 1) return mongoose.connection;
   await mongoose.connect(uri, options);
+  console.log("MongoDB connected");
   return mongoose.connection;
 };
 

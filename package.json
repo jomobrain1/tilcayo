@@ -10,7 +10,7 @@
   "scripts": {
     "start": "npm run dev",
     "dev": "nodemon --config nodemon.json",
-    "dev:serve": "npm run build -w @tilcayo/core && npm run build -w @tilcayo/basic-api && node examples/basic-api/dist/index.js",
+    "dev:serve": "npm run build -w @tilcayo/core && npm run build -w @tilcayo/basic-api && node --env-file-if-exists=.env examples/basic-api/dist/index.js",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   },

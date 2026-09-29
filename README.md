@@ -62,6 +62,17 @@ directory containing `package.json`. Within this repository, from
 | `tilcayo make:route books --resource` | Same file, using `router.resource()` |
 | `tilcayo make:service books` | `src/services/books.service.ts` |
 
+Add model fields during generation with:
+
+```sh
+npx tilcayo make:model Customer --fields "name:string,email:string,age:number,active:boolean,birthday:date"
+```
+
+Supported types are `string`, `number`, `boolean`, and `date`. Fields are optional
+by default; edit the generated schema to add `required`, defaults, or validation.
+Omit `--fields` for an empty schema. Duplicate field names and invalid definitions
+are rejected. This option creates model fields only, not request validators.
+
 Generate the controller and validator before the route to wire their imports
 automatically. Match `--resource` on the controller and route commands. A route
 generated without those files uses inline placeholder handlers and omits
