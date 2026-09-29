@@ -13,19 +13,19 @@ import {
   bookIdSchema,
 } from "../validators/books.validator.js";
 
-export default defineRoutes((router) => {
-  router.group({ prefix: "/api/books" }, () => {
-    router.get("/", getBooks);
-    router.post("/", createBook, {
+export default defineRoutes(({ get, post, put, delete: remove, group }) => {
+  group({ prefix: "/api/books" }, () => {
+    get("/", getBooks);
+    post("/", createBook, {
       validate: { body: createBookSchema },
     });
-    router.get("/:id", getBook, {
+    get("/:id", getBook, {
       validate: { params: bookIdSchema },
     });
-    router.put("/:id", updateBook, {
+    put("/:id", updateBook, {
       validate: { params: bookIdSchema, body: updateBookSchema },
     });
-    router.delete("/:id", deleteBook, {
+    remove("/:id", deleteBook, {
       validate: { params: bookIdSchema },
     });
   });
