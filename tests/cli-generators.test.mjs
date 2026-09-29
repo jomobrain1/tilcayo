@@ -394,3 +394,21 @@ test("database settings are checked and short individual commands work", async (
   assert.match(await readFile(path.join(cwd, "src/controllers/items.controller.ts"), "utf8"), /Item.create\(ctx.body\)/);
   compile(cwd);
 });
+
+test("mongodb flag selects MongoDB and rejects duplicate aliases before writing", async (t) => {
+  const cwd = await fixture(t);
+  const packagePath = path.join(cwd, "package.json");
+  const config = JSON.parse(await readFile(packagePath, "utf8"));
+  await writeFile(packagePath, JSON.stringify({ ...config, tilcayo: { database: "mysql" } }));
+  for (const args of [
+    ["make:resource", "Notebook", "--mongodb", "--mongo"],
+    ["make:resource", "Notebook", "--mongodb", "--mongodb"],
+    ["make:route", "notebooks", "--mongodb"],
+  ]) assert.notEqual(run(cwd, ...args).status, 0);
+  assert.ok(!(await readdir(cwd)).includes("src"));
+  success(cwd, "make:resource", "Notebook", "title:string", "price:number", "active:boolean", "--mongodb");
+  assert.match(await readFile(path.join(cwd, "src/models/Notebook.ts"), "utf8"), /mongoModel\("Notebook", notebookSchema\)/);
+  success(cwd, "make:model", "Entry", "--mongodb");
+  success(cwd, "make:controller", "entries", "--mongodb", "--resource");
+  compile(cwd);
+});

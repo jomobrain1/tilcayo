@@ -115,6 +115,14 @@ The example configures Mongo once in its application `package.json`:
 
 Mongo is also the default if omitted. Other adapters are not implemented. Older `--mongo`, `--crud`, and `--fields "title:string,year?:number"` options remain supported.
 
+To select MongoDB explicitly (overriding the project default), use `--mongodb`:
+
+```sh
+npx tilcayo make:resource Notebook title:string price:number active:boolean --mongodb
+```
+
+`--mongodb` is an alias for `--mongo` and also works with model and controller commands.
+
 ### Command not found?
 
 The CLI is installed locally in this workspace. Use **`npx tilcayo`**, rather than a bare `tilcayo` command.

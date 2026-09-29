@@ -13,6 +13,7 @@ export const help = `Usage: tilcayo <command> <name> [field:type ...]
 
 Commands:
   make:resource Product name:string price:number active:boolean
+  make:resource Notebook title:string price:number active:boolean --mongodb
   make:model Book
   make:controller books
   make:controller books --resource
@@ -24,6 +25,7 @@ Fields: string, number, boolean, date. Use year?:number for an optional field.
 Resource, model, controller, and validator commands accept fields.
 --resource controllers contain working CRUD; plain controllers are placeholders.
 Database: package.json tilcayo.database (defaults to mongo; only mongo is supported).
+--mongodb explicitly selects MongoDB for resources, models, and controllers.
 Legacy --fields, --mongo, and --crud options still work.
 Run inside the application directory. Existing files are never overwritten.`;
 
@@ -64,7 +66,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
   const positional: string[] = [];
   let fields: string | undefined;
   for (let i = 0; i < options.length; i++) {
-    const option = options[i];
+    const option = options[i] === "--mongodb" ? "--mongo" : options[i];
     if (!option.startsWith("--")) {
       positional.push(option);
       continue;
