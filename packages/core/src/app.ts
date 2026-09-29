@@ -9,6 +9,8 @@ import type { Server } from "node:http";
 
 import { createRouter } from "./routing/createRouter.js";
 import { createContext } from "./context/createContext.js";
+import { validateContext } from "./validation/validateContext.js";
+import { handleNotFound, handleError } from "./errors/errorHandler.js";
 
 import type { RouteDefinition } from "./routing/types.js";
 import type { Router, RouteRegistrar } from "./routing/defineRoutes.js";
@@ -34,7 +36,8 @@ export function createApp(): TilcayoApp {
       next: NextFunction,
     ) => {
       try {
-        const ctx = createContext(req, res);
+        const rawContext = createContext(req, res);
+        const ctx = await validateContext(rawContext, definition.options.validate);
         const result = await definition.handler(ctx);
 
         if (result === undefined) {
@@ -80,6 +83,8 @@ export function createApp(): TilcayoApp {
       mountRoute(definition);
     }
 
+    http.use(handleNotFound);
+    http.use(handleError);
     routesMounted = true;
   }
 

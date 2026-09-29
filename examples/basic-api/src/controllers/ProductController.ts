@@ -1,18 +1,9 @@
 import type { TilcayoContext } from "@tilcayo/core";
+import { notFound } from "@tilcayo/core";
 
 export const ProductController = {
   index(ctx: TilcayoContext) {
-    const books = [
-      {
-        id: 1,
-        title: "This is the book 1",
-      },
-      {
-        id: 2,
-        title: "This is book 2",
-      },
-    ];
-    return ctx.response.success(books, "Products retrieved");
+    return ctx.response.success([], "Products retrieved");
   },
 
   store(ctx: TilcayoContext) {
@@ -20,7 +11,10 @@ export const ProductController = {
   },
 
   show(ctx: TilcayoContext) {
-    return ctx.response.success({ id: ctx.params.id });
+    if (ctx.params.id === "missing") {
+      throw notFound("Product not found");
+    }
+    return ctx.response.success({ id: ctx.params.id }, "Product retrieved");
   },
 
   update(ctx: TilcayoContext) {

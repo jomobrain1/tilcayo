@@ -18,6 +18,14 @@ export type {
   HttpMethod,
   RouteDefinition,
   RouteHandler,
+  RouteOptions,
+  ResourceRouteOptions,
+  ResourceController,
 } from "./routing/types.js";
+
+export { createHttpError, isTilcayoHttpError, badRequest, notFound, validationError } from "./errors/httpErrors.js";
+export type { TilcayoHttpError } from "./errors/types.js";
+export { validateContext } from "./validation/validateContext.js";
+export type { RouteValidation, ValidationDetails, ValidationIssue } from "./validation/types.js";
 
 export const tilcayoVersion = "0.0.1";

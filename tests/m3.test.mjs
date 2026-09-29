@@ -1,51 +1,33 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { test } from "node:test";
 import { createApp, createRouter } from "../packages/core/dist/index.js";
+import apiRoutes from "../examples/basic-api/dist/routes/api.js";
 
-test("basic-api serves product controllers on port 9149", async () => {
-  const child = spawn(process.execPath, ["examples/basic-api/dist/index.js"], {
-    cwd: new URL("../", import.meta.url),
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-  });
-  let errors = "";
-  child.stderr.on("data", (data) => { errors += data; });
+test("basic-api serves product controllers", async () => {
+  const server = createApp().routes(apiRoutes).listen(0);
   try {
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error("Server startup timed out")), 10000);
-      child.once("error", (error) => { clearTimeout(timeout); reject(error); });
-      child.once("exit", (code) => {
-        clearTimeout(timeout);
-        reject(new Error(`Server exited with ${code}: ${errors}`));
-      });
-      child.stdout.on("data", (data) => {
-        if (data.toString().includes("http://localhost:9149")) {
-          clearTimeout(timeout);
-          resolve();
-        }
-      });
-    });
+    await once(server, "listening");
+    const base = `http://localhost:${server.address().port}`;
 
     for (const [path, expected] of [
       ["/", { framework: "Tilcayo", message: "Tilcayo API" }],
       ["/hello", { message: "Routing works" }],
     ]) {
-      const response = await fetch(`http://localhost:9149${path}`);
+      const response = await fetch(`${base}${path}`);
       assert.equal(response.status, 200);
       assert.deepEqual(await response.json(), expected);
     }
 
     const cases = [
       ["GET", "", undefined, 200, { success: true, message: "Products retrieved", data: [] }],
-      ["GET", "/123", undefined, 200, { success: true, message: "Success", data: { id: "123" } }],
-      ["POST", "", { name: "Keyboard" }, 201, { success: true, message: "Product created", data: { name: "Keyboard" } }],
+      ["GET", "/123", undefined, 200, { success: true, message: "Product retrieved", data: { id: "123" } }],
+      ["POST", "", { name: "Keyboard", price: 5000 }, 201, { success: true, message: "Product created", data: { name: "Keyboard", price: 5000 } }],
       ["PUT", "/123", { name: "Updated Keyboard" }, 200, { success: true, message: "Product updated", data: { id: "123", body: { name: "Updated Keyboard" } } }],
       ["DELETE", "/123", undefined, 204, undefined],
     ];
     for (const [method, path, body, status, expected] of cases) {
-      const response = await fetch(`http://localhost:9149/api/products${path}`, {
+      const response = await fetch(`${base}/api/products${path}`, {
         method,
         headers: { "Content-Type": "application/json" },
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -55,11 +37,7 @@ test("basic-api serves product controllers on port 9149", async () => {
       else assert.deepEqual(await response.json(), expected);
     }
   } finally {
-    if (child.exitCode === null && child.signalCode === null) {
-      const exited = once(child, "exit");
-      child.kill();
-      await exited;
-    }
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
 });
 

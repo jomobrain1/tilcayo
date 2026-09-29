@@ -1,4 +1,4 @@
-import type { HttpMethod, RouteDefinition, RouteHandler } from "./types.js";
+import type { HttpMethod, RouteDefinition, RouteHandler, RouteOptions, ResourceController, ResourceRouteOptions } from "./types.js";
 
 export function createRouter() {
   const routes: RouteDefinition[] = [];
@@ -8,34 +8,35 @@ export function createRouter() {
     return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
   }
 
-  function register(method: HttpMethod, path: string, handler: RouteHandler) {
+  function register(method: HttpMethod, path: string, handler: RouteHandler, options: RouteOptions = {}) {
     routes.push({
       method,
       path: prefix ? joinPath(prefix, path) : path,
       handler,
+      options,
     });
 
     return api;
   }
 
-  function get(path: string, handler: RouteHandler) {
-    return register("GET", path, handler);
+  function get(path: string, handler: RouteHandler, options?: RouteOptions) {
+    return register("GET", path, handler, options);
   }
 
-  function post(path: string, handler: RouteHandler) {
-    return register("POST", path, handler);
+  function post(path: string, handler: RouteHandler, options?: RouteOptions) {
+    return register("POST", path, handler, options);
   }
 
-  function put(path: string, handler: RouteHandler) {
-    return register("PUT", path, handler);
+  function put(path: string, handler: RouteHandler, options?: RouteOptions) {
+    return register("PUT", path, handler, options);
   }
 
-  function patch(path: string, handler: RouteHandler) {
-    return register("PATCH", path, handler);
+  function patch(path: string, handler: RouteHandler, options?: RouteOptions) {
+    return register("PATCH", path, handler, options);
   }
 
-  function remove(path: string, handler: RouteHandler) {
-    return register("DELETE", path, handler);
+  function remove(path: string, handler: RouteHandler, options?: RouteOptions) {
+    return register("DELETE", path, handler, options);
   }
 
   function all(): readonly RouteDefinition[] {
@@ -55,14 +56,15 @@ export function createRouter() {
 
   function resource(
     path: string,
-    controller: Record<"index" | "store" | "show" | "update" | "destroy", RouteHandler>,
+    controller: ResourceController,
+    options: ResourceRouteOptions = {},
   ) {
-    get(path, controller.index);
-    post(path, controller.store);
+    get(path, controller.index, options.index);
+    post(path, controller.store, options.store);
     const itemPath = joinPath(path, ":id");
-    get(itemPath, controller.show);
-    put(itemPath, controller.update);
-    remove(itemPath, controller.destroy);
+    get(itemPath, controller.show, options.show);
+    put(itemPath, controller.update, options.update);
+    remove(itemPath, controller.destroy, options.destroy);
     return api;
   }
 
