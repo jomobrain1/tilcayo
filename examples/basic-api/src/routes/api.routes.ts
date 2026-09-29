@@ -1,4 +1,4 @@
-import { defineRoutes } from "@tilcayo/core";
+import { defineRoutes, rateLimit, cors, requestId, requestLogger, securityHeaders, bodyLimit, cache } from "@tilcayo/core";
 
 import * as ProductController from "../controllers/products.controller.js";
 import {
@@ -8,12 +8,24 @@ import {
 } from "../validators/products.validator.js";
 
 export default defineRoutes((router) => {
-  // Resource routes map index/store/show/update/destroy to the five CRUD routes.
-  router.resource("/api/products", ProductController, {
-    store: { validate: { body: createProductSchema } },
-    show: { validate: { params: productIdSchema } },
-    update: { validate: { params: productIdSchema, body: updateProductSchema } },
-    destroy: { validate: { params: productIdSchema } },
+  // Shared checks for this API group. Each IP gets 100 requests per minute.
+  router.group({ prefix: "/api", middleware: [
+    requestId(),
+    requestLogger(),
+    securityHeaders(),
+    cors({ origin: "http://localhost:5173" }),
+    rateLimit({ windowMs: 60_000, max: 100 }),
+    bodyLimit(16 * 1024), // 16 KB JSON bodies.
+  ] }, () => {
+    router.resource("/products", ProductController, {
+      store: {
+        middleware: [rateLimit({ windowMs: 60_000, max: 20 })],
+        validate: { body: createProductSchema },
+      },
+      show: { validate: { params: productIdSchema } },
+      update: { validate: { params: productIdSchema, body: updateProductSchema } },
+      destroy: { validate: { params: productIdSchema } },
+    });
   });
 
   router.get("/", () => ({
@@ -23,5 +35,5 @@ export default defineRoutes((router) => {
 
   router.get("/hello", () => ({
     message: "Routing works",
-  }));
+  }), { middleware: [cache({ maxAge: 30 })] });
 });

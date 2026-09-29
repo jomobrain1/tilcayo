@@ -220,7 +220,85 @@ export default defineRoutes((router) => {
 
 The router supports `get`, `post`, `put`, `patch`, `delete`, prefix groups, and `resource`. Generated resource routes attach body and Mongo ID validators to the appropriate actions. Validation can also target `query` and `params`.
 
+## Middleware
+
+Attach reusable functions to routes, groups, or resources:
+
+```typescript
+import { defineRoutes, rateLimit, bodyLimit } from "@tilcayo/core";
+
+export default defineRoutes((router) => {
+  router.group({
+    prefix: "/api",
+    middleware: [rateLimit({ windowMs: 60_000, max: 100 })],
+  }, () => {
+    router.resource("/notebooks", NotebookController, {
+      store: {
+        middleware: [rateLimit({ windowMs: 60_000, max: 20 }), bodyLimit(16 * 1024)],
+        validate: { body: createNotebookSchema },
+      },
+    });
+  });
+});
+```
+
+Import your controller and validator as in the route examples above. Execution order:
+
+```text
+App middleware → Group → Resource → Route → JSON parsing → Validation → Controller
+```
+
+| Helper | Purpose |
+| --- | --- |
+| `rateLimit({ windowMs: 60_000, max: 100 })` | Requests per IP per time window; returns 429 and `Retry-After` |
+| `cors({ origin: "http://localhost:5173" })` | Allowed browser origin and OPTIONS preflight handling |
+| `requestId()` | Generates `ctx.requestId` and an `X-Request-Id` response header |
+| `requestLogger()` | Logs ID, method, path, status, and duration; accepts a custom log callback |
+| `securityHeaders()` | Sets nosniff, frame denial, and no-referrer headers |
+| `bodyLimit(16 * 1024)` | Limits JSON bytes before parsing; returns 413 |
+| `cache({ maxAge: 30 })` | Browser/proxy cache headers for explicitly public GET routes; seconds |
+
+For all matched routes, use app-level middleware:
+
+```typescript
+const app = createApp({
+  middleware: [requestId(), requestLogger(), securityHeaders()],
+  bodyLimit: 102400,
+});
+```
+
+Import these helpers from `@tilcayo/core`. The default JSON limit is 100 KB;
+route and group limits can lower it. CORS belongs before rate limiting so
+preflight requests do not consume the limit. Credentials require explicit origins.
+
+Each limiter has its own counter. Reusing one shares the quota across routes;
+group and route limits both apply. Counters are process-local, reset on restart,
+and track at most 10,000 IPs by default (`maxKeys` is configurable). At capacity,
+new IPs receive 429 until slots expire. Proxy forwarding headers are not trusted;
+behind a proxy, requests currently share the proxy IP's quota.
+
+Caching is opt-in for public data; it does not store responses on the server.
+Authorization/cookie requests, responses setting cookies, and errors use `no-store`.
+Use request logging for matched routes; unmatched 404s are handled separately.
+Authentication and authorization will be added later.
+
+Custom middleware stays a plain function:
+
+```typescript
+import type { Middleware } from "@tilcayo/core";
+
+const addVersion: Middleware = async (ctx, next) => {
+  ctx.header("X-API-Version", "1");
+  return next();
+};
+```
+
+Call and return `next()` once to continue, return a response to stop, or throw
+a framework error. The middleware body is unparsed; access validated bodies in
+controllers. See `examples/basic-api/src/routes/api.routes.ts` for working examples.
+
 ## Database methods
+
 
 | Method | Returns |
 | --- | --- |

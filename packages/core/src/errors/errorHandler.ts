@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { isTilcayoHttpError, notFound } from "./httpErrors.js";
+import { createHttpError, isTilcayoHttpError, notFound } from "./httpErrors.js";
 
 export function handleNotFound(_req: Request, _res: Response, next: NextFunction): void {
   next(notFound("Route not found"));
@@ -14,6 +14,12 @@ export function handleError(
   if (res.headersSent) {
     next(error);
     return;
+  }
+
+  res.setHeader("Cache-Control", "no-store");
+  if (error instanceof Error && "type" in error) {
+    if (error.type === "entity.too.large") error = createHttpError(413, "BODY_TOO_LARGE", "Request body is too large");
+    else if (error.type === "entity.parse.failed") error = createHttpError(400, "BAD_REQUEST", "Invalid JSON body");
   }
 
   if (isTilcayoHttpError(error)) {

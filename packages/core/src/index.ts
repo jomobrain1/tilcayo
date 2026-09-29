@@ -1,4 +1,8 @@
 export { createApp } from "./app.js";
+export type { AppOptions } from "./app.js";
+export type { Middleware, MiddlewareContext } from "./middleware/types.js";
+export { rateLimit, cors, requestId, requestLogger, securityHeaders, bodyLimit, cache } from "./middleware/builtins.js";
+export type { RequestLog } from "./middleware/builtins.js";
 
 export { connectMongo, disconnectMongo, getMongoState } from "./database/mongo.js";
 export type { MongoConnectOptions, MongoState } from "./database/types.js";

@@ -14,6 +14,13 @@ import { handleNotFound, handleError } from "./errors/errorHandler.js";
 
 import type { RouteDefinition } from "./routing/types.js";
 import type { Router, RouteRegistrar } from "./routing/defineRoutes.js";
+import { runMiddleware, type Middleware, type MiddlewareContext } from "./middleware/types.js";
+import { createHttpError } from "./errors/httpErrors.js";
+
+export interface AppOptions {
+  middleware?: Middleware[];
+  bodyLimit?: number;
+}
 
 interface TilcayoApp {
   route: Router;
@@ -21,9 +28,12 @@ interface TilcayoApp {
   listen(port?: number): Server;
 }
 
-export function createApp(): TilcayoApp {
+export function createApp(options: AppOptions = {}): TilcayoApp {
   const http: Express = express();
-  http.use(express.json());
+  http.disable("x-powered-by");
+  const limit = options.bodyLimit ?? 102400;
+  if (!Number.isSafeInteger(limit) || limit < 1) throw new Error("bodyLimit must be a positive integer");
+  const globalMiddleware = [...(options.middleware ?? [])];
 
   const route = createRouter();
 
@@ -36,9 +46,25 @@ export function createApp(): TilcayoApp {
       next: NextFunction,
     ) => {
       try {
-        const rawContext = createContext(req, res);
-        const ctx = await validateContext(rawContext, definition.options.validate);
-        const result = await definition.handler(ctx);
+        const rawContext: MiddlewareContext = {
+          ...createContext(req, res),
+          bodyLimit: limit,
+          status: (code) => { res.status(code); },
+          header: (name, value) => { res.setHeader(name, value); },
+          vary: (name) => { res.vary(name); },
+          onFinish: (callback) => { res.once("finish", () => callback(res.statusCode)); },
+        };
+        const result = await runMiddleware(rawContext, [...globalMiddleware, ...(definition.options.middleware ?? [])], async () => {
+          if (req.method === "OPTIONS") throw createHttpError(404, "NOT_FOUND", "Route not found");
+          await new Promise<void>((resolve, reject) => {
+            express.json({ limit: rawContext.bodyLimit })(req, res, (error?: unknown) => error ? reject(error) : resolve());
+          });
+          rawContext.body = req.body;
+          const ctx = await validateContext(rawContext, definition.options.validate);
+          return definition.handler(ctx);
+        });
+
+        if (res.statusCode >= 400 || res.hasHeader("Set-Cookie")) res.setHeader("Cache-Control", "no-store");
 
         if (result === undefined) {
           res.status(204).end();
@@ -50,6 +76,12 @@ export function createApp(): TilcayoApp {
         next(error);
       }
     };
+
+    // Dispatch preflights to the requested method's middleware, without its controller.
+    http.options(definition.path, (req, res, next) => {
+      if (req.get("Access-Control-Request-Method") !== definition.method) { next(); return; }
+      void handler(req, res, next);
+    });
 
     switch (definition.method) {
       case "GET":

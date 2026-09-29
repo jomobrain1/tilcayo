@@ -1,9 +1,11 @@
 import type { HttpMethod, RouteDefinition, RouteHandler, RouteOptions, ResourceController, ResourceRouteOptions } from "./types.js";
 import type { TilcayoContext } from "../context/types.js";
+import type { Middleware } from "../middleware/types.js";
 
 export function createRouter() {
   const routes: RouteDefinition[] = [];
   let prefix = "";
+  let inherited: Middleware[] = [];
 
   function joinPath(base: string, path: string): string {
     return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
@@ -15,7 +17,7 @@ export function createRouter() {
       path: prefix ? joinPath(prefix, path) : path,
       // The app validates the request before invoking this stored handler.
       handler: (ctx) => handler(ctx as TilcayoContext<Body>),
-      options,
+      options: inherited.length ? { ...options, middleware: [...inherited, ...(options.middleware ?? [])] } : options,
     });
 
     return api;
@@ -45,13 +47,16 @@ export function createRouter() {
     return routes;
   }
 
-  function group(options: { prefix: string }, callback: () => void) {
+  function group(options: { prefix: string; middleware?: Middleware[] }, callback: () => void) {
     const previousPrefix = prefix;
+    const previousMiddleware = inherited;
     prefix = joinPath(prefix, options.prefix);
+    inherited = [...inherited, ...(options.middleware ?? [])];
     try {
       callback();
     } finally {
       prefix = previousPrefix;
+      inherited = previousMiddleware;
     }
     return api;
   }
@@ -61,12 +66,15 @@ export function createRouter() {
     controller: ResourceController<CreateBody, UpdateBody>,
     options: ResourceRouteOptions<NoInfer<CreateBody>, NoInfer<UpdateBody>> = {},
   ) {
-    get(path, controller.index, options.index);
-    post(path, controller.store, options.store);
+    function action<B>(option?: RouteOptions<B>): RouteOptions<B> | undefined {
+      return options.middleware?.length ? { ...option, middleware: [...options.middleware, ...(option?.middleware ?? [])] } : option;
+    }
+    get(path, controller.index, action(options.index));
+    post(path, controller.store, action(options.store));
     const itemPath = joinPath(path, ":id");
-    get(itemPath, controller.show, options.show);
-    put(itemPath, controller.update, options.update);
-    remove(itemPath, controller.destroy, options.destroy);
+    get(itemPath, controller.show, action(options.show));
+    put(itemPath, controller.update, action(options.update));
+    remove(itemPath, controller.destroy, action(options.destroy));
     return api;
   }
 

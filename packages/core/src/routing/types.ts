@@ -1,11 +1,14 @@
 import type { TilcayoContext } from "../context/types.js";
 import type { RouteValidation } from "../validation/types.js";
+import type { Middleware } from "../middleware/types.js";
 
 export interface RouteOptions<Body = unknown> {
+  middleware?: Middleware[];
   validate?: RouteValidation<Body>;
 }
 
 export interface ResourceRouteOptions<CreateBody = unknown, UpdateBody = unknown> {
+  middleware?: Middleware[];
   index?: RouteOptions;
   store?: RouteOptions<CreateBody>;
   show?: RouteOptions;
