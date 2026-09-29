@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "tilcayo": {
+    "database": "mongo"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "npm run dev",

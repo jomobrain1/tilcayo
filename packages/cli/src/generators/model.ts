@@ -9,7 +9,7 @@ const fieldTypes = new Map([
 ]);
 
 function schemaFields(input: string): string {
-  return parseFields(input).map(({ name, type }) => `  ${name}: { type: ${fieldTypes.get(type)} },`).join("\n");
+  return parseFields(input, true).map(({ name, type, optional }) => `  ${name}: { type: ${fieldTypes.get(type)}${optional ? "" : ", required: true"} },`).join("\n");
 }
 
 export const modelTemplate = ({ model, singular }: ResourceNames, fields?: string, mongo = false): string => {

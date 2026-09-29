@@ -92,7 +92,7 @@ test("model fields generate a simple schema with inferred TypeScript types", asy
   const source = await readFile(target, "utf8");
   assert.doesNotMatch(source, /InferSchemaType|modelNames|CustomerDocument/);
   await writeFile(path.join(cwd, "src/check.ts"), `import { Customer } from "./models/Customer.js";
-const customer = new Customer();
+const customer = new Customer.raw();
 const name: string | null | undefined = customer.name;
 const email: string | null | undefined = customer.email;
 const age: number | null | undefined = customer.age;
@@ -117,7 +117,7 @@ test("invalid field options fail without creating files", async (t) => {
     ["make:model", "Customer", "--fields", "name:string", "--resource"],
     ["make:controller", "customers", "--fields", "name:unknown"],
     ["make:controller", "customers", "--fields", "name:string,name?:string"],
-    ["make:validator", "customers", "--fields", "name:string"],
+    ["make:route", "customers", "--fields", "name:string"],
   ]) assert.notEqual(run(cwd, ...args).status, 0);
   assert.ok(!(await readdir(cwd)).includes("src"));
 });
@@ -127,7 +127,7 @@ test("resource-mode controllers and routes compile together", async (t) => {
   success(cwd, "make:model", "Category");
   success(cwd, "make:controller", "categories", "--resource");
   success(cwd, "make:validator", "categories");
-  success(cwd, "make:route", "categories", "--resource");
+  success(cwd, "make:route", "categories");
   const controller = await readFile(path.join(cwd, "src/controllers/categories.controller.ts"), "utf8");
   for (const action of ["index", "store", "show", "update", "destroy"]) assert.match(controller, new RegExp(`export const ${action} = async`));
   const route = await readFile(path.join(cwd, "src/routes/categories.routes.ts"), "utf8");
@@ -194,6 +194,7 @@ test("Mongo generator options reject missing adapters, invalid combinations and 
   ]) assert.notEqual(run(cwd, ...args).status, 0);
   assert.ok(!(await readdir(cwd)).includes("src"));
   success(cwd, "make:model", "Book");
+  await writeFile(path.join(cwd, "src/models/Book.ts"), "export const Book = {};\n");
   const result = run(cwd, "make:controller", "books", "--crud", "--mongo");
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /use mongoModel/);
@@ -242,13 +243,7 @@ const untyped = (ctx: TilcayoContext) => {
 
 test("generated Mongo CRUD routes list all records and support optional pagination", async (t) => {
   const cwd = await fixture(t);
-  success(cwd, "make:model", "Novel", "--mongo", "--fields", "title:string");
-  success(cwd, "make:controller", "novels", "--resource", "--crud", "--mongo", "--fields", "title:string");
-  success(cwd, "make:validator", "novels");
-  const validatorPath = path.join(cwd, "src/validators/novels.validator.ts");
-  const validator = await readFile(validatorPath, "utf8");
-  await writeFile(validatorPath, validator.replace("// Add your fields here, for example: name: z.string().min(2),", "title: z.string().min(2),"));
-  success(cwd, "make:route", "novels", "--resource");
+  success(cwd, "make:resource", "Novel", "title:string", "year?:number", "active?:boolean", "publishedAt?:date");
   const build = spawnSync(process.execPath, [compiler, "-p", "tsconfig.json", "--noEmit", "false", "--rootDir", "src", "--outDir", "dist"], { cwd, encoding: "utf8", windowsHide: true });
   assert.equal(build.status, 0, build.stdout + build.stderr);
   const { Novel } = await import(pathToFileURL(path.join(cwd, "dist/models/Novel.js")));
@@ -257,6 +252,7 @@ test("generated Mongo CRUD routes list all records and support optional paginati
   const id = "1234567890abcdef12345678";
   const records = new Map();
   t.mock.method(Novel.raw, "create", async (data) => {
+    if (data.publishedAt) assert.ok(data.publishedAt instanceof Date);
     const document = new Novel.raw({ ...data, _id: id });
     await document.validate();
     const record = document.toObject();
@@ -286,9 +282,11 @@ test("generated Mongo CRUD routes list all records and support optional paginati
     });
     return { status: response.status, body: response.status === 204 ? null : await response.json() };
   }
-  const created = await request("POST", "", { title: "Novel", ignored: "strip" });
+  const created = await request("POST", "", { title: "Novel", active: false, publishedAt: "2025-01-01T00:00:00Z", ignored: "strip" });
   assert.equal(created.status, 201);
   assert.equal(created.body.data.ignored, undefined);
+  assert.equal(created.body.data.active, false);
+  assert.equal(created.body.data.publishedAt, "2025-01-01T00:00:00.000Z");
   const listed = await request("GET", "?page=1&perPage=2");
   assert.equal(listed.body.data.length, 1);
   const paginated = await fetch(`http://127.0.0.1:${server.address().port}/paginated-novels?page=1&perPage=2`);
@@ -298,7 +296,9 @@ test("generated Mongo CRUD routes list all records and support optional paginati
   assert.equal(page.data.pagination.perPage, 2);
   assert.equal((await request("GET", `/${id}`)).body.data.title, "Novel");
   assert.equal((await request("PUT", `/${id}`, { title: "Updated" })).body.data.title, "Updated");
-  assert.equal((await request("POST", "", { title: "x" })).status, 422);
+  for (const body of [{}, { title: "" }, { title: "Novel", active: "false" }, { title: "Novel", year: "bad" }, { title: "Novel", publishedAt: true }]) {
+    assert.equal((await request("POST", "", body)).status, 422);
+  }
   assert.equal((await request("GET", "/bad-id")).status, 422);
   for (const query of ["page=bad", "page=1&page=2"]) {
     const response = await fetch(`http://127.0.0.1:${server.address().port}/paginated-novels?${query}`);
@@ -313,14 +313,14 @@ test("generated Mongo CRUD routes list all records and support optional paginati
 
 test("invalid commands, flags, styles and paths fail before writing files", async (t) => {
   const cwd = await fixture(t);
-  for (const args of [["make:resource", "Book"], ["make:model"], ["make:model", "../Book"], ["make:model", "Book", "--resource"], ["make:controller", "books", "--force"]]) {
+  for (const args of [["make:unknown", "Book"], ["make:model"], ["make:model", "../Book"], ["make:model", "Book", "--resource"], ["make:controller", "books", "--force"]]) {
     assert.notEqual(run(cwd, ...args).status, 0);
   }
   assert.ok(!(await readdir(cwd)).includes("src"));
-  success(cwd, "make:controller", "books", "--resource");
-  const mismatch = run(cwd, "make:route", "books");
+  success(cwd, "make:controller", "books");
+  const mismatch = run(cwd, "make:route", "books", "--resource");
   assert.notEqual(mismatch.status, 0);
-  assert.match(mismatch.stderr, /must export getBooks/);
+  assert.match(mismatch.stderr, /must export index/);
   assert.match(success(cwd, "--help"), /make:service/);
 });
 
@@ -332,4 +332,65 @@ test("source directory links cannot escape the application", async (t) => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /regular directory/);
   assert.ok(!(await readdir(outside)).includes("models"));
+});
+
+test("resource command shares required and optional fields across all four files", async (t) => {
+  const cwd = await fixture(t);
+  const output = success(cwd, "make:resource", "Product", "name:string", "price:number", "active:boolean", "releasedAt?:date");
+  assert.equal((output.match(/Created src\//g) ?? []).length, 4);
+  assert.match(output, /import productRoutes from "\.\/routes\/products\.routes\.js"/);
+  assert.match(output, /app.routes\(productRoutes\)/);
+  const model = await readFile(path.join(cwd, "src/models/Product.ts"), "utf8");
+  assert.match(model, /name: \{ type: String, required: true \}/);
+  assert.match(model, /releasedAt: \{ type: Date \}/);
+  const controller = await readFile(path.join(cwd, "src/controllers/products.controller.ts"), "utf8");
+  assert.match(controller, /name: string;/);
+  assert.match(controller, /releasedAt\?: Date;/);
+  assert.match(controller, /Product.all\(\)/);
+  const validator = await readFile(path.join(cwd, "src/validators/products.validator.ts"), "utf8");
+  assert.match(validator, /name: z.string\(\).min\(1\)/);
+  assert.match(validator, /active: z.boolean\(\)/);
+  assert.match(validator, /\.pipe\(z.coerce.date\(\)\).optional\(\)/);
+  const route = await readFile(path.join(cwd, "src/routes/products.routes.ts"), "utf8");
+  assert.match(route, /router.resource\("\/products"/);
+  compile(cwd);
+});
+
+test("resource preflight rejects every file collision and invalid fields without partial writes", async (t) => {
+  for (const [folder, filename] of [["models", "Product.ts"], ["controllers", "products.controller.ts"], ["validators", "products.validator.ts"], ["routes", "products.routes.ts"]]) {
+    const cwd = await fixture(t);
+    await mkdir(path.join(cwd, "src", folder), { recursive: true });
+    const target = path.join(cwd, "src", folder, filename);
+    await writeFile(target, "existing content");
+    assert.match(run(cwd, "make:resource", "Product", "name:string").stderr, /already exists/);
+    assert.equal(await readFile(target, "utf8"), "existing content");
+    assert.deepEqual(await readdir(path.join(cwd, "src")), [folder]);
+  }
+  const cwd = await fixture(t);
+  for (const fields of [["name:string", "name?:number"], ["price:unknown"], ["../name:string"], ["name:string", "--fields", "price:number"]]) {
+    assert.notEqual(run(cwd, "make:resource", "Product", ...fields).status, 0);
+  }
+  assert.ok(!(await readdir(cwd)).includes("src"));
+  const outside = await fixture(t);
+  await mkdir(path.join(cwd, "src"));
+  await symlink(outside, path.join(cwd, "src/routes"), process.platform === "win32" ? "junction" : "dir");
+  assert.match(run(cwd, "make:resource", "Product", "name:string").stderr, /regular directory/);
+  assert.deepEqual(await readdir(path.join(cwd, "src")), ["routes"]);
+});
+
+test("database settings are checked and short individual commands work", async (t) => {
+  const cwd = await fixture(t);
+  const packagePath = path.join(cwd, "package.json");
+  const config = JSON.parse(await readFile(packagePath, "utf8"));
+  await writeFile(packagePath, JSON.stringify({ ...config, tilcayo: { database: "mysql" } }));
+  assert.match(run(cwd, "make:resource", "Item", "name:string").stderr, /Unsupported database: mysql/);
+  assert.ok(!(await readdir(cwd)).includes("src"));
+  await writeFile(packagePath, JSON.stringify({ ...config, tilcayo: { database: "mongo" } }));
+  success(cwd, "make:model", "Item", "name:string", "year?:number");
+  success(cwd, "make:controller", "items", "--resource", "name:string", "year?:number");
+  success(cwd, "make:validator", "items", "name:string", "year?:number");
+  success(cwd, "make:route", "items");
+  success(cwd, "make:service", "items");
+  assert.match(await readFile(path.join(cwd, "src/controllers/items.controller.ts"), "utf8"), /Item.create\(ctx.body\)/);
+  compile(cwd);
 });

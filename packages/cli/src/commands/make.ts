@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { resourceNames } from "../utils/naming.js";
+import { parseFields } from "../utils/fields.js";
 import { readSource, writeSource } from "../utils/files.js";
 import { modelTemplate } from "../generators/model.js";
 import { controllerTemplate, handlerNames } from "../generators/controller.js";
@@ -8,21 +9,23 @@ import { validatorTemplate } from "../generators/validator.js";
 import { routeTemplate } from "../generators/route.js";
 import { serviceTemplate } from "../generators/service.js";
 
-export const help = `Usage: tilcayo <command> <name> [options]
+export const help = `Usage: tilcayo <command> <name> [field:type ...]
 
 Commands:
-  make:model Book [--mongo] [--fields "title:string,year:number"]
-  make:controller books [--resource] [--crud --mongo] [--fields "title:string,year?:number"]
+  make:resource Product name:string price:number active:boolean
+  make:model Book
+  make:controller books
+  make:controller books --resource
   make:validator books
-  make:route books [--resource]
+  make:route books
   make:service books
 
-Model field types: string, number, boolean, date. Fields are optional by default.
-Controller --fields generates a plain request body type; use ? for optional fields.
---mongo models expose Tilcayo database methods; --crud --mongo controllers use them.
-Mongo controllers use all() in index. Use paginate(ctx.query) when you want pagination.
-Run from an application directory containing package.json.
-Existing files are never overwritten.`;
+Fields: string, number, boolean, date. Use year?:number for an optional field.
+Resource, model, controller, and validator commands accept fields.
+--resource controllers contain working CRUD; plain controllers are placeholders.
+Database: package.json tilcayo.database (defaults to mongo; only mongo is supported).
+Legacy --fields, --mongo, and --crud options still work.
+Run inside the application directory. Existing files are never overwritten.`;
 
 function requireExports(source: string, names: string[], filename: string): void {
   for (const name of names) {
@@ -32,66 +35,110 @@ function requireExports(source: string, names: string[], filename: string): void
   }
 }
 
-export async function make(args: string[], root = process.cwd()): Promise<string[]> {
-  const [command, input, ...flags] = args;
-  if (!command || command === "--help" || command === "-h") return [help];
-  const kind = command.startsWith("make:") ? command.slice(5) : "";
-  if (!["model", "controller", "validator", "route", "service"].includes(kind)) {
-    throw new Error(`Unknown command: ${command}. Run tilcayo --help.`);
-  }
-  if (!input) throw new Error(`Missing name. Example: tilcayo ${command} Book`);
-  let fields: string | undefined;
-  const seen = new Set<string>();
-  for (let i = 0; i < flags.length; i++) {
-    const flag = flags[i];
-    if (seen.has(flag)) throw new Error(`Duplicate flag: ${flag}`);
-    seen.add(flag);
-    if (flag === "--fields" && (kind === "model" || kind === "controller")) {
-      fields = flags[++i];
-      if (!fields?.trim() || fields.startsWith("--")) throw new Error('Use --fields "name:string,age:number".');
-    } else if (!["--resource", "--mongo", "--crud"].includes(flag)) {
-      throw new Error("Unsupported flags. Run tilcayo --help.");
-    }
-  }
-  const resource = seen.has("--resource");
-  const mongo = seen.has("--mongo");
-  const crud = seen.has("--crud");
-  if (resource && kind !== "controller" && kind !== "route") throw new Error("--resource is only supported for controllers and routes.");
-  if (mongo && kind !== "model" && kind !== "controller") throw new Error("--mongo is only supported for models and controllers.");
-  if (crud && kind !== "controller") throw new Error("--crud is only supported for controllers.");
-  if (crud && !mongo) throw new Error("Choose a database for CRUD: --crud --mongo. MySQL is not implemented yet.");
-  const names = resourceNames(input);
+async function databaseFor(root: string): Promise<string> {
+  let config: unknown;
   try {
-    JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+    config = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   } catch {
     throw new Error("Run this command from an application directory with a valid package.json.");
   }
+  if (!config || typeof config !== "object" || Array.isArray(config)) throw new Error("Invalid package.json.");
+  if (!("tilcayo" in config)) return "mongo";
+  const settings = config.tilcayo;
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) throw new Error("package.json tilcayo must be an object.");
+  if (!("database" in settings)) return "mongo";
+  if (typeof settings.database !== "string") throw new Error("package.json tilcayo.database must be a string.");
+  return settings.database;
+}
+
+export async function make(args: string[], root = process.cwd()): Promise<string[]> {
+  const [command, input, ...options] = args;
+  if (!command || command === "--help" || command === "-h") return [help];
+  const kind = command.startsWith("make:") ? command.slice(5) : "";
+  if (!["resource", "model", "controller", "validator", "route", "service"].includes(kind)) {
+    throw new Error(`Unknown command: ${command}. Run tilcayo --help.`);
+  }
+  if (!input) throw new Error(`Missing name. Example: tilcayo ${command} Book`);
+  const names = resourceNames(input);
+  const flags = new Set<string>();
+  const positional: string[] = [];
+  let fields: string | undefined;
+  for (let i = 0; i < options.length; i++) {
+    const option = options[i];
+    if (!option.startsWith("--")) {
+      positional.push(option);
+      continue;
+    }
+    if (flags.has(option)) throw new Error(`Duplicate flag: ${option}`);
+    flags.add(option);
+    if (option === "--fields") {
+      fields = options[++i];
+      if (!fields?.trim() || fields.startsWith("--")) throw new Error('Use --fields "name:string,age:number".');
+    } else if (!["--resource", "--mongo", "--crud"].includes(option)) {
+      throw new Error("Unsupported flags. Run tilcayo --help.");
+    }
+  }
+  if (fields !== undefined && positional.length) throw new Error("Use positional fields or --fields, not both.");
+  fields ??= positional.length ? positional.join(",") : undefined;
+  if (fields !== undefined) {
+    if (!["resource", "model", "controller", "validator"].includes(kind)) throw new Error(`make:${kind} does not accept fields.`);
+    parseFields(fields, true);
+  }
+  let resource = kind === "resource" || flags.has("--resource");
+  if (flags.has("--resource") && kind !== "controller" && kind !== "route") throw new Error("--resource is only supported for controllers and routes.");
+  if (flags.has("--mongo") && !["resource", "model", "controller"].includes(kind)) throw new Error("--mongo is only supported for resources, models and controllers.");
+  if (flags.has("--crud") && kind !== "controller") throw new Error("--crud is only supported for controllers.");
+  const database = await databaseFor(root);
+  const crud = kind === "controller" && (resource || flags.has("--crud") || flags.has("--mongo"));
+  if ((kind === "resource" || kind === "model" || crud) && !flags.has("--mongo") && database !== "mongo") {
+    throw new Error(`Unsupported database: ${database}. Only mongo is implemented.`);
+  }
   const filename = names.plural.toLowerCase();
   const messages: string[] = [];
+  const registration = [
+    `import ${names.singular}Routes from "./routes/${filename}.routes.js";`,
+    `app.routes(${names.singular}Routes);`,
+  ];
+
+  if (kind === "resource") {
+    const files = [
+      { folder: "models", name: `${names.model}.ts`, source: modelTemplate(names, fields, true) },
+      { folder: "controllers", name: `${filename}.controller.ts`, source: controllerTemplate(names, true, true, fields) },
+      { folder: "validators", name: `${filename}.validator.ts`, source: validatorTemplate(names, fields) },
+      { folder: "routes", name: `${filename}.routes.ts`, source: routeTemplate(names, true, true, true) },
+    ];
+    // Check the entire resource before creating any files.
+    for (const file of files) {
+      if (await readSource(root, file.folder, file.name) !== undefined) throw new Error(`File already exists: src/${file.folder}/${file.name}`);
+    }
+    for (const file of files) messages.push(`Created ${await writeSource(root, file.folder, file.name, file.source)}`);
+    return [...messages, "Register the routes in your application:", ...registration];
+  }
+
   let source: string;
-  if (kind === "model") source = modelTemplate(names, fields, mongo);
+  if (kind === "model") source = modelTemplate(names, fields, true);
   else if (kind === "controller") {
-    if (mongo) {
+    if (crud) {
       const model = await readSource(root, "models", `${names.model}.ts`);
       if (!model || !/\bmongoModel\s*\(/.test(model)) {
-        throw new Error(`Create ${names.model} with make:model ${names.model} --mongo first, or use mongoModel("${names.model}", schema) in its model file.`);
+        throw new Error(`Create ${names.model} with make:model ${names.model} first, or use mongoModel("${names.model}", schema) in its model file.`);
       }
-      messages.push("Attach body validators in your routes. For pagination, replace all() with paginate(ctx.query).");
     }
-    source = controllerTemplate(names, resource, mongo, fields);
-    messages.push("Keep the controller body types aligned with your route validators.");
-  }
-  else if (kind === "validator") source = validatorTemplate(names);
+    source = controllerTemplate(names, resource, crud, fields);
+  } else if (kind === "validator") source = validatorTemplate(names, fields);
   else if (kind === "service") source = serviceTemplate(names);
   else {
     const controller = await readSource(root, "controllers", `${filename}.controller.ts`);
     const validator = await readSource(root, "validators", `${filename}.validator.ts`);
-    if (controller !== undefined) requireExports(controller, handlerNames(names, resource), `${filename}.controller.ts`);
+    if (controller !== undefined) {
+      if (!flags.has("--resource")) resource = /export\s+(?:const\s+|(?:async\s+)?function\s+)index\b/.test(controller);
+      requireExports(controller, handlerNames(names, resource), `${filename}.controller.ts`);
+    }
     if (validator !== undefined) requireExports(validator, [`create${names.model}Schema`, `update${names.model}Schema`, `${names.singular}IdSchema`], `${filename}.validator.ts`);
     source = routeTemplate(names, resource, controller !== undefined, validator !== undefined);
     if (controller === undefined) messages.push(`Inline placeholder handlers used. Generate ${filename}.controller.ts and wire its exports when ready.`);
     if (validator === undefined) messages.push(`Generate ${filename}.validator.ts and attach schemas through route validate options.`);
-    messages.push(`Register the route file with app.routes(${names.singular}Routes).`);
+    messages.push("Register the routes in your application:", ...registration);
   }
   const folder = kind === "model" ? "models" : `${kind}s`;
   const target = kind === "model" ? `${names.model}.ts` : `${filename}.${kind === "route" ? "routes" : kind}.ts`;

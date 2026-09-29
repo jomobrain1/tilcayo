@@ -1,241 +1,361 @@
 # Tilcayo
 
-## Development
+An opinionated full-stack TypeScript framework for modern web applications with less repetitive setup and clearer conventions.
 
-Install dependencies with `npm install`, then run from the repository root:
+**KISS — keep it simple:** plain functions, readable controllers, reusable database methods, and short generator commands. Built on TypeScript, Node.js, Express, Mongoose, and Zod, with the underlying tools still accessible.
 
-Set `MONGODB_URI` in your shell or the root `.env` (loaded by the dev command).
-For example: `MONGODB_URI=mongodb://127.0.0.1:27017/tilcayo`.
-The example connects before listening on port 9149. Environment files are ignored
-by Git. Production startup expects environment variables to be supplied externally.
+> **Current scope:** API routing, validation, MongoDB, error handling, and CLI generators. React integration, authentication, and MySQL are not implemented yet.
 
-```sh
-npm start
-```
+## Why the name?
 
-`npm run dev` does the same thing. Both commands build core and the basic API,
-then start the example at http://localhost:9149. Nodemon watches both source
-directories and their TypeScript configuration. Saving a change rebuilds core
-first, rebuilds the example, and restarts the server. Compilation errors stop
-the launch; correct the error and save to retry. Press Ctrl+C to stop.
+Tilcayo takes its name from *Leopardus tilcayo*, a small wild cat from Bolivia’s Yungas cloud forest recognized as a distinct species in 2026 through genomic research. Its name comes from local communities. Small, focused, and distinct—the inspiration behind this framework. [Read the story at National Geographic](https://news.nationalgeographic.org/photos-new-wild-cat-species/).
 
-You can also use `npm start` from `examples/basic-api`.
-In PowerShell environments that block `npm.ps1`, use `npm.cmd` instead of `npm`.
+## Quick start
 
-## Build and run without watching
+Use Node.js 22.9+ and npm. From the repository root:
 
 ```sh
+npm install
 npm run build
-npm run start:prod -w @tilcayo/basic-api
 ```
 
-## MongoDB
+Create a root `.env` beside `package.json`:
 
-Core exports `connectMongo(uri, options)`, `disconnectMongo()`, and
-`getMongoState()`. The connection layer configures DNS servers `8.8.8.8` and
-`1.1.1.1` before connecting. `MongoConnectOptions` aliases Mongoose's connection
-options; states are `disconnected`, `connected`, `connecting`, `disconnecting`,
-or `unknown`.
+```dotenv
+MONGODB_URI=mongodb://127.0.0.1:27017/tilcayo
+```
 
-Books demonstrate database CRUD through `/api/books`. Creation requires `title`
-and `author`, with optional integer `publishedYear`. Item routes require a
-24-character hexadecimal ObjectId. Products remain a simple array-backed read
-example with placeholder write responses.
+Use a running local MongoDB instance or your Atlas connection string. `.env` is ignored by Git.
 
-After building, run `node --test tests/*.test.mjs`. The live MongoDB test runs
-only when `MONGODB_URI` is set, uses a unique temporary database, and drops only
-that database on completion. Without a URI it is explicitly skipped.
+```sh
+npm run dev
+```
 
-### Simple Mongo model methods
+The example connects to MongoDB, then listens at **http://localhost:9149**. Source changes rebuild and restart it. `npm start` does the same thing.
 
-Pass a name and schema to use Tilcayo methods in controllers:
+## Generate a resource
+
+Run generators **inside your application directory**:
+
+```sh
+cd examples/basic-api
+npx tilcayo make:resource Notebook title:string price:number active:boolean
+```
+
+This creates working CRUD with matching model fields, controller body types, and validation:
+
+```text
+src/
+├── models/Notebook.ts
+├── controllers/notebooks.controller.ts
+├── validators/notebooks.validator.ts
+└── routes/notebooks.routes.ts
+```
+
+Add the printed registration to `src/index.ts`, after creating the app:
+
+```typescript
+import notebooksRoutes from "./routes/notebooks.routes.js";
+
+app.routes(notebooksRoutes);
+```
+
+| Request | Action |
+| --- | --- |
+| `GET /notebooks` | List all |
+| `POST /notebooks` | Create |
+| `GET /notebooks/:id` | Fetch one |
+| `PUT /notebooks/:id` | Update supplied fields |
+| `DELETE /notebooks/:id` | Delete |
+
+Existing files are never overwritten. A resource checks all four targets before writing. Choose a fresh name: the example already contains Book, Product, and Article files.
+
+### Individual commands
+
+```sh
+npx tilcayo make:model Book
+npx tilcayo make:controller books
+npx tilcayo make:controller books --resource
+npx tilcayo make:validator books
+npx tilcayo make:route books
+npx tilcayo make:service books
+```
+
+These are alternatives, not a sequence to run against existing files. A plain controller contains placeholders; `--resource` generates working CRUD and requires its model first. Routes detect the existing controller’s action names and attach available validators.
+
+### Fields
+
+Resource, model, controller, and validator commands accept fields:
+
+```sh
+npx tilcayo make:resource Event title:string "capacity?:number" startsAt:date
+```
+
+| Syntax | Meaning |
+| --- | --- |
+| `title:string` | Required, nonempty string |
+| `price:number` | Required JSON number |
+| `active:boolean` | Required JSON boolean |
+| `startsAt:date` | ISO timestamp with timezone, parsed into a Date |
+| `"year?:number"` | Optional number; quotes protect `?` from shell expansion |
+
+Updates make all fields optional. Individual commands without fields leave a schema or body type to complete. Fill in an empty validator before using writes—it strips unspecified fields.
+
+### Database default
+
+The example configures Mongo once in its application `package.json`:
+
+```json
+{
+  "tilcayo": {
+    "database": "mongo"
+  }
+}
+```
+
+Mongo is also the default if omitted. Other adapters are not implemented. Older `--mongo`, `--crud`, and `--fields "title:string,year?:number"` options remain supported.
+
+### Command not found?
+
+The CLI is installed locally in this workspace. Use **`npx tilcayo`**, rather than a bare `tilcayo` command.
+
+```sh
+# From the repository root
+npm install
+npm run build -w @tilcayo/cli
+cd examples/basic-api
+npx tilcayo --help
+```
+
+Direct alternative from the app directory:
+
+```sh
+node ../../packages/cli/dist/bin.js --help
+```
+
+If PowerShell blocks npm scripts, use `npm.cmd` and `npx.cmd` in that shell.
+
+## Models and controllers
+
+Define a schema and give it a name:
 
 ```typescript
 import mongoose from "mongoose";
 import { mongoModel } from "@tilcayo/core";
 
-const bookSchema = new mongoose.Schema({
+const notebookSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  year: { type: Number },
+  price: { type: Number, required: true },
+  active: { type: Boolean, required: true },
 }, { timestamps: true });
 
-export const Book = mongoModel("Book", bookSchema);
+export const Notebook = mongoModel("Notebook", notebookSchema);
 ```
 
-```typescript
-const books = await Book.all();
-const book = await Book.findOrFail(ctx.params.id);
-const recent = await Book.where({ year: { $gte: 2020 } }, {
-  sort: { year: -1 }, select: ["title", "year"], limit: 10,
-});
-```
-
-| Method | Result |
-| --- | --- |
-| `all(options?)` | All matching records; unbounded unless a limit is supplied |
-| `where(filter, options?)` | Records matching a Mongoose filter |
-| `find(id)` / `findOrFail(id)` | Record or null / standard 404 |
-| `first(filter?, options?)` / `firstOrFail(filter?, options?)` | First match or null / standard 404 |
-| `create(data)` / `createMany(items)` | Created record / records |
-| `update(id, data)` / `delete(id)` | Updated / deleted record, or null |
-| `count(filter?)` / `exists(filter)` | Number / boolean |
-| `paginate(query?, options?)` | Items and page metadata |
-| `cursorPaginate(options?)` | Items and a forward ObjectId cursor |
-| `updateMany(filter, data)` / `deleteMany(filter)` | Modified / deleted count |
-| `upsert(filter, data)` | Updated or inserted record |
-| `distinct(field, filter?)` | Unique field values |
-| `aggregate(pipeline)` | Aggregation results; accepts an explicit result type |
-
-Read options support `select`, `populate`, `sort`, and `limit`. Populate requires
-schema references. The adapter preserves schema inference and the original model
-as `Book.raw`, so advanced Mongoose queries, sessions, and transactions remain
-available. `Book.find(id)` is a single-record lookup; `Book.raw.find(filter)` keeps
-Mongoose's original meaning. Existing Mongoose methods are never overwritten.
+Keep plain body types beside the controller:
 
 ```typescript
 import type { TilcayoContext } from "@tilcayo/core";
+import { Notebook } from "../models/Notebook.js";
+
+type CreateNotebookBody = {
+  title: string;
+  price: number;
+  active: boolean;
+};
+
+type UpdateNotebookBody = Partial<CreateNotebookBody>;
 
 export const index = async (ctx: TilcayoContext) => {
-  const result = await Book.paginate(ctx.query);
-  return ctx.response.success(result, "Books retrieved");
+  const notebooks = await Notebook.all();
+  return ctx.response.success(notebooks, "Notebooks retrieved");
+};
+
+export const store = async (ctx: TilcayoContext<CreateNotebookBody>) => {
+  const notebook = await Notebook.create(ctx.body);
+  return ctx.response.created(notebook, "Notebook created");
 };
 ```
 
-`?page=2&perPage=10` produces `{ items, pagination }`, with `page`, `perPage`,
-`total`, `lastPage`, `hasNextPage`, and `hasPreviousPage`. Defaults are page 1 and
-20 records; page size is capped at 100. Invalid values return 400. Pages beyond
-the end return an empty list. Sorting adds `_id` as a unique tie-breaker. Counts
-and items are separate queries and can differ during concurrent writes.
+Controllers receive `params`, `query`, `body`, `headers`, `method`, `path`, `ip`, and response helpers through `ctx`. No Express request or response imports are needed.
 
-Generated index actions use `Book.all()` by default. To paginate, replace it with
-`Book.paginate(ctx.query)`. The helper reads and validates only `page` and `perPage`
-from the query. Put developer-controlled filters, sorting, and selection in the
-optional second argument, such as `Book.paginate(ctx.query, { sort: { createdAt: -1 } })`.
+## Routes and validation
 
-`cursorPaginate({ after, perPage, filter, select, populate })` sorts by ascending
-ObjectId and returns `{ items, pagination: { perPage, hasNextPage, nextCursor } }`.
-Omit `after` for the first page and pass `nextCursor` for the next. There is no
-total count or custom sort; `_id` must stay selected. These ID helpers assume
-the normal MongoDB ObjectId schema.
-
-Writes accept plain fields and updates apply `$set` with Mongoose validators
-enabled. Validate and allowlist HTTP bodies in route validators; TypeScript body
-types are not runtime validation. Filters and aggregation pipelines are
-developer-controlled, not raw request bodies. Bulk update/delete and upsert reject
-empty filters. `createMany` is ordered but not transactional; use `raw` and a
-transaction if partial insertion is unacceptable. Upsert filters should have a
-unique index when uniqueness matters. Request validators should enforce required
-fields for upserts, since Mongoose update validation checks updated paths only.
-
-The database choice lives in the model factory. Controllers use simple method
-names and pagination shapes that a future MySQL adapter can also implement.
-Mongo filters, population, cursors, and aggregation remain Mongo-specific;
-MySQL support is not implemented.
-
-### Typed controller bodies
-
-Keep a plain request type at the top of the controller:
+Zod validates requests before the controller runs. TypeScript body types provide compile-time checks; keep them aligned with the validator.
 
 ```typescript
-type CreateBookBody = {
-  title: string;
-  author: string;
-  publishedYear?: number;
-};
+import { z } from "zod";
 
-type UpdateBookBody = Partial<CreateBookBody>;
+export const createNotebookSchema = z.object({
+  title: z.string().min(1),
+  price: z.number(),
+  active: z.boolean(),
+});
 
-export const store = async (ctx: TilcayoContext<CreateBookBody>) => {
-  const book = await Book.create(ctx.body);
-  return ctx.response.created(book, "Book created");
-};
+export const updateNotebookSchema = createNotebookSchema.partial();
 ```
 
-Use `TilcayoContext<UpdateBookBody>` for updates. No extra type folder, schema
-inference expressions, or body casts are needed in controllers. An unparameterized
-`TilcayoContext` still has an `unknown` body. Route registration accepts typed
-handlers and checks the output type of supplied body validators against them.
-Keep these manually written types aligned with your validators and attach the
-validators to your routes; a type annotation alone does not validate requests.
+Attach validation to individual routes:
 
-## CLI generators
+```typescript
+import { defineRoutes } from "@tilcayo/core";
+import * as NotebookController from "../controllers/notebooks.controller.js";
+import { createNotebookSchema } from "../validators/notebooks.validator.js";
 
-Build `@tilcayo/cli`, then use its `tilcayo` executable from an application
-directory containing `package.json`. Within this repository, from
-`examples/basic-api`, the equivalent is `node ../../packages/cli/dist/bin.js`.
+export default defineRoutes((router) => {
+  router.get("/notebooks", NotebookController.index);
+  router.post("/notebooks", NotebookController.store, {
+    validate: { body: createNotebookSchema },
+  });
+});
+```
 
-| Command | Output |
+The router supports `get`, `post`, `put`, `patch`, `delete`, prefix groups, and `resource`. Generated resource routes attach body and Mongo ID validators to the appropriate actions. Validation can also target `query` and `params`.
+
+## Database methods
+
+| Method | Returns |
 | --- | --- |
-| `tilcayo make:model Book` | `src/models/Book.ts` |
-| `tilcayo make:model Book --mongo` | Model wrapped with Tilcayo Mongo methods |
-| `tilcayo make:controller books` | `src/controllers/books.controller.ts` |
-| `tilcayo make:controller books --resource` | Same file, with resource action names |
-| `tilcayo make:controller books --resource --crud --mongo` | Working Mongo CRUD controller with `all()` in index |
-| `tilcayo make:validator books` | `src/validators/books.validator.ts` |
-| `tilcayo make:route books` | `src/routes/books.routes.ts` |
-| `tilcayo make:route books --resource` | Same file, using `router.resource()` |
-| `tilcayo make:service books` | `src/services/books.service.ts` |
+| `all()` / `where(filter, options?)` | Records |
+| `find(id)` / `first(filter?)` | One record or null |
+| `findOrFail(id)` / `firstOrFail(filter?)` | One record or a 404 error |
+| `create(data)` / `createMany(items)` | Created records |
+| `update(id, data)` / `delete(id)` | Updated/deleted record or null |
+| `count(filter?)` / `exists(filter)` | Number / boolean |
+| `paginate(query?, options?)` | Items and page metadata |
+| `cursorPaginate(options?)` | Items and next cursor |
+| `updateMany(filter, data)` / `deleteMany(filter)` | Affected count |
+| `upsert(filter, data)` | Updated or inserted record |
+| `distinct(field, filter?)` / `aggregate(pipeline)` | Reporting results |
 
-Add model fields during generation with:
+Filtering and sorting stay explicit:
 
-```sh
-npx tilcayo make:model Customer --fields "name:string,email:string,age:number,active:boolean,birthday:date"
+```typescript
+const notebooks = await Notebook.where(
+  { active: true },
+  { sort: { price: 1 }, select: ["title", "price"], limit: 10 },
+);
 ```
 
-Supported types are `string`, `number`, `boolean`, and `date`. Fields are optional
-by default; edit the generated schema to add `required`, defaults, or validation.
-Omit `--fields` for an empty schema. Duplicate field names and invalid definitions
-are rejected. Model `--fields` creates model fields only, not request validators.
+Read options also support `populate` for schema references. Advanced Mongoose queries and transactions remain available through `Notebook.raw`.
 
-Controllers also accept `--fields` to generate plain request types:
+Bulk update/delete and upsert require nonempty filters. Keep filters server-controlled. Updates run Mongoose validation; bulk creation is not transactional.
 
-```sh
-npx tilcayo make:controller books --resource --crud --mongo --fields "title:string,author:string,publishedYear?:number"
+## Pagination
+
+Index actions use `all()` by default. To paginate, replace that call:
+
+```typescript
+const notebooks = await Notebook.paginate(ctx.query);
+return ctx.response.success(notebooks, "Notebooks retrieved");
 ```
 
-Controller fields are required unless marked `?`; `date` generates `Date`, so
-the corresponding validator must parse incoming dates into Date objects.
-The generated update type is `Partial<CreateBookBody>`. Without `--fields`, a
-comment marks the empty body type for you to fill in. This works with both
-placeholder and Mongo CRUD controllers. Existing files are not overwritten.
+Request:
 
-For Mongo CRUD, run inside the application directory (use a new resource name
-if these files already exist):
-
-```sh
-npx tilcayo make:model Article --mongo --fields "title:string,year:number"
-npx tilcayo make:controller articles --resource --crud --mongo
-npx tilcayo make:validator articles
-npx tilcayo make:route articles --resource
+```http
+GET /notebooks?page=2&perPage=10
 ```
 
-Fill in the generated validator's fields before sending requests: its initial
-empty object schema strips all body fields. Register the route with
-`app.routes(articleRoutes)` and connect MongoDB during startup. Generated routes
-use `/articles`; the example's existing Book routes use `/api/books`.
+Result inside the response’s `data` field:
 
-`--mongo` selects the model adapter and enables CRUD controller generation.
-`--crud` requires a supported database option; currently only `--mongo` exists.
-`--mongo` on a controller alone also enables CRUD. `--resource` controls action
-names (`index`, `store`, `show`, `update`, `destroy`), not the database backend.
-Generate the wrapped model before its Mongo controller. Existing raw models can
-use `mongoModel("Book", bookSchema)` instead of `mongoose.model("Book", bookSchema)`.
-Without `--mongo`, models remain plain
-Mongoose models and controllers remain placeholders.
+```json
+{
+  "items": [],
+  "pagination": {
+    "page": 2,
+    "perPage": 10,
+    "total": 0,
+    "lastPage": 1,
+    "hasNextPage": false,
+    "hasPreviousPage": true
+  }
+}
+```
 
-Generate the controller and validator before the route to wire their imports
-automatically. Match `--resource` on the controller and route commands. A route
-generated without those files uses inline placeholder handlers and omits
-validation, printing instructions for attaching them later. Existing controller
-and validator files must use the demonstrated named export declarations.
-Register new route files explicitly using `app.routes(bookRoutes)`.
+- Defaults: page **1**, **20** records. Maximum page size: **100**.
+- Invalid page values return **400**; pages beyond the end return an empty list.
+- Only page parameters are read from the request; filters go in the second argument.
 
-Names accept letters and digits, starting with a letter. Standard suffixes are
-supported (`Book`/`book`/`books`, `Product`, `User`, `Category`/`categories`);
-irregular English plurals are not inferred. Models keep singular PascalCase
-names, while resource filenames are lowercase and plural. Templates require
-`@tilcayo/core`, `mongoose` (models), and `zod` (validators) in the application.
+```typescript
+await Notebook.paginate(ctx.query, {
+  filter: { active: true },
+  sort: { createdAt: -1 },
+});
+```
 
-Generators create missing directories and refuse existing files, path traversal,
-and symlinked source directories. They never edit bootstrap or generate a whole
-resource bundle. Controller bodies are placeholders unless `--mongo` is selected.
+For forward cursor pagination:
+
+```typescript
+const first = await Notebook.cursorPaginate({ perPage: 20 });
+
+if (first.pagination.nextCursor) {
+  const next = await Notebook.cursorPaginate({
+    after: first.pagination.nextCursor,
+    perPage: 20,
+  });
+}
+```
+
+Cursors use ascending Mongo ObjectIds, with no total count or custom sort. Offset pagination adds `_id` as a sorting tie-breaker; counts and items can differ during concurrent writes.
+
+## Responses and errors
+
+| Helper | HTTP status |
+| --- | --- |
+| `ctx.response.success(data, message)` | 200 |
+| `ctx.response.created(data, message)` | 201 |
+| `ctx.response.noContent()` | 204 |
+| `throw badRequest(message)` | 400 |
+| `throw notFound(message)` | 404 |
+| Route validation failure | 422 |
+
+Import error helpers from `@tilcayo/core`. Unexpected errors return a sanitized 500 response.
+
+## Mongo connection
+
+```typescript
+import { connectMongo, createApp } from "@tilcayo/core";
+
+await connectMongo(process.env.MONGODB_URI ?? "");
+
+const app = createApp();
+// Register your routes here.
+app.listen(9149);
+```
+
+The connection layer configures DNS (`8.8.8.8`, `1.1.1.1`) before connecting and logs success. Core also exports `disconnectMongo()` and typed `getMongoState()`.
+
+## Project layout
+
+```text
+packages/core/       Routing, context, validation, errors, Mongo helpers
+packages/cli/        Resource and individual file generators
+examples/basic-api/  Runnable API example
+tests/              Runtime, type-checking, and generator tests
+```
+
+The existing Book API is at `/api/books`. Its body requires `title` and `author`, with optional `publishedYear`. The example Product endpoints use sample data and placeholder writes.
+
+## Build and test
+
+From the repository root:
+
+```sh
+npm run build
+node --test tests/*.test.mjs
+```
+
+Run live MongoDB tests with the root `.env`:
+
+```sh
+node --env-file-if-exists=.env --test tests/books-mongo.test.mjs
+```
+
+Live tests use and remove a temporary database. Without a URI, they are skipped.
+
+Production startup, with environment variables supplied externally:
+
+```sh
+npm run build
+npm run start:prod -w @tilcayo/basic-api
+```
