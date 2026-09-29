@@ -1,7 +1,7 @@
 import type * as z from "zod/v4/core";
 
-export interface RouteValidation {
-  body?: z.$ZodType;
+export interface RouteValidation<Body = unknown> {
+  body?: z.$ZodType<Body>;
   query?: z.$ZodType;
   params?: z.$ZodType;
 }

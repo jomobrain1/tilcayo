@@ -1,19 +1,25 @@
 import type { TilcayoContext } from "../context/types.js";
 import type { RouteValidation } from "../validation/types.js";
 
-export interface RouteOptions {
-  validate?: RouteValidation;
+export interface RouteOptions<Body = unknown> {
+  validate?: RouteValidation<Body>;
 }
 
-export interface ResourceRouteOptions {
+export interface ResourceRouteOptions<CreateBody = unknown, UpdateBody = unknown> {
   index?: RouteOptions;
-  store?: RouteOptions;
+  store?: RouteOptions<CreateBody>;
   show?: RouteOptions;
-  update?: RouteOptions;
+  update?: RouteOptions<UpdateBody>;
   destroy?: RouteOptions;
 }
 
-export type ResourceController = Record<keyof ResourceRouteOptions, RouteHandler>;
+export interface ResourceController<CreateBody = unknown, UpdateBody = unknown> {
+  index: RouteHandler;
+  store: RouteHandler<CreateBody>;
+  show: RouteHandler;
+  update: RouteHandler<UpdateBody>;
+  destroy: RouteHandler;
+}
 
 export type HttpMethod =
   | "GET"
@@ -22,8 +28,8 @@ export type HttpMethod =
   | "PATCH"
   | "DELETE";
 
-export type RouteHandler =
-  (ctx: TilcayoContext) => unknown | Promise<unknown>;
+export type RouteHandler<Body = unknown> =
+  (ctx: TilcayoContext<Body>) => unknown | Promise<unknown>;
 
 export interface RouteDefinition {
   method: HttpMethod;

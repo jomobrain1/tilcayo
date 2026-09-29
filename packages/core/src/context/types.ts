@@ -8,7 +8,7 @@ export interface TilcayoResponse {
   noContent(): undefined;
 }
 
-export interface TilcayoContext {
+export interface TilcayoContext<Body = unknown> {
   params: Record<
     string,
     TilcayoParam
@@ -16,7 +16,7 @@ export interface TilcayoContext {
 
   query: Record<string, unknown>;
 
-  body: unknown;
+  body: Body;
 
   headers: Record<
     string,

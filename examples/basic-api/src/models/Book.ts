@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { mongoModel } from "@tilcayo/core";
 
 const bookSchema = new mongoose.Schema(
   {
@@ -21,4 +22,4 @@ const bookSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-export const Book = mongoose.model("Book", bookSchema);
+export const Book = mongoModel("Book", bookSchema);

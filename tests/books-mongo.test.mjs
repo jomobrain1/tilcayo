@@ -63,26 +63,26 @@ async function exerciseCrud(request) {
 test("book resource HTTP behavior with isolated Mongoose method doubles", async (t) => {
   const records = new Map();
   const calls = [];
-  t.mock.method(Book, "find", async () => [...records.values()]);
-  t.mock.method(Book, "create", async (body) => {
+  t.mock.method(Book.raw, "find", () => ({ exec: async () => [...records.values()] }));
+  t.mock.method(Book.raw, "create", async (body) => {
     calls.push("create");
     const book = { ...body, _id: "1234567890abcdef12345678", createdAt: new Date(), updatedAt: new Date() };
     records.set(book._id, book);
     return book;
   });
-  t.mock.method(Book, "findById", async (id) => { calls.push("findById"); return records.get(id) ?? null; });
-  t.mock.method(Book, "findByIdAndUpdate", async (id, update, options) => {
+  t.mock.method(Book.raw, "findById", async (id) => { calls.push("findById"); return records.get(id) ?? null; });
+  t.mock.method(Book.raw, "findByIdAndUpdate", (id, update, options) => ({ exec: async () => {
     assert.deepEqual(options, { returnDocument: "after", runValidators: true });
     const book = records.get(id);
     if (!book) return null;
     Object.assign(book, update.$set);
     return book;
-  });
-  t.mock.method(Book, "findByIdAndDelete", async (id) => {
+  } }));
+  t.mock.method(Book.raw, "findByIdAndDelete", (id) => ({ exec: async () => {
     const book = records.get(id);
     records.delete(id);
     return book ?? null;
-  });
+  } }));
   await withApi(async (request) => {
     await exerciseCrud(request);
     const count = calls.length;
@@ -93,17 +93,45 @@ test("book resource HTTP behavior with isolated Mongoose method doubles", async 
 });
 
 test("Book model validates required fields", async () => {
-  await assert.rejects(new Book({}).validate(), { name: "ValidationError" });
-  await new Book({ title: "Grit", author: "Angela Duckworth" }).validate();
+  await assert.rejects(new Book.raw({}).validate(), { name: "ValidationError" });
+  await new Book.raw({ title: "Grit", author: "Angela Duckworth" }).validate();
 });
 
 test("live MongoDB book CRUD", { skip: !process.env.MONGODB_URI, timeout: 60000 }, async () => {
-  const dbName = `tilcayo_test_${randomUUID().replaceAll("-", "")}`;
+  const dbName = `tilcayo_test_${randomUUID().replaceAll("-", "").slice(0, 24)}`;
   let connected = false;
   try {
-    await connectMongo(process.env.MONGODB_URI, { dbName, serverSelectionTimeoutMS: 10000 });
+    try {
+      await connectMongo(process.env.MONGODB_URI, { dbName, serverSelectionTimeoutMS: 10000 });
+    } catch (error) {
+      // Do not expose credentials or server details in connection test failures.
+      throw new Error(`Live MongoDB connection failed (${error instanceof Error ? error.name : "unknown error"})`);
+    }
     connected = true;
-    await withApi(exerciseCrud, 9149);
+    await withApi(exerciseCrud);
+    await Book.createMany([
+      { title: "One", author: "Author", publishedYear: 2000 },
+      { title: "Two", author: "Author", publishedYear: 2001 },
+      { title: "Three", author: "Author", publishedYear: 2002 },
+    ]);
+    assert.equal(await Book.count(), 3);
+    assert.equal(await Book.exists({ title: "Two" }), true);
+    assert.equal((await Book.firstOrFail({ title: "Two" })).publishedYear, 2001);
+    const page = await Book.paginate({ perPage: 2 }, { sort: { publishedYear: 1 } });
+    assert.equal(page.pagination.total, 3);
+    assert.deepEqual(page.items.map((book) => book.title), ["One", "Two"]);
+    assert.equal((await Book.paginate({ page: 2, perPage: 2 })).items.length, 1);
+    const first = await Book.cursorPaginate({ perPage: 2 });
+    const second = await Book.cursorPaginate({ perPage: 2, after: first.pagination.nextCursor });
+    assert.equal(second.items.length, 1);
+    assert.equal(second.pagination.hasNextPage, false);
+    assert.equal(new Set([...first.items, ...second.items].map((book) => String(book._id))).size, 3);
+    await assert.rejects(Book.update(String(first.items[0]._id), { title: "A" }), { name: "ValidationError" });
+    assert.equal(await Book.updateMany({ publishedYear: { $gt: 2000 } }, { author: "Bulk" }), 2);
+    await Book.upsert({ title: "Four" }, { title: "Four", author: "Author", publishedYear: 2003 });
+    assert.deepEqual((await Book.distinct("author")).sort(), ["Author", "Bulk"]);
+    assert.deepEqual(await Book.aggregate([{ $count: "total" }]), [{ total: 4 }]);
+    assert.equal(await Book.deleteMany({ author: "Bulk" }), 2);
   } finally {
     try {
       if (connected && mongoose.connection.name === dbName) await mongoose.connection.dropDatabase();

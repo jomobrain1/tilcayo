@@ -1,4 +1,5 @@
 import type { HttpMethod, RouteDefinition, RouteHandler, RouteOptions, ResourceController, ResourceRouteOptions } from "./types.js";
+import type { TilcayoContext } from "../context/types.js";
 
 export function createRouter() {
   const routes: RouteDefinition[] = [];
@@ -8,34 +9,35 @@ export function createRouter() {
     return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
   }
 
-  function register(method: HttpMethod, path: string, handler: RouteHandler, options: RouteOptions = {}) {
+  function register<Body>(method: HttpMethod, path: string, handler: RouteHandler<Body>, options: RouteOptions<Body> = {}) {
     routes.push({
       method,
       path: prefix ? joinPath(prefix, path) : path,
-      handler,
+      // The app validates the request before invoking this stored handler.
+      handler: (ctx) => handler(ctx as TilcayoContext<Body>),
       options,
     });
 
     return api;
   }
 
-  function get(path: string, handler: RouteHandler, options?: RouteOptions) {
+  function get<Body = unknown>(path: string, handler: RouteHandler<Body>, options?: RouteOptions<NoInfer<Body>>) {
     return register("GET", path, handler, options);
   }
 
-  function post(path: string, handler: RouteHandler, options?: RouteOptions) {
+  function post<Body = unknown>(path: string, handler: RouteHandler<Body>, options?: RouteOptions<NoInfer<Body>>) {
     return register("POST", path, handler, options);
   }
 
-  function put(path: string, handler: RouteHandler, options?: RouteOptions) {
+  function put<Body = unknown>(path: string, handler: RouteHandler<Body>, options?: RouteOptions<NoInfer<Body>>) {
     return register("PUT", path, handler, options);
   }
 
-  function patch(path: string, handler: RouteHandler, options?: RouteOptions) {
+  function patch<Body = unknown>(path: string, handler: RouteHandler<Body>, options?: RouteOptions<NoInfer<Body>>) {
     return register("PATCH", path, handler, options);
   }
 
-  function remove(path: string, handler: RouteHandler, options?: RouteOptions) {
+  function remove<Body = unknown>(path: string, handler: RouteHandler<Body>, options?: RouteOptions<NoInfer<Body>>) {
     return register("DELETE", path, handler, options);
   }
 
@@ -54,10 +56,10 @@ export function createRouter() {
     return api;
   }
 
-  function resource(
+  function resource<CreateBody = unknown, UpdateBody = unknown>(
     path: string,
-    controller: ResourceController,
-    options: ResourceRouteOptions = {},
+    controller: ResourceController<CreateBody, UpdateBody>,
+    options: ResourceRouteOptions<NoInfer<CreateBody>, NoInfer<UpdateBody>> = {},
   ) {
     get(path, controller.index, options.index);
     post(path, controller.store, options.store);

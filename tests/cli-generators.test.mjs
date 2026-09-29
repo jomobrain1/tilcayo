@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, readdir } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { once } from "node:events";
+import mongoose from "mongoose";
+import { createApp } from "../packages/core/dist/index.js";
 import { spawnSync } from "node:child_process";
 import { resourceNames } from "../packages/cli/dist/utils/naming.js";
 
@@ -112,7 +115,9 @@ test("invalid field options fail without creating files", async (t) => {
     ["make:model", "Customer", "--fields"],
     ["make:model", "Customer", "--fields", "name:string", "--fields", "age:number"],
     ["make:model", "Customer", "--fields", "name:string", "--resource"],
-    ["make:controller", "customers", "--fields", "name:string"],
+    ["make:controller", "customers", "--fields", "name:unknown"],
+    ["make:controller", "customers", "--fields", "name:string,name?:string"],
+    ["make:validator", "customers", "--fields", "name:string"],
   ]) assert.notEqual(run(cwd, ...args).status, 0);
   assert.ok(!(await readdir(cwd)).includes("src"));
 });
@@ -136,6 +141,174 @@ test("standalone routes compile without nonexistent imports in either mode", asy
   assert.match(success(cwd, "make:route", "books"), /Inline placeholder handlers/);
   assert.match(success(cwd, "make:route", "products", "--resource"), /app.routes\(productRoutes\)/);
   compile(cwd);
+});
+
+test("Mongo models and CRUD controllers compile with both naming styles and retain field types", async (t) => {
+  const cwd = await fixture(t);
+  for (const [model, name, flags] of [["Book", "books", ["--resource"]], ["Member", "members", []]]) {
+    success(cwd, "make:model", model, "--fields", "title:string,year:number", "--mongo");
+    const modelSource = await readFile(path.join(cwd, `src/models/${model}.ts`), "utf8");
+    assert.ok(modelSource.includes(`mongoModel("${model}",`));
+    assert.doesNotMatch(modelSource, /mongoose\.model\(/);
+    success(cwd, "make:controller", name, "--crud", "--mongo", "--fields", "title?:string,year?:number", ...flags);
+    success(cwd, "make:validator", name);
+    success(cwd, "make:route", name, ...flags);
+    const controller = await readFile(path.join(cwd, `src/controllers/${name}.controller.ts`), "utf8");
+    assert.match(controller, /\.all\(\)/);
+    assert.doesNotMatch(controller, /paginationParams/);
+    for (const method of ["create", "findOrFail", "update", "delete"]) assert.ok(controller.includes(`${model}.${method}(`));
+    assert.doesNotMatch(controller, /findById|findByIdAndUpdate|\bany\b|z\.infer|Parameters<|ctx\.body as/);
+    assert.match(controller, /title\?: string;/);
+    assert.match(controller, /year\?: number;/);
+    assert.ok(controller.includes(`TilcayoContext<Create${model}Body>`));
+  }
+  await writeFile(path.join(cwd, "src/check.ts"), `import { Book } from "./models/Book.js";
+Book.create({ title: "Hello", year: 2020 });
+Book.update("1234567890abcdef12345678", { year: 2021 });
+// @ts-expect-error Wrong field type.
+Book.create({ year: "wrong" });
+// @ts-expect-error Unknown field.
+Book.update("1234567890abcdef12345678", { unknown: true });
+const record = await Book.findOrFail("1234567890abcdef12345678");
+const title: string | null | undefined = record.title;
+// @ts-expect-error Returned fields must retain their types.
+const wrong: number = record.title;
+const page = await Book.paginate({ page: 1, perPage: 10 });
+const query: Record<string, unknown> = { page: "1", perPage: "10" };
+await Book.paginate(query);
+const year: number | null | undefined = page.items[0]?.year;
+Book.raw.findById("1234567890abcdef12345678");
+`);
+  compile(cwd);
+});
+
+test("Mongo generator options reject missing adapters, invalid combinations and unwrapped models", async (t) => {
+  const cwd = await fixture(t);
+  for (const args of [
+    ["make:controller", "books", "--crud"],
+    ["make:controller", "books", "--mongo"],
+    ["make:model", "Book", "--crud", "--mongo"],
+    ["make:model", "Book", "--mongo", "--mongo"],
+    ["make:route", "books", "--mongo"],
+    ["make:model", "Book", "--mysql"],
+  ]) assert.notEqual(run(cwd, ...args).status, 0);
+  assert.ok(!(await readdir(cwd)).includes("src"));
+  success(cwd, "make:model", "Book");
+  const result = run(cwd, "make:controller", "books", "--crud", "--mongo");
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /use mongoModel/);
+});
+
+test("typed bodies work across route methods and reject incompatible validators", async (t) => {
+  const cwd = await fixture(t);
+  success(cwd, "make:controller", "profiles", "--fields", "name:string,age?:number,active:boolean,birthday:date");
+  const controller = await readFile(path.join(cwd, "src/controllers/profiles.controller.ts"), "utf8");
+  assert.match(controller, /birthday: Date;/);
+  assert.match(controller, /age\?: number;/);
+  assert.doesNotMatch(controller, /\bas\b|\bany\b|infer/);
+  await writeFile(path.join(cwd, "src/typed-routes.ts"), `import { createRouter, type TilcayoContext, type RouteHandler, type ResourceController } from "@tilcayo/core";
+import { z } from "zod";
+type CreateBody = { title: string; year?: number };
+type UpdateBody = Partial<CreateBody>;
+const store: RouteHandler<CreateBody> = (ctx) => ctx.body.title.toUpperCase();
+const update = (ctx: TilcayoContext<UpdateBody>) => ctx.body.title?.toUpperCase();
+const empty = (ctx: TilcayoContext) => ctx.response.noContent();
+const controller: ResourceController<CreateBody, UpdateBody> = { index: empty, show: empty, store, update, destroy: empty };
+const schema = z.object({ title: z.string(), year: z.number().optional() });
+const router = createRouter();
+router.get("/", store, { validate: { body: schema } });
+router.post("/", store, { validate: { body: schema } });
+router.put("/", update, { validate: { body: schema.partial() } });
+router.patch("/", update, { validate: { body: schema.partial() } });
+router.delete("/", store, { validate: { body: schema } });
+router.resource("/books", controller, { store: { validate: { body: schema } }, update: { validate: { body: schema.partial() } } });
+// @ts-expect-error The schema produces a number, not a string title.
+router.post("/wrong", store, { validate: { body: z.object({ title: z.number() }) } });
+// @ts-expect-error Required body fields cannot be omitted by the validator.
+router.post("/wrong", store, { validate: { body: schema.partial() } });
+// @ts-expect-error Resource routes must check body schemas too.
+router.resource("/wrong", controller, { store: { validate: { body: z.object({ title: z.number() }) } } });
+const check = (ctx: TilcayoContext<CreateBody>) => {
+  // @ts-expect-error Plain body types reject wrong property types.
+  ctx.body.title = 123;
+};
+const untyped = (ctx: TilcayoContext) => {
+  // @ts-expect-error The default body must remain unknown.
+  return ctx.body.title;
+};
+`);
+  compile(cwd);
+});
+
+test("generated Mongo CRUD routes list all records and support optional pagination", async (t) => {
+  const cwd = await fixture(t);
+  success(cwd, "make:model", "Novel", "--mongo", "--fields", "title:string");
+  success(cwd, "make:controller", "novels", "--resource", "--crud", "--mongo", "--fields", "title:string");
+  success(cwd, "make:validator", "novels");
+  const validatorPath = path.join(cwd, "src/validators/novels.validator.ts");
+  const validator = await readFile(validatorPath, "utf8");
+  await writeFile(validatorPath, validator.replace("// Add your fields here, for example: name: z.string().min(2),", "title: z.string().min(2),"));
+  success(cwd, "make:route", "novels", "--resource");
+  const build = spawnSync(process.execPath, [compiler, "-p", "tsconfig.json", "--noEmit", "false", "--rootDir", "src", "--outDir", "dist"], { cwd, encoding: "utf8", windowsHide: true });
+  assert.equal(build.status, 0, build.stdout + build.stderr);
+  const { Novel } = await import(pathToFileURL(path.join(cwd, "dist/models/Novel.js")));
+  const { default: routes } = await import(pathToFileURL(path.join(cwd, "dist/routes/novels.routes.js")));
+  t.after(() => mongoose.deleteModel("Novel"));
+  const id = "1234567890abcdef12345678";
+  const records = new Map();
+  t.mock.method(Novel.raw, "create", async (data) => {
+    const document = new Novel.raw({ ...data, _id: id });
+    await document.validate();
+    const record = document.toObject();
+    records.set(id, record);
+    return record;
+  });
+  t.mock.method(Novel.raw.Query.prototype, "exec", async function () {
+    const key = String(this.getFilter()._id);
+    if (this.op === "find") return [...records.values()].slice(this.getOptions().skip ?? 0, (this.getOptions().skip ?? 0) + (this.getOptions().limit ?? records.size));
+    if (this.op === "countDocuments") return records.size;
+    const record = records.get(key) ?? null;
+    if (this.op === "findOneAndUpdate" && record) {
+      assert.equal(this.getOptions().runValidators, true);
+      Object.assign(record, this.getUpdate().$set);
+    }
+    if (this.op === "findOneAndDelete") records.delete(key);
+    return record;
+  });
+  const app = createApp().routes(routes);
+  app.route.get("/paginated-novels", async (ctx) => ctx.response.success(await Novel.paginate(ctx.query)));
+  const server = app.listen(0);
+  t.after(() => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())));
+  await once(server, "listening");
+  async function request(method, path = "", body) {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/novels${path}`, {
+      method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return { status: response.status, body: response.status === 204 ? null : await response.json() };
+  }
+  const created = await request("POST", "", { title: "Novel", ignored: "strip" });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.data.ignored, undefined);
+  const listed = await request("GET", "?page=1&perPage=2");
+  assert.equal(listed.body.data.length, 1);
+  const paginated = await fetch(`http://127.0.0.1:${server.address().port}/paginated-novels?page=1&perPage=2`);
+  const page = await paginated.json();
+  assert.equal(page.data.items.length, 1);
+  assert.equal(page.data.pagination.total, 1);
+  assert.equal(page.data.pagination.perPage, 2);
+  assert.equal((await request("GET", `/${id}`)).body.data.title, "Novel");
+  assert.equal((await request("PUT", `/${id}`, { title: "Updated" })).body.data.title, "Updated");
+  assert.equal((await request("POST", "", { title: "x" })).status, 422);
+  assert.equal((await request("GET", "/bad-id")).status, 422);
+  for (const query of ["page=bad", "page=1&page=2"]) {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/paginated-novels?${query}`);
+    assert.equal(response.status, 400);
+    await response.text();
+  }
+  assert.equal((await request("DELETE", `/${id}`)).status, 204);
+  for (const method of ["GET", "PUT", "DELETE"]) {
+    assert.equal((await request(method, `/${id}`, method === "PUT" ? { title: "Missing" } : undefined)).status, 404);
+  }
 });
 
 test("invalid commands, flags, styles and paths fail before writing files", async (t) => {
