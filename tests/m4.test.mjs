@@ -111,18 +111,19 @@ test("product validation, partial updates, custom and unknown 404s", async () =>
       });
       assert.equal(response.status, 422);
       const result = await response.json();
+      assert.equal(result.statusCode, 422);
       assert.equal(result.error.code, "VALIDATION_ERROR");
       assert.deepEqual(result.error.details.body.map((issue) => issue.path), [["name"], ["price"]]);
     }
-    const update = await fetch(`${base}/api/products/123`, {
+    const update = await fetch(`${base}/api/products/1`, {
       method: "PUT", headers: { "Content-Type": "application/json" }, body: '{"price":7000}',
     });
     assert.equal(update.status, 200);
-    assert.deepEqual((await update.json()).data, { id: "123", body: { price: 7000 } });
-    for (const [path, message] of [["/api/products/missing", "Product not found"], ["/does-not-exist", "Route not found"]]) {
+    assert.deepEqual((await update.json()).data, { id: "1", body: { price: 7000 } });
+    for (const [path, message] of [["/api/products/999", "Product not found"], ["/api/products/missing", "Product not found"], ["/does-not-exist", "Route not found"]]) {
       const response = await fetch(base + path);
       assert.equal(response.status, 404);
-      assert.deepEqual(await response.json(), { success: false, error: { code: "NOT_FOUND", message } });
+      assert.deepEqual(await response.json(), { success: false, statusCode: 404, error: { code: "NOT_FOUND", message } });
     }
   });
 });
@@ -135,12 +136,12 @@ test("400 details and sanitized unexpected errors survive repeated listen", asyn
     await withServer(app, async (base) => {
       const bad = await fetch(`${base}/bad`);
       assert.equal(bad.status, 400);
-      assert.deepEqual(await bad.json(), { success: false, error: {
+      assert.deepEqual(await bad.json(), { success: false, statusCode: 400, error: {
         code: "BAD_REQUEST", message: "Invalid product", details: { field: "name" },
       } });
       const crash = await fetch(`${base}/crash`);
       assert.equal(crash.status, 500);
-      assert.deepEqual(await crash.json(), { success: false, error: {
+      assert.deepEqual(await crash.json(), { success: false, statusCode: 500, error: {
         code: "INTERNAL_SERVER_ERROR", message: "Internal server error",
       } });
       assert.equal((await fetch(`${base}/unknown`)).status, 404);

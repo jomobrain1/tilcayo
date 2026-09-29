@@ -19,6 +19,7 @@ export function handleError(
   if (isTilcayoHttpError(error)) {
     res.status(error.statusCode).json({
       success: false,
+      statusCode: error.statusCode,
       error: {
         code: error.code,
         message: error.message,
@@ -31,6 +32,7 @@ export function handleError(
   console.error(error);
   res.status(500).json({
     success: false,
+    statusCode: 500,
     error: { code: "INTERNAL_SERVER_ERROR", message: "Internal server error" },
   });
 }

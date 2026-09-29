@@ -1,30 +1,40 @@
-import type { TilcayoContext } from "@tilcayo/core";
-import { notFound } from "@tilcayo/core";
+import { notFound, type TilcayoContext } from "@tilcayo/core";
 
-export const ProductController = {
-  index(ctx: TilcayoContext) {
-    return ctx.response.success([], "Products retrieved");
-  },
+const products = [
+  { id: "1", name: "Keyboard", price: 5000 },
+  { id: "2", name: "Mouse", price: 1500 },
+];
 
-  store(ctx: TilcayoContext) {
-    return ctx.response.created(ctx.body, "Product created");
-  },
+// Index controller
+export const index = async (ctx: TilcayoContext) => {
+  return ctx.response.success(products, "Products retrieved");
+};
 
-  show(ctx: TilcayoContext) {
-    if (ctx.params.id === "missing") {
-      throw notFound("Product not found");
-    }
-    return ctx.response.success({ id: ctx.params.id }, "Product retrieved");
-  },
+// Store controller
+export const store = async (ctx: TilcayoContext) => {
+  return ctx.response.created(ctx.body, "Product created");
+};
 
-  update(ctx: TilcayoContext) {
-    return ctx.response.success(
-      { id: ctx.params.id, body: ctx.body },
-      "Product updated",
-    );
-  },
+// Show controller
+export const show = async (ctx: TilcayoContext) => {
+  const product = products.find((item) => item.id === ctx.params.id);
 
-  destroy(ctx: TilcayoContext) {
-    return ctx.response.noContent();
-  },
+  if (!product) {
+    throw notFound("Product not found");
+  }
+
+  return ctx.response.success(product, "Product retrieved");
+};
+
+// Update controller
+export const update = async (ctx: TilcayoContext) => {
+  return ctx.response.success(
+    { id: ctx.params.id, body: ctx.body },
+    "Product updated",
+  );
+};
+
+// Destroy controller
+export const destroy = async (ctx: TilcayoContext) => {
+  return ctx.response.noContent();
 };

@@ -20,11 +20,11 @@ test("basic-api serves product controllers", async () => {
     }
 
     const cases = [
-      ["GET", "", undefined, 200, { success: true, message: "Products retrieved", data: [] }],
-      ["GET", "/123", undefined, 200, { success: true, message: "Product retrieved", data: { id: "123" } }],
+      ["GET", "", undefined, 200, { success: true, message: "Products retrieved", data: [{ id: "1", name: "Keyboard", price: 5000 }, { id: "2", name: "Mouse", price: 1500 }] }],
+      ["GET", "/1", undefined, 200, { success: true, message: "Product retrieved", data: { id: "1", name: "Keyboard", price: 5000 } }],
       ["POST", "", { name: "Keyboard", price: 5000 }, 201, { success: true, message: "Product created", data: { name: "Keyboard", price: 5000 } }],
-      ["PUT", "/123", { name: "Updated Keyboard" }, 200, { success: true, message: "Product updated", data: { id: "123", body: { name: "Updated Keyboard" } } }],
-      ["DELETE", "/123", undefined, 204, undefined],
+      ["PUT", "/3", { name: "Updated Keyboard" }, 200, { success: true, message: "Product updated", data: { id: "3", body: { name: "Updated Keyboard" } } }],
+      ["DELETE", "/3", undefined, 204, undefined],
     ];
     for (const [method, path, body, status, expected] of cases) {
       const response = await fetch(`${base}/api/products${path}`, {
