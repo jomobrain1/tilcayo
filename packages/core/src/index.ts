@@ -1,5 +1,8 @@
 export { createApp } from "./app.js";
 
+export { connectMongo, disconnectMongo, getMongoState } from "./database/mongo.js";
+export type { MongoConnectOptions, MongoState } from "./database/types.js";
+
 export { createContext } from "./context/createContext.js";
 
 export type {

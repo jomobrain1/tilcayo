@@ -3,16 +3,14 @@ import { once } from "node:events";
 import { test } from "node:test";
 import { createApp } from "../packages/core/dist/index.js";
 import apiRoutes from "../examples/basic-api/dist/routes/api.routes.js";
-import booksRoutes from "../examples/basic-api/dist/routes/books.routes.js";
 
-test("products and books return basic write responses without changing sample arrays", async () => {
-  const server = createApp().routes(apiRoutes).routes(booksRoutes).listen(0);
+test("products return basic write responses without changing sample arrays", async () => {
+  const server = createApp().routes(apiRoutes).listen(0);
   try {
     await once(server, "listening");
     const base = `http://localhost:${server.address().port}/api`;
     for (const [collection, body, changes, invalid] of [
       ["products", { name: "Monitor", price: 9000 }, { price: 0 }, { price: -1 }],
-      ["books", { title: "Sample book", author: "Sample author" }, { title: "Revised book" }, { title: "A" }],
     ]) {
       const request = async (method, path = "", data) => {
         const response = await fetch(`${base}/${collection}${path}`, {

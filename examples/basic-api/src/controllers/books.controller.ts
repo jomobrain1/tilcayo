@@ -1,18 +1,17 @@
 import { notFound, type TilcayoContext } from "@tilcayo/core";
+import type * as z from "zod";
+import { Book } from "../models/Book.js";
+import type { createBookSchema, updateBookSchema } from "../validators/books.validator.js";
 
-const books = [
-  { id: "1", title: "Grit", author: "Angela Duckworth" },
-  { id: "2", title: "Mindset", author: "Carol Dweck" },
-];
-
-// Get books controller
-export const getBooks = async (ctx: TilcayoContext) => {
+// Index controller
+export const index = async (ctx: TilcayoContext) => {
+  const books = await Book.find();
   return ctx.response.success(books, "Books retrieved");
 };
 
-// Get book controller
-export const getBook = async (ctx: TilcayoContext) => {
-  const book = books.find((item) => item.id === ctx.params.id);
+// Show controller
+export const show = async (ctx: TilcayoContext) => {
+  const book = await Book.findById(ctx.params.id);
 
   if (!book) {
     throw notFound("Book not found");
@@ -21,20 +20,26 @@ export const getBook = async (ctx: TilcayoContext) => {
   return ctx.response.success(book, "Book retrieved");
 };
 
-// Create book controller
-export const createBook = async (ctx: TilcayoContext) => {
-  return ctx.response.created(ctx.body, "Book created");
+// Store controller
+export const store = async (ctx: TilcayoContext) => {
+  const book = await Book.create(ctx.body as z.infer<typeof createBookSchema>);
+  return ctx.response.created(book, "Book created");
 };
 
-// Update book controller
-export const updateBook = async (ctx: TilcayoContext) => {
-  return ctx.response.success(
-    { id: ctx.params.id, body: ctx.body },
-    "Book updated",
+// Update controller
+export const update = async (ctx: TilcayoContext) => {
+  const book = await Book.findByIdAndUpdate(
+    ctx.params.id,
+    { $set: ctx.body as z.infer<typeof updateBookSchema> },
+    { returnDocument: "after", runValidators: true },
   );
+  if (!book) throw notFound("Book not found");
+  return ctx.response.success(book, "Book updated");
 };
 
-// Delete book controller
-export const deleteBook = async (ctx: TilcayoContext) => {
+// Destroy controller
+export const destroy = async (ctx: TilcayoContext) => {
+  const book = await Book.findByIdAndDelete(ctx.params.id);
+  if (!book) throw notFound("Book not found");
   return ctx.response.noContent();
 };

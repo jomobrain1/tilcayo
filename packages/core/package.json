@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "express": "^5.2.1",
+    "mongoose": "^9.10.2",
     "zod": "^4.0.0"
   },
   "devDependencies": {
