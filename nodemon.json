@@ -1,9 +1,11 @@
 {
   "watch": [
     "packages/core/src",
+    "packages/auth/src",
     "examples/basic-api/src",
     "tsconfig.json",
     "packages/core/tsconfig.json",
+    "packages/auth/tsconfig.json",
     "examples/basic-api/tsconfig.json"
   ],
   "ext": "ts,json",

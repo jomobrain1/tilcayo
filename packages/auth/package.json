@@ -1,0 +1,18 @@
+{
+  "name": "@tilcayo/auth",
+  "version": "0.0.1",
+  "description": "Functional JWT authentication for Tilcayo",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist"],
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "dependencies": {
+    "@tilcayo/core": "^0.0.1",
+    "mongoose": "^9.10.2",
+    "zod": "^4.0.0",
+    "jose": "^6.0.0",
+    "bcryptjs": "^3.0.0"
+  }
+}

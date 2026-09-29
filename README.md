@@ -4,7 +4,7 @@ An opinionated full-stack TypeScript framework for modern web applications with 
 
 **KISS — keep it simple:** plain functions, readable controllers, reusable database methods, and short generator commands. Built on TypeScript, Node.js, Express, Mongoose, and Zod, with the underlying tools still accessible.
 
-> **Current scope:** API routing, validation, MongoDB, error handling, and CLI generators. React integration, authentication, and MySQL are not implemented yet.
+> **Current scope:** API routing, middleware, validation, MongoDB, JWT authentication, error handling, and CLI generators. React integration, authorization, and MySQL are not implemented yet.
 
 ## Why the name?
 
@@ -23,9 +23,19 @@ Create a root `.env` beside `package.json`:
 
 ```dotenv
 MONGODB_URI=mongodb://127.0.0.1:27017/tilcayo
+AUTH_ACCESS_SECRET=
+AUTH_REFRESH_SECRET=
 ```
 
 Use a running local MongoDB instance or your Atlas connection string. `.env` is ignored by Git.
+
+Set both auth secrets before starting the example. Generate each independently:
+
+```sh
+node --input-type=module -e "import { randomBytes } from 'node:crypto'; console.log(randomBytes(32).toString('hex'))"
+```
+
+The secrets must differ and contain at least 32 bytes each. Never commit their values.
 
 ```sh
 npm run dev
@@ -280,7 +290,7 @@ behind a proxy, requests currently share the proxy IP's quota.
 Caching is opt-in for public data; it does not store responses on the server.
 Authorization/cookie requests, responses setting cookies, and errors use `no-store`.
 Use request logging for matched routes; unmatched 404s are handled separately.
-Authentication and authorization will be added later.
+Authentication is provided by `@tilcayo/auth`; authorization remains future work.
 
 Custom middleware stays a plain function:
 
@@ -296,6 +306,118 @@ const addVersion: Middleware = async (ctx, next) => {
 Call and return `next()` once to continue, return a response to stop, or throw
 a framework error. The middleware body is unparsed; access validated bodies in
 controllers. See `examples/basic-api/src/routes/api.routes.ts` for working examples.
+
+## Authentication
+
+Configure one instance in your application's `src/auth.ts`:
+
+```typescript
+import { createAuth } from "@tilcayo/auth";
+
+export const auth = createAuth({
+  accessTokenSecret: process.env.AUTH_ACCESS_SECRET!,
+  refreshTokenSecret: process.env.AUTH_REFRESH_SECRET!,
+});
+```
+
+Register its routes after connecting MongoDB:
+
+```typescript
+app.routes(auth.routes);
+```
+
+| Route | Body / authentication |
+| --- | --- |
+| `POST /api/auth/register` | `name`, `email`, `password`; returns safe user and tokens (201) |
+| `POST /api/auth/login` | `email`, `password`; returns safe user and tokens (200) |
+| `POST /api/auth/refresh` | `refreshToken`; returns a new token pair (200) |
+| `POST /api/auth/logout` | `refreshToken`; revokes it, repeatable (204) |
+| `GET /api/auth/me` | Bearer access token; returns safe user (200) |
+
+Protect routes using the existing middleware format:
+
+```typescript
+router.get("/api/profile", getProfile, {
+  middleware: [auth.middleware],
+});
+```
+
+Read the safe user in the controller:
+
+```typescript
+import type { TilcayoContext } from "@tilcayo/core";
+import { auth } from "../auth.js";
+
+export const getProfile = async (ctx: TilcayoContext) => {
+  return ctx.response.success(auth.user(ctx), "Profile retrieved");
+};
+```
+
+For handlers needing a typed authenticated context, the same instance also offers a wrapper:
+
+```typescript
+import type { AuthenticatedContext } from "@tilcayo/auth";
+
+const profile = (ctx: AuthenticatedContext) => ctx.response.success(ctx.auth.user);
+router.get("/api/profile", auth.guard(profile));
+```
+
+Both forms verify the access token and load the user. Missing, expired, invalid,
+wrong-type tokens and deleted users receive 401. Roles and permissions are not included.
+
+### Token and password rules
+
+- Access tokens expire after **15 minutes**; refresh tokens after **7 days**.
+- JWTs use JOSE HS256 with `sub`, `jti`, `type`, `iat`, `exp`, `iss`, and `aud`.
+- Passwords use bcryptjs, default **12 rounds**. Input is 8 characters minimum and
+  72 UTF-8 bytes maximum to avoid bcrypt truncation. Email is trimmed and lowercased.
+- Users store name, email (unique index), password hash (hidden by default), and timestamps.
+- MongoDB stores only the SHA-256 refresh-token hash, user ID, expiry, revocation time,
+  and timestamps. A TTL index removes expired records; requests also check expiry.
+- Refresh atomically consumes the old token. Concurrent reuse succeeds at most once.
+  If new-token persistence fails, the old token remains revoked; log in again.
+- Logout revokes the supplied refresh token. Existing access tokens remain valid until
+  expiry; deleting the user immediately blocks protected requests.
+- Token responses are `no-store`. Passwords, hashes, and persistence records are never returned.
+
+Use HTTPS in deployment. Registration and login share an in-memory limit of
+20 attempts per IP per 15 minutes. It has the same single-process/proxy limits
+described under middleware. Use a shared gateway limiter for multiple servers.
+Mongo indexes must be enabled or provisioned by your deployment.
+
+Configuration options:
+
+| Option | Default |
+| --- | --- |
+| `accessTokenTtlSeconds` | `900` |
+| `refreshTokenTtlSeconds` | `604800` |
+| `issuer` / `audience` | `"tilcayo"` / `"tilcayo-app"` |
+| `passwordRounds` | `12` (allowed: 10–16) |
+| `prefix` | `"/api/auth"` |
+
+Each auth instance owns its configuration and middleware state. The default
+Mongo collections are `users` and `tilcayo_refresh_tokens`; instances sharing a
+database share users. Secrets, issuer, and audience distinguish their tokens.
+
+### Try it
+
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{"name":"Jane","email":"jane@example.com","password":"a-long-example-password"}
+```
+
+Read `data.tokens.accessToken` from the response, then send:
+
+```http
+GET /api/profile
+Authorization: Bearer <accessToken>
+```
+
+Duplicate email returns 409, wrong credentials return a generic 401, and invalid
+request bodies return 422. Core also exports `unauthorized()`, `forbidden()`, and
+`conflict()` for application errors.
 
 ## Database methods
 
@@ -415,6 +537,7 @@ The connection layer configures DNS (`8.8.8.8`, `1.1.1.1`) before connecting and
 
 ```text
 packages/core/       Routing, context, validation, errors, Mongo helpers
+packages/auth/       JWT authentication, passwords, users, refresh tokens
 packages/cli/        Resource and individual file generators
 examples/basic-api/  Runnable API example
 tests/              Runtime, type-checking, and generator tests
@@ -435,6 +558,7 @@ Run live MongoDB tests with the root `.env`:
 
 ```sh
 node --env-file-if-exists=.env --test tests/books-mongo.test.mjs
+node --env-file-if-exists=.env --test tests/auth-mongo.test.mjs
 ```
 
 Live tests use and remove a temporary database. Without a URI, they are skipped.

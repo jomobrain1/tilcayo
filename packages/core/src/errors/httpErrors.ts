@@ -24,6 +24,10 @@ export function badRequest(message = "Bad request", details?: unknown): TilcayoH
   return createHttpError(400, "BAD_REQUEST", message, details);
 }
 
+export const unauthorized = (message = "Unauthorized"): TilcayoHttpError => createHttpError(401, "UNAUTHORIZED", message);
+export const forbidden = (message = "Forbidden"): TilcayoHttpError => createHttpError(403, "FORBIDDEN", message);
+export const conflict = (message = "Conflict"): TilcayoHttpError => createHttpError(409, "CONFLICT", message);
+
 export function notFound(message = "Resource not found", details?: unknown): TilcayoHttpError {
   return createHttpError(404, "NOT_FOUND", message, details);
 }

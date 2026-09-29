@@ -35,6 +35,7 @@ export type {
 } from "./routing/types.js";
 
 export { createHttpError, isTilcayoHttpError, badRequest, notFound, validationError } from "./errors/httpErrors.js";
+export { unauthorized, forbidden, conflict } from "./errors/httpErrors.js";
 export type { TilcayoHttpError } from "./errors/types.js";
 export { validateContext } from "./validation/validateContext.js";
 export type { RouteValidation, ValidationDetails, ValidationIssue } from "./validation/types.js";

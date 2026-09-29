@@ -8,15 +8,7 @@ import {
 } from "../validators/products.validator.js";
 
 export default defineRoutes((router) => {
-  // Shared checks for this API group. Each IP gets 100 requests per minute.
-  router.group({ prefix: "/api", middleware: [
-    requestId(),
-    requestLogger(),
-    securityHeaders(),
-    cors({ origin: "http://localhost:5173" }),
-    rateLimit({ windowMs: 60_000, max: 100 }),
-    bodyLimit(16 * 1024), // 16 KB JSON bodies.
-  ] }, () => {
+  router.group({ prefix: "/api" }, () => {
     router.resource("/products", ProductController, {
       store: {
         middleware: [rateLimit({ windowMs: 60_000, max: 20 })],
@@ -35,5 +27,15 @@ export default defineRoutes((router) => {
 
   router.get("/hello", () => ({
     message: "Routing works",
-  }), { middleware: [cache({ maxAge: 30 })] });
+  }), {
+    middleware: [
+      requestId(),
+      requestLogger(),
+      securityHeaders(),
+      cors({ origin: "http://localhost:5173" }),
+      rateLimit({ windowMs: 60_000, max: 100 }),
+      bodyLimit(16 * 1024),
+      cache({ maxAge: 30 }),
+    ],
+  });
 });
