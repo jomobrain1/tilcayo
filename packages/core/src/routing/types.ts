@@ -1,3 +1,5 @@
+import type { TilcayoContext } from "../context/types.js";
+
 export type HttpMethod =
   | "GET"
   | "POST"
@@ -6,7 +8,7 @@ export type HttpMethod =
   | "DELETE";
 
 export type RouteHandler =
-  () => unknown | Promise<unknown>;
+  (ctx: TilcayoContext) => unknown | Promise<unknown>;
 
 export interface RouteDefinition {
   method: HttpMethod;

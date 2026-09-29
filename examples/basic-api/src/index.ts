@@ -1,9 +1,9 @@
 import { createApp } from "@tilcayo/core";
 
-import { registerApiRoutes } from "./routes/api.js";
+import apiRoutes from "./routes/api.js";
 
 const app = createApp();
 
-registerApiRoutes(app.route);
+app.routes(apiRoutes);
 
 app.listen(9149);

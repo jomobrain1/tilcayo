@@ -1,0 +1,13 @@
+{
+  "watch": [
+    "packages/core/src",
+    "examples/basic-api/src",
+    "tsconfig.json",
+    "packages/core/tsconfig.json",
+    "examples/basic-api/tsconfig.json"
+  ],
+  "ext": "ts,json",
+  "ignore": ["**/dist/**", "**/node_modules/**"],
+  "delay": "300ms",
+  "exec": "npm run dev:serve"
+}

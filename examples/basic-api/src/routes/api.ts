@@ -1,22 +1,18 @@
-import {
-  createRouter,
-} from "@tilcayo/core";
+import { defineRoutes } from "@tilcayo/core";
 
-type Router = ReturnType<typeof createRouter>;
+import { ProductController } from "../controllers/ProductController.js";
 
-export function registerApiRoutes(
-  route: Router
-) {
-  route.get("/", () => {
-    return {
-      framework: "Tilcayo",
-      message: "Tilcayo API",
-    };
+export default defineRoutes(({ get, group, resource }) => {
+  group({ prefix: "/api" }, () => {
+    resource("/products", ProductController);
   });
 
-  route.get("/hello", () => {
-    return {
-      message: "Routing works",
-    };
-  });
-}
+  get("/", () => ({
+    framework: "Tilcayo",
+    message: "Tilcayo API",
+  }));
+
+  get("/hello", () => ({
+    message: "Routing works",
+  }));
+});

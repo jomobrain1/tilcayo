@@ -8,11 +8,20 @@ import express, {
 import type { Server } from "node:http";
 
 import { createRouter } from "./routing/createRouter.js";
+import { createContext } from "./context/createContext.js";
 
 import type { RouteDefinition } from "./routing/types.js";
+import type { Router, RouteRegistrar } from "./routing/defineRoutes.js";
 
-export function createApp() {
+interface TilcayoApp {
+  route: Router;
+  routes(registrar: RouteRegistrar): TilcayoApp;
+  listen(port?: number): Server;
+}
+
+export function createApp(): TilcayoApp {
   const http: Express = express();
+  http.use(express.json());
 
   const route = createRouter();
 
@@ -20,12 +29,13 @@ export function createApp() {
 
   function mountRoute(definition: RouteDefinition): void {
     const handler = async (
-      _req: Request,
+      req: Request,
       res: Response,
       next: NextFunction,
     ) => {
       try {
-        const result = await definition.handler();
+        const ctx = createContext(req, res);
+        const result = await definition.handler(ctx);
 
         if (result === undefined) {
           res.status(204).end();
@@ -81,8 +91,16 @@ export function createApp() {
     });
   }
 
-  return {
+  function routes(registrar: RouteRegistrar) {
+    registrar(route);
+    return api;
+  }
+
+  const api = {
     route,
+    routes,
     listen,
   };
+
+  return api;
 }
