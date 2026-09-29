@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
 import { createApp, createRouter } from "../packages/core/dist/index.js";
-import apiRoutes from "../examples/basic-api/dist/routes/api.js";
+import apiRoutes from "../examples/basic-api/dist/routes/api.routes.js";
 
 test("basic-api serves product controllers", async () => {
   const server = createApp().routes(apiRoutes).listen(0);

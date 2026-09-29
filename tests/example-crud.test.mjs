@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { test } from "node:test";
 import { createApp } from "../packages/core/dist/index.js";
-import apiRoutes from "../examples/basic-api/dist/routes/api.js";
+import apiRoutes from "../examples/basic-api/dist/routes/api.routes.js";
+import booksRoutes from "../examples/basic-api/dist/routes/books.routes.js";
 
 test("products and books return basic write responses without changing sample arrays", async () => {
-  const server = createApp().routes(apiRoutes).listen(0);
+  const server = createApp().routes(apiRoutes).routes(booksRoutes).listen(0);
   try {
     await once(server, "listening");
     const base = `http://localhost:${server.address().port}/api`;

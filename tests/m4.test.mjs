@@ -8,7 +8,7 @@ import {
   createHttpError, isTilcayoHttpError, badRequest, notFound, validationError,
 } from "../packages/core/dist/index.js";
 import { handleError } from "../packages/core/dist/errors/errorHandler.js";
-import apiRoutes from "../examples/basic-api/dist/routes/api.js";
+import apiRoutes from "../examples/basic-api/dist/routes/api.routes.js";
 
 async function withServer(app, run) {
   const server = app.listen(0);
