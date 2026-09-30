@@ -12,7 +12,8 @@
     "dev": "nodemon --config nodemon.json",
     "dev:serve": "npm run build -w @tilcayo/core && npm run build -w @tilcayo/auth && npm run build -w @tilcayo/basic-api && node --env-file-if-exists=.env examples/basic-api/dist/index.js",
     "build": "npm run build -w @tilcayo/core && npm run build -w @tilcayo/auth && npm run build -w @tilcayo/cli && npm run build -w @tilcayo/basic-api",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "routes": "npm run build && node packages/cli/dist/bin.js routes:list --entry examples/basic-api/dist/app.js"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",

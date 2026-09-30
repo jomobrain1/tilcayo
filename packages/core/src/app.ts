@@ -25,7 +25,16 @@ export interface AppOptions {
 interface TilcayoApp {
   route: Router;
   routes(registrar: RouteRegistrar): TilcayoApp;
+  getRoutes(): RouteInfo[];
   listen(port?: number): Server;
+}
+
+export interface RouteInfo {
+  method: string;
+  path: string;
+  handler: string;
+  middleware: string[];
+  validation: string[];
 }
 
 export function createApp(options: AppOptions = {}): TilcayoApp {
@@ -136,6 +145,13 @@ export function createApp(options: AppOptions = {}): TilcayoApp {
   const api = {
     route,
     routes,
+    getRoutes: (): RouteInfo[] => route.all().map((definition) => ({
+      method: definition.method,
+      path: definition.path,
+      handler: definition.handlerName ?? "anonymous",
+      middleware: [...globalMiddleware, ...(definition.options.middleware ?? [])].map((item) => item.name || "anonymous"),
+      validation: Object.entries(definition.options.validate ?? {}).filter(([, schema]) => schema !== undefined).map(([key]) => key),
+    })),
     listen,
   };
 

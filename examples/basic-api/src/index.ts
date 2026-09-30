@@ -1,24 +1,8 @@
-import { connectMongo, createApp } from "@tilcayo/core";
-
-import apiRoutes from "./routes/api.routes.js";
-import booksRoutes from "./routes/books.routes.js";
-import membersRoutes from "./routes/members.routes.js";
-import notebookRoutes from "./routes/notebooks.routes.js";
+import { connectMongo } from "@tilcayo/core";
 async function main() {
   // Load configuration inside the startup error boundary.
-  const { auth } = await import("./auth.js");
-  const { default: profileRoutes } = await import("./routes/profile.routes.js");
+  const { default: app } = await import("./app.js");
   await connectMongo(process.env.MONGODB_URI ?? "");
-  const app = createApp();
-
-  // After creating app:
-  app.routes(apiRoutes);
-  app.routes(booksRoutes);
-  app.routes(membersRoutes);
-  app.routes(notebookRoutes);
-  app.routes(auth.routes);
-  app.routes(profileRoutes);
-
   app.listen(9149);
 }
 

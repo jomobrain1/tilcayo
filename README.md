@@ -62,7 +62,7 @@ src/
 └── routes/notebooks.routes.ts
 ```
 
-Add the printed registration to `src/index.ts`, after creating the app:
+Add the printed registration to `src/app.ts`, after creating the app:
 
 ```typescript
 import notebooksRoutes from "./routes/notebooks.routes.js";
@@ -79,6 +79,29 @@ app.routes(notebooksRoutes);
 | `DELETE /notebooks/:id` | Delete |
 
 Existing files are never overwritten. A resource checks all four targets before writing. Choose a fresh name: the example already contains Book, Product, and Article files.
+
+### List registered routes
+
+From the repository root, build and list the example application's routes:
+
+```sh
+npm run routes
+npm run routes -- --path /api/auth
+npm run routes -- --method GET
+```
+
+The table shows method, full path, handler name, middleware (including inherited and global middleware), and validation targets such as body, params, or query. Unnamed functions appear as `anonymous`.
+
+After building, you can also run the CLI inside the application directory:
+
+```sh
+npx tilcayo routes:list --env-file ../../.env
+npx tilcayo routes:list --env-file ../../.env --path /api/auth --json
+```
+
+The command imports `dist/app.js` by default; use `--entry` for another compiled module. Export your app as the default export or a named `app`, and keep database connections and `listen()` in a separate startup module. The example uses `src/app.ts` for registration and `src/index.ts` for startup. The command loads `.env` from the current directory if present, or the explicit `--env-file`; auth configuration still requires valid secrets. It does not connect to MongoDB or start the example server.
+
+Only registered routes are listed. After generating routes, register them in `src/app.ts` and rebuild. `--path` matches a path substring, and `--method` accepts GET, POST, PUT, PATCH, or DELETE. `--json` returns a JSON array for scripts; use the CLI directly to avoid npm build output.
 
 ### Individual commands
 
@@ -308,6 +331,50 @@ a framework error. The middleware body is unparsed; access validated bodies in
 controllers. See `examples/basic-api/src/routes/api.routes.ts` for working examples.
 
 ## Authentication
+
+### Generate auth for an app
+
+After building the workspace, run inside your application directory:
+
+```sh
+cd examples/basic-api
+npx tilcayo make:auth
+```
+
+```text
+src/auth.ts
+src/controllers/auth.controller.ts
+src/routes/auth.routes.ts
+src/validators/auth.validator.ts
+```
+
+The controller exposes `register`, `login`, `refresh`, `logout`, and `me`.
+It calls the package's auth handlers so password hashing and token rotation stay
+in one place. Validators reuse the package defaults. User and RefreshToken models
+are provided by `@tilcayo/auth`.
+
+The app needs `@tilcayo/core` and `@tilcayo/auth` as dependencies (already installed
+in this workspace example). Set `MONGODB_URI`, `AUTH_ACCESS_SECRET`, and
+`AUTH_REFRESH_SECRET` as shown in Quick start. Connect MongoDB before listening.
+
+Register the generated routes in `src/app.ts`:
+
+```typescript
+import authRoutes from "./routes/auth.routes.js";
+
+app.routes(authRoutes);
+```
+
+Replace `app.routes(auth.routes)` if present; register only one set of auth routes.
+The generator prints these steps; it does not edit your bootstrap or environment.
+It reuses an existing `export const auth = createAuth(...)` config and refuses to
+overwrite other files. The example already includes the generated files.
+
+Generated routes use the existing `middleware: [...]` format, with a shared login/
+registration rate limit, body validation, and `auth.middleware` on `/me`.
+`auth.requestMiddleware` supplies no-store headers, safe errors, and a 16 KB body limit.
+
+### Built-in routes without generation
 
 Configure one instance in your application's `src/auth.ts`:
 

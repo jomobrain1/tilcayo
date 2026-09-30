@@ -38,7 +38,7 @@ export async function writeSource(root: string, folder: string, filename: string
   await checkDirectory(src);
   await checkDirectory(directory);
   await mkdir(directory, { recursive: true });
-  const relative = `src/${folder}/${filename}`;
+  const relative = folder ? `src/${folder}/${filename}` : `src/${filename}`;
   try {
     await writeFile(target, source, { encoding: "utf8", flag: "wx" });
   } catch (error) {

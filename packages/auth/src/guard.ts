@@ -1,5 +1,6 @@
 import { unauthorized, createHttpError, isTilcayoHttpError, type Middleware, type TilcayoContext, type RouteHandler } from "@tilcayo/core";
-import { User, toAuthUser } from "./models/User.js";
+import { User } from "./models/User.js";
+import { toAuthUser } from "./toAuthUser.js";
 import { verifyAccessToken } from "./tokens.js";
 import type { AuthConfig, AuthenticatedContext, AuthenticatedRouteHandler } from "./types.js";
 
@@ -11,7 +12,7 @@ export function createGuard(config: Readonly<Required<AuthConfig>>) {
     const header = ctx.headers.authorization;
     if (typeof header !== "string" || header.length > 8192 || !/^Bearer [^\s]+$/i.test(header)) throw unauthorized("Bearer access token required");
     const token = await verifyAccessToken(header.slice(7), config);
-    const user = await User.findById(token.sub);
+    const user = await User.find(token.sub);
     if (!user) throw unauthorized("Invalid or expired token");
     return { user: toAuthUser(user), token };
   }

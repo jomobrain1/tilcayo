@@ -45,7 +45,9 @@ function nonemptyFilter<T>(filter: QueryFilter<T>): QueryFilter<T> {
 }
 
 export function mongoModel<S extends Schema>(name: string, schema: S) {
-  return modelMethods(mongoose.model<S>(name, schema));
+  // Reuse registered schemas so reloading a model does not compile it twice.
+  const registeredSchema = mongoose.models[name]?.schema as S | undefined;
+  return modelMethods(mongoose.model<S>(name, registeredSchema ?? schema));
 }
 
 // Keep Mongoose intact and expose simple methods beside it.

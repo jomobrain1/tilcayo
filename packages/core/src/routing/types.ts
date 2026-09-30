@@ -38,5 +38,6 @@ export interface RouteDefinition {
   method: HttpMethod;
   path: string;
   handler: RouteHandler;
+  handlerName?: string;
   options: RouteOptions;
 }

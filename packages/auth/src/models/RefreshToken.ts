@@ -1,4 +1,5 @@
-import mongoose, { type InferSchemaType } from "mongoose";
+import mongoose from "mongoose";
+import { mongoModel } from "@tilcayo/core";
 
 const refreshTokenSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "TilcayoUser", required: true, index: true },
@@ -7,6 +8,4 @@ const refreshTokenSchema = new mongoose.Schema({
   revokedAt: { type: Date, default: null },
 }, { timestamps: true, collection: "tilcayo_refresh_tokens" });
 
-export const RefreshToken = mongoose.modelNames().includes("TilcayoRefreshToken")
-  ? mongoose.model<InferSchemaType<typeof refreshTokenSchema>>("TilcayoRefreshToken")
-  : mongoose.model<InferSchemaType<typeof refreshTokenSchema>>("TilcayoRefreshToken", refreshTokenSchema);
+export const RefreshToken = mongoModel("TilcayoRefreshToken", refreshTokenSchema);

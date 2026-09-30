@@ -8,10 +8,13 @@ import { controllerTemplate, handlerNames } from "../generators/controller.js";
 import { validatorTemplate } from "../generators/validator.js";
 import { routeTemplate } from "../generators/route.js";
 import { serviceTemplate } from "../generators/service.js";
+import { authFiles } from "../generators/auth.js";
 
 export const help = `Usage: tilcayo <command> <name> [field:type ...]
 
 Commands:
+  routes:list [--entry dist/app.js] [--env-file .env] [--method GET] [--path /api] [--json]
+  make:auth
   make:resource Product name:string price:number active:boolean
   make:resource Notebook title:string price:number active:boolean --mongodb
   make:model Book
@@ -56,6 +59,36 @@ async function databaseFor(root: string): Promise<string> {
 export async function make(args: string[], root = process.cwd()): Promise<string[]> {
   const [command, input, ...options] = args;
   if (!command || command === "--help" || command === "-h") return [help];
+  if (command === "make:auth") {
+    if (args.length !== 1) throw new Error("Usage: tilcayo make:auth (no name or flags).");
+    if (await databaseFor(root) !== "mongo") throw new Error("Authentication currently requires MongoDB.");
+    const files = [];
+    const messages: string[] = [];
+    for (const file of authFiles) {
+      const existing = await readSource(root, file.folder, file.name);
+      if (existing !== undefined) {
+        if (file.name === "auth.ts" && /export\s+const\s+auth\s*=\s*createAuth\s*\(/.test(existing)) {
+          messages.push("Reusing src/auth.ts.");
+          continue;
+        }
+        throw new Error(`File already exists: src/${file.folder ? file.folder + "/" : ""}${file.name}`);
+      }
+      files.push(file);
+    }
+    for (const file of files) messages.push(`Created ${await writeSource(root, file.folder, file.name, file.source)}`);
+    return [...messages,
+      "Ensure @tilcayo/auth and @tilcayo/core are installed in this application.",
+      "Set MONGODB_URI, AUTH_ACCESS_SECRET and AUTH_REFRESH_SECRET in your environment.",
+      "Use distinct randomly generated auth secrets (at least 32 bytes each).",
+      "Connect MongoDB before listening. Register the generated routes in your app setup (src/app.ts):",
+      'import authRoutes from "./routes/auth.routes.js";',
+      "app.routes(authRoutes);",
+      "Replace app.routes(auth.routes) if present; do not register both.",
+      "Routes: POST /api/auth/register, /login, /refresh, /logout; GET /api/auth/me.",
+      "Protect other routes with middleware: [auth.middleware]. Read the user with auth.user(ctx).",
+      "User and RefreshToken models are provided by @tilcayo/auth.",
+    ];
+  }
   const kind = command.startsWith("make:") ? command.slice(5) : "";
   if (!["resource", "model", "controller", "validator", "route", "service"].includes(kind)) {
     throw new Error(`Unknown command: ${command}. Run tilcayo --help.`);

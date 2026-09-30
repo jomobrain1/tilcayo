@@ -21,7 +21,7 @@ test("live MongoDB authentication, rotation races, revocation and safe persisten
       await connectMongo(process.env.MONGODB_URI, { dbName, serverSelectionTimeoutMS: 10000, connectTimeoutMS: 10000 });
     } catch { throw new Error("Live auth test could not connect to MongoDB"); }
     connected = true;
-    await Promise.all([User.init(), RefreshToken.init()]);
+    await Promise.all([User.raw.init(), RefreshToken.raw.init()]);
     const app = createApp().routes(auth.routes);
     app.route.get("/profile", (ctx) => ctx.response.success(auth.user(ctx)), { middleware: [auth.middleware] });
     server = app.listen(0);
@@ -45,16 +45,16 @@ test("live MongoDB authentication, rotation races, revocation and safe persisten
     assert.equal(/password|passwordHash|tokenHash/.test(JSON.stringify(created.body)), false);
     const userId = created.body.data.user.id;
     const tokens = created.body.data.tokens;
-    const stored = await User.findById(userId).select("+passwordHash").lean();
+    const stored = await User.raw.findById(userId).select("+passwordHash").lean();
     assert.equal(stored.password, undefined);
     assert.match(stored.passwordHash, /^\$2[aby]\$10\$/);
-    assert.equal((await User.findById(userId)).passwordHash, undefined);
-    const refresh = await RefreshToken.findOne({ userId }).lean();
+    assert.equal((await User.raw.findById(userId)).passwordHash, undefined);
+    const refresh = await RefreshToken.raw.findOne({ userId }).lean();
     assert.equal(refresh.tokenHash === hashRefreshToken(tokens.refreshToken), true);
     assert.equal(refresh.refreshToken, undefined);
     assert.equal(refresh.accessToken, undefined);
-    assert.equal((await User.collection.indexes()).some((index) => index.unique && index.key.email === 1), true);
-    assert.equal((await RefreshToken.collection.indexes()).some((index) => index.expireAfterSeconds === 0 && index.key.expiresAt === 1), true);
+    assert.equal((await User.raw.collection.indexes()).some((index) => index.unique && index.key.email === 1), true);
+    assert.equal((await RefreshToken.raw.collection.indexes()).some((index) => index.expireAfterSeconds === 0 && index.key.expiresAt === 1), true);
     assert.equal((await post("register", registration)).status, 409);
     assert.equal((await post("register", { ...registration, email: "bad" })).status, 422);
     assert.equal((await post("register", { ...registration, password: "short" })).status, 422);
@@ -87,11 +87,11 @@ test("live MongoDB authentication, rotation races, revocation and safe persisten
     assert.equal((await post("refresh", { refreshToken: winner.refreshToken })).status, 401);
     assert.equal((await request("GET", "/profile", undefined, winner.accessToken)).status, 200); // Access JWT lasts until expiry.
     const loginToken = login.body.data.tokens.refreshToken;
-    await RefreshToken.updateOne({ tokenHash: hashRefreshToken(loginToken) }, { $set: { expiresAt: new Date(0) } });
+    await RefreshToken.raw.updateOne({ tokenHash: hashRefreshToken(loginToken) }, { $set: { expiresAt: new Date(0) } });
     assert.equal((await post("refresh", { refreshToken: loginToken })).status, 401);
     const newLogin = await post("login", { email: "jane@example.com", password: "password123" });
     assert.equal(newLogin.status, 200);
-    await User.deleteOne({ _id: userId });
+    await User.raw.deleteOne({ _id: userId });
     assert.equal((await request("GET", "/profile", undefined, tokens.accessToken)).status, 401);
     assert.equal((await post("refresh", { refreshToken: newLogin.body.data.tokens.refreshToken })).status, 401);
     // Concurrent registrations rely on the unique index, not just an exists() check.

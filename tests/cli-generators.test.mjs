@@ -47,6 +47,47 @@ function compile(cwd) {
   assert.equal(result.status, 0, result.stdout + result.stderr);
 }
 
+test("make:auth generates typed controllers and routes and reuses existing config", async (t) => {
+  const cwd = await fixture(t);
+  const output = success(cwd, "make:auth");
+  assert.match(output, /app.routes\(authRoutes\)/);
+  assert.match(output, /AUTH_ACCESS_SECRET/);
+  const routes = await readFile(path.join(cwd, "src/routes/auth.routes.ts"), "utf8");
+  assert.match(routes, /middleware: \[auth.middleware\]/);
+  assert.match(routes, /validate: \{ body: registerSchema \}/);
+  compile(cwd);
+  const config = await readFile(path.join(cwd, "src/auth.ts"), "utf8");
+  assert.notEqual(run(cwd, "make:auth").status, 0);
+  assert.equal(await readFile(path.join(cwd, "src/auth.ts"), "utf8"), config);
+
+  const existing = await fixture(t);
+  await mkdir(path.join(existing, "src"));
+  await writeFile(path.join(existing, "src/auth.ts"), config);
+  assert.match(success(existing, "make:auth"), /Reusing src\/auth.ts/);
+  assert.equal(await readFile(path.join(existing, "src/auth.ts"), "utf8"), config);
+  compile(existing);
+});
+
+test("make:auth rejects collisions and invalid arguments before creating files", async (t) => {
+  for (const target of ["auth.ts", "controllers/auth.controller.ts", "validators/auth.validator.ts", "routes/auth.routes.ts"]) {
+    const cwd = await fixture(t);
+    const file = path.join(cwd, "src", target);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, "// existing application code");
+    assert.notEqual(run(cwd, "make:auth").status, 0);
+    assert.equal(await readFile(file, "utf8"), "// existing application code");
+    const files = await readdir(path.join(cwd, "src"), { recursive: true });
+    assert.equal(files.filter((name) => name.endsWith(".ts")).length, 1);
+  }
+  const cwd = await fixture(t);
+  for (const args of [["User"], ["--force"], ["--mongodb"]]) {
+    assert.notEqual(run(cwd, "make:auth", ...args).status, 0);
+  }
+  await writeFile(path.join(cwd, "package.json"), JSON.stringify({ tilcayo: { database: "mysql" } }));
+  assert.notEqual(run(cwd, "make:auth").status, 0);
+  await assert.rejects(readFile(path.join(cwd, "src/auth.ts")), { code: "ENOENT" });
+});
+
 test("naming supports singular, plural, PascalCase and categories", () => {
   for (const input of ["Book", "book", "books"]) assert.deepEqual(resourceNames(input), {
     model: "Book", singular: "book", plural: "books", pluralPascal: "Books",

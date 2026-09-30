@@ -13,6 +13,37 @@ import { createApp, unauthorized, forbidden, conflict } from "../packages/core/d
 const config = () => resolveConfig({ accessTokenSecret: randomBytes(32).toString("hex"), refreshTokenSecret: randomBytes(32).toString("hex"), passwordRounds: 10 });
 const id = "1234567890abcdef12345678";
 
+test("generated application auth routes validate requests and protect the current user", async (t) => {
+  const previousAccess = process.env.AUTH_ACCESS_SECRET;
+  const previousRefresh = process.env.AUTH_REFRESH_SECRET;
+  const c = config();
+  process.env.AUTH_ACCESS_SECRET = c.accessTokenSecret;
+  process.env.AUTH_REFRESH_SECRET = c.refreshTokenSecret;
+  t.after(() => {
+    if (previousAccess === undefined) delete process.env.AUTH_ACCESS_SECRET;
+    else process.env.AUTH_ACCESS_SECRET = previousAccess;
+    if (previousRefresh === undefined) delete process.env.AUTH_REFRESH_SECRET;
+    else process.env.AUTH_REFRESH_SECRET = previousRefresh;
+  });
+  const { default: routes } = await import("../examples/basic-api/dist/routes/auth.routes.js");
+  const user = new User.raw({ _id: id, name: "Jane", email: "jane@example.com", passwordHash: "hidden" });
+  t.mock.method(User, "find", async () => user);
+  const request = await serve(t, createApp().routes(routes));
+  for (const action of ["register", "login", "refresh", "logout"]) {
+    const response = await request(`/api/auth/${action}`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+    });
+    assert.equal(response.status, 422);
+    assert.equal(response.headers.get("Cache-Control"), "no-store");
+  }
+  assert.equal((await request("/api/auth/me")).status, 401);
+  const token = await createAccessToken(id, c);
+  const response = await request("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.data.id, id);
+  assert.equal(response.body.data.passwordHash, undefined);
+});
+
 async function serve(t, app) {
   const server = app.listen(0);
   await once(server, "listening");
@@ -86,9 +117,9 @@ test("middleware and guard protect routes, keep user data safe, and preserve val
   const c = config();
   const auth = createAuth(c);
   const other = createAuth(config());
-  const user = new User({ _id: id, name: "Jane", email: "jane@example.com", passwordHash: "never-return-this" });
+  const user = new User.raw({ _id: id, name: "Jane", email: "jane@example.com", passwordHash: "never-return-this" });
   let found = true;
-  t.mock.method(User, "findById", async () => found ? user : null);
+  t.mock.method(User, "find", async () => found ? user : null);
   const app = createApp().routes(auth.routes);
   app.route.post("/profile", (ctx) => ctx.response.success({ user: auth.user(ctx), body: ctx.body }), {
     middleware: [auth.middleware], validate: { body: z.object({ title: z.string() }) },
@@ -133,7 +164,7 @@ test("auth validation and parser errors use safe responses; database errors are 
   assert.equal(malformed.status, 400);
   assert.equal((await post("login", { padding: "a".repeat(20000) })).status, 413);
   const log = t.mock.method(console, "error", () => {});
-  t.mock.method(User, "findOne", () => { throw Error("sensitive database details"); });
+  t.mock.method(User, "first", () => { throw Error("sensitive database details"); });
   const failure = await post("login", { email: "jane@example.com", password: "password123" });
   assert.equal(failure.status, 500);
   assert.equal(JSON.stringify(failure.body).includes("sensitive"), false);
@@ -142,11 +173,19 @@ test("auth validation and parser errors use safe responses; database errors are 
 
 test("duplicate-key registration races return conflict", async (t) => {
   const auth = createAuth(config());
-  t.mock.method(User, "init", async () => User);
+  t.mock.method(User.raw, "init", async () => User);
   t.mock.method(User, "exists", async () => null);
   t.mock.method(User, "create", async () => { throw Object.assign(Error("private duplicate details"), { code: 11000 }); });
   const request = await serve(t, createApp().routes(auth.routes));
   const result = await request("/api/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Jane", email: "JANE@example.com", password: "password123" }) });
   assert.equal(result.status, 409);
   assert.equal(result.body.error.message, "Email already registered");
+});
+
+test("auth models reuse registered schemas on reload", async () => {
+  const reloaded = await import("../packages/auth/dist/models/User.js?reload");
+  assert.equal(reloaded.User.raw, User.raw);
+  const original = await import("../packages/auth/dist/models/RefreshToken.js");
+  const refreshed = await import("../packages/auth/dist/models/RefreshToken.js?reload");
+  assert.equal(refreshed.RefreshToken.raw, original.RefreshToken.raw);
 });

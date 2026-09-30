@@ -17,6 +17,7 @@ export function createRouter() {
       path: prefix ? joinPath(prefix, path) : path,
       // The app validates the request before invoking this stored handler.
       handler: (ctx) => handler(ctx as TilcayoContext<Body>),
+      handlerName: handler.name || "anonymous",
       options: inherited.length ? { ...options, middleware: [...inherited, ...(options.middleware ?? [])] } : options,
     });
 
