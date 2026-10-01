@@ -16,6 +16,8 @@ Commands:
   routes:list [--entry dist/app.js] [--env-file .env] [--method GET] [--path /api] [--json]
   make:auth
   make:resource Product name:string price:number active:boolean
+  make:resource Book title:string author:ref:Author
+  make:resource Article title:string tags:refs:Tag
   make:resource Notebook title:string price:number active:boolean --mongodb
   make:model Book
   make:controller books
@@ -24,7 +26,9 @@ Commands:
   make:route books
   make:service books
 
-Fields: string, number, boolean, date. Use year?:number for an optional field.
+Fields: string, number, boolean, date. Use year:number? (or year?:number) for optional fields.
+Relations: field:ref:Model, field:refs:Model. Append ? to Model for optional relations.
+Relationship resources include a service with explicit, typed populate options.
 Resource, model, controller, and validator commands accept fields.
 --resource controllers contain working CRUD; plain controllers are placeholders.
 Database: package.json tilcayo.database (defaults to mongo; only mongo is supported).
@@ -93,6 +97,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
   if (!["resource", "model", "controller", "validator", "route", "service"].includes(kind)) {
     throw new Error(`Unknown command: ${command}. Run tilcayo --help.`);
   }
+  if ((input === "--help" || input === "-h") && options.length === 0) return [help];
   if (!input) throw new Error(`Missing name. Example: tilcayo ${command} Book`);
   const names = resourceNames(input);
   const flags = new Set<string>();
@@ -136,12 +141,14 @@ export async function make(args: string[], root = process.cwd()): Promise<string
   ];
 
   if (kind === "resource") {
+    const references = fields !== undefined && parseFields(fields, true).some((field) => field.kind === "reference");
     const files = [
       { folder: "models", name: `${names.model}.ts`, source: modelTemplate(names, fields, true) },
-      { folder: "controllers", name: `${filename}.controller.ts`, source: controllerTemplate(names, true, true, fields) },
+      { folder: "controllers", name: `${filename}.controller.ts`, source: controllerTemplate(names, true, true, fields, references) },
       { folder: "validators", name: `${filename}.validator.ts`, source: validatorTemplate(names, fields) },
       { folder: "routes", name: `${filename}.routes.ts`, source: routeTemplate(names, true, true, true) },
     ];
+    if (references) files.push({ folder: "services", name: `${filename}.service.ts`, source: serviceTemplate(names, fields) });
     // Check the entire resource before creating any files.
     for (const file of files) {
       if (await readSource(root, file.folder, file.name) !== undefined) throw new Error(`File already exists: src/${file.folder}/${file.name}`);

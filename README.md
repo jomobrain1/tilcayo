@@ -78,7 +78,11 @@ app.routes(notebooksRoutes);
 | `PUT /notebooks/:id` | Update supplied fields |
 | `DELETE /notebooks/:id` | Delete |
 
-Existing files are never overwritten. A resource checks all four targets before writing. Choose a fresh name: the example already contains Book, Product, and Article files.
+Existing files are never overwritten. A resource checks all targets before writing. Choose a fresh name: the example already contains Book, Product, and Article files.
+
+Resources also support MongoDB relationships: `tilcayo make:resource Book title:string author:ref:Author`.
+Use `ref` for one ObjectId and `refs` for arrays; append `?` for optional relations.
+See [MongoDB relationships](MONGODB-RELATIONSHIPS.md) for validation, explicit population, and tests.
 
 ### List registered routes
 

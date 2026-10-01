@@ -9,7 +9,13 @@ const fieldTypes = new Map([
 ]);
 
 function schemaFields(input: string): string {
-  return parseFields(input, true).map(({ name, type, optional }) => `  ${name}: { type: ${fieldTypes.get(type)}${optional ? "" : ", required: true"} },`).join("\n");
+  return parseFields(input, true).map((field) => {
+    if (field.kind === "reference") {
+      const reference = `type: mongoose.Schema.Types.ObjectId, ref: "${field.model}"`;
+      return `  ${field.name}: { ${field.many ? `type: [{ ${reference} }], default: undefined` : reference}, required: ${!field.optional} },`;
+    }
+    return `  ${field.name}: { type: ${fieldTypes.get(field.type)}${field.optional ? "" : ", required: true"} },`;
+  }).join("\n");
 }
 
 export const modelTemplate = ({ model, singular }: ResourceNames, fields?: string, mongo = false): string => {

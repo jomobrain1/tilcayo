@@ -2,13 +2,24 @@ import type { ResourceNames } from "../utils/naming.js";
 import { parseFields } from "../utils/fields.js";
 
 export const validatorTemplate = ({ model, singular }: ResourceNames, fields?: string): string => {
+  const parsed = fields === undefined ? [] : parseFields(fields, true);
+  const references = parsed.some((field) => field.kind === "reference");
   const rules = fields === undefined
     ? "  // Add your fields here, for example: name: z.string().min(2),"
-    : parseFields(fields, true).map(({ name, type, optional }) => {
-      const rule = type === "date" ? 'z.iso.datetime({ offset: true }).pipe(z.coerce.date())' : `z.${type}()${type === "string" ? ".min(1)" : ""}`;
-      return `  ${name}: ${rule}${optional ? ".optional()" : ""},`;
+    : parsed.map((field) => {
+      const rule = field.kind === "reference"
+        ? (field.many ? `z.array(objectIdValidator("${field.model}"))` : `objectIdValidator("${field.model}")`)
+        : field.type === "date" ? 'z.iso.datetime({ offset: true }).pipe(z.coerce.date())' : `z.${field.type}()${field.type === "string" ? ".min(1)" : ""}`;
+      return `  ${field.name}: ${rule}${field.optional ? ".optional()" : ""},`;
     }).join("\n");
   return `import { z } from "zod";
+${references ? `import mongoose from "mongoose";
+
+const objectIdValidator = (model: string) => z.string().refine(
+  (value) => mongoose.Types.ObjectId.isValid(value),
+  { message: \`Invalid \${model} id\` },
+);
+` : ""}
 
 // Validate the body when creating a ${singular}.
 export const create${model}Schema = z.object({
