@@ -9,10 +9,14 @@ import { validatorTemplate } from "../generators/validator.js";
 import { routeTemplate } from "../generators/route.js";
 import { serviceTemplate } from "../generators/service.js";
 import { authFiles } from "../generators/auth.js";
+import { prepareAuthEnv } from "../utils/authEnv.js";
 
 export const help = `Usage: tilcayo <command> <name> [field:type ...]
 
 Commands:
+  dev                    Rebuild and restart the API on changes
+  build                  Compile the application
+  start                  Start the compiled API using .env
   routes:list [--entry dist/app.js] [--env-file .env] [--method GET] [--path /api] [--json]
   make:auth
   make:resource Product name:string price:number active:boolean
@@ -34,7 +38,8 @@ Resource, model, controller, and validator commands accept fields.
 Database: package.json tilcayo.database (defaults to mongo; only mongo is supported).
 --mongodb explicitly selects MongoDB for resources, models, and controllers.
 Legacy --fields, --mongo, and --crud options still work.
-Run inside the application directory. Existing files are never overwritten.`;
+make:auth generates missing secrets in .env and adds placeholders to .env.example.
+Run inside the application directory. Existing source files are never overwritten.`;
 
 function requireExports(source: string, names: string[], filename: string): void {
   for (const name of names) {
@@ -79,11 +84,14 @@ export async function make(args: string[], root = process.cwd()): Promise<string
       }
       files.push(file);
     }
+    const writeAuthEnv = await prepareAuthEnv(root);
     for (const file of files) messages.push(`Created ${await writeSource(root, file.folder, file.name, file.source)}`);
+    await writeAuthEnv();
     return [...messages,
       "Ensure @tilcayo/auth and @tilcayo/core are installed in this application.",
-      "Set MONGODB_URI, AUTH_ACCESS_SECRET and AUTH_REFRESH_SECRET in your environment.",
-      "Use distinct randomly generated auth secrets (at least 32 bytes each).",
+      "Configured AUTH_ACCESS_SECRET and AUTH_REFRESH_SECRET in .env; existing nonempty values were preserved.",
+      "Added auth placeholders to .env.example and environment exclusions to .gitignore.",
+      "Set MONGODB_URI in .env and load it when starting the application.",
       "Connect MongoDB before listening. Register the generated routes in your app setup (src/app.ts):",
       'import authRoutes from "./routes/auth.routes.js";',
       "app.routes(authRoutes);",

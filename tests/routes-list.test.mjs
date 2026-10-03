@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -8,6 +8,39 @@ import { createApp } from "../packages/core/dist/index.js";
 
 const repo = fileURLToPath(new URL("../", import.meta.url));
 const binary = path.join(repo, "packages/cli/dist/bin.js");
+
+test("routes:list discovers the nearest environment within the workspace and honors explicit files", async (t) => {
+  const directory = await mkdtemp(path.join(repo, ".routes-test-"));
+  t.after(async () => {
+    assert.equal(path.dirname(path.resolve(directory)), path.resolve(repo));
+    assert.ok(path.basename(directory).startsWith(".routes-test-"));
+    await rm(directory, { recursive: true, force: true });
+  });
+  const cwd = path.join(directory, "examples", "api");
+  await mkdir(cwd, { recursive: true });
+  await writeFile(path.join(directory, "package.json"), JSON.stringify({ workspaces: ["examples/*"] }));
+  await writeFile(path.join(directory, ".env"), "TILCAYO_ROUTE_ENV_TEST=workspace\n");
+  await writeFile(path.join(cwd, "app.mjs"), `export default { getRoutes() { return [{ method: 'GET', path: '/' + (process.env.TILCAYO_ROUTE_ENV_TEST ?? 'missing'), handler: 'test', middleware: [], validation: [] }]; } };`);
+  const env = { ...process.env };
+  delete env.TILCAYO_ROUTE_ENV_TEST;
+  const run = (...args) => spawnSync(process.execPath, [binary, "routes:list", "--entry", "app.mjs", "--json", ...args], { cwd, env, encoding: "utf8", windowsHide: true });
+  const routePath = (...args) => {
+    const result = run(...args);
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout)[0].path;
+  };
+  assert.equal(routePath(), "/workspace");
+  await writeFile(path.join(cwd, ".env"), "TILCAYO_ROUTE_ENV_TEST=local\n");
+  assert.equal(routePath(), "/local");
+  assert.equal(routePath("--env-file", "../../.env"), "/workspace");
+  env.TILCAYO_ROUTE_ENV_TEST = "shell";
+  assert.equal(routePath(), "/shell");
+  delete env.TILCAYO_ROUTE_ENV_TEST;
+  assert.notEqual(run("--env-file", "missing.env").status, 0);
+  await rm(path.join(cwd, ".env"));
+  await writeFile(path.join(cwd, ".git"), "gitdir: unused");
+  assert.equal(routePath(), "/missing");
+});
 
 test("route inspection expands resources, inherits middleware and returns detached metadata", () => {
   const global = async function globalMiddleware() {};

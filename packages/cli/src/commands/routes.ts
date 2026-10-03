@@ -1,6 +1,29 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { loadEnvFile } from "node:process";
+import { existsSync, readFileSync } from "node:fs";
+
+function loadEnvironment(root: string, explicitFile?: string): void {
+  if (explicitFile !== undefined) {
+    loadEnvFile(path.resolve(root, explicitFile));
+    return;
+  }
+  let directory = path.resolve(root);
+  while (true) {
+    try {
+      loadEnvFile(path.join(directory, ".env"));
+      return;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    if (existsSync(path.join(directory, ".git"))) return;
+    const manifest = path.join(directory, "package.json");
+    if (existsSync(manifest) && JSON.parse(readFileSync(manifest, "utf8")).workspaces) return;
+    const parent = path.dirname(directory);
+    if (parent === directory) return;
+    directory = parent;
+  }
+}
 
 interface RouteInfo {
   method: string;
@@ -26,11 +49,7 @@ export async function listRoutes(args: string[], root = process.cwd()): Promise<
   const method = flags.get("--method")?.toUpperCase();
   if (method && !["GET", "POST", "PUT", "PATCH", "DELETE"].includes(method)) throw new Error(`Unsupported method: ${method}`);
   const envFile = flags.get("--env-file");
-  try {
-    loadEnvFile(path.resolve(root, envFile ?? ".env"));
-  } catch (error) {
-    if (envFile || (error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
+  loadEnvironment(root, envFile);
   const entry = path.resolve(root, flags.get("--entry") ?? "dist/app.js");
   let module;
   try {

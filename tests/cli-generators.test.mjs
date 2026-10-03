@@ -8,10 +8,71 @@ import mongoose from "mongoose";
 import { createApp } from "../packages/core/dist/index.js";
 import { spawnSync } from "node:child_process";
 import { resourceNames } from "../packages/cli/dist/utils/naming.js";
+import { parseEnv } from "node:util";
 
 const repo = fileURLToPath(new URL("../", import.meta.url));
 const binary = path.join(repo, "packages/cli/dist/bin.js");
 const compiler = path.join(repo, "node_modules/typescript/bin/tsc");
+
+test("make:auth generates private secrets, shareable placeholders and ignore rules", async (t) => {
+  const cwd = await fixture(t);
+  const output = success(cwd, "make:auth");
+  const env = await readFile(path.join(cwd, ".env"), "utf8");
+  const values = parseEnv(env);
+  for (const key of ["AUTH_ACCESS_SECRET", "AUTH_REFRESH_SECRET"]) {
+    assert.match(values[key], /^[a-f0-9]{64}$/);
+    assert.ok(!output.includes(values[key]));
+  }
+  assert.notEqual(values.AUTH_ACCESS_SECRET, values.AUTH_REFRESH_SECRET);
+  const example = await readFile(path.join(cwd, ".env.example"), "utf8");
+  assert.deepEqual(parseEnv(example), { AUTH_ACCESS_SECRET: "", AUTH_REFRESH_SECRET: "" });
+  assert.match(example, /# Authentication/);
+  const ignored = await readFile(path.join(cwd, ".gitignore"), "utf8");
+  assert.match(ignored, /^\.env$/m);
+  assert.match(ignored, /^!\.env.example$/m);
+  assert.notEqual(run(cwd, "make:auth").status, 0);
+  assert.equal(await readFile(path.join(cwd, ".env"), "utf8"), env);
+});
+
+test("make:auth preserves configured secrets and other settings, filling empty quoted values", async (t) => {
+  for (const blank of ["", '""', "''", "``", " # pending"]) {
+    const cwd = await fixture(t);
+    const access = "existing-private-access-value";
+    await writeFile(path.join(cwd, ".env"), `# Server\r\nPORT=9234\r\nexport AUTH_ACCESS_SECRET="${access}" # keep\r\nAUTH_REFRESH_SECRET=${blank}\r\nCUSTOM=value\r\n`);
+    await writeFile(path.join(cwd, ".env.example"), '# Server\nPORT=9234\nAUTH_ACCESS_SECRET="example-value"\nAUTH_REFRESH_SECRET=\n');
+    await writeFile(path.join(cwd, ".gitignore"), "dist/\n");
+    const output = success(cwd, "make:auth");
+    const env = await readFile(path.join(cwd, ".env"), "utf8");
+    const values = parseEnv(env);
+    assert.equal(values.AUTH_ACCESS_SECRET, access);
+    assert.match(env, /export AUTH_ACCESS_SECRET="existing-private-access-value" # keep\r\n/);
+    assert.match(values.AUTH_REFRESH_SECRET, /^[a-f0-9]{64}$/);
+    assert.equal(values.PORT, "9234");
+    assert.equal(values.CUSTOM, "value");
+    assert.ok(!output.includes(access));
+    assert.ok(!output.includes(values.AUTH_REFRESH_SECRET));
+    assert.deepEqual(parseEnv(await readFile(path.join(cwd, ".env.example"), "utf8")), {
+      PORT: "9234", AUTH_ACCESS_SECRET: "", AUTH_REFRESH_SECRET: "",
+    });
+    assert.ok((await readFile(path.join(cwd, ".gitignore"), "utf8")).startsWith("dist/\n"));
+  }
+});
+
+test("make:auth preflights environment files and does not change them on scaffold collisions", async (t) => {
+  const cwd = await fixture(t);
+  await mkdir(path.join(cwd, "src/routes"), { recursive: true });
+  await writeFile(path.join(cwd, "src/routes/auth.routes.ts"), "existing routes");
+  await writeFile(path.join(cwd, ".env"), "CUSTOM=keep\n");
+  assert.notEqual(run(cwd, "make:auth").status, 0);
+  assert.equal(await readFile(path.join(cwd, ".env"), "utf8"), "CUSTOM=keep\n");
+  assert.ok(!(await readdir(cwd)).includes(".env.example"));
+  for (const name of [".env", ".env.example", ".gitignore"]) {
+    const invalid = await fixture(t);
+    await mkdir(path.join(invalid, name));
+    assert.match(run(invalid, "make:auth").stderr, /Expected a regular file/);
+    assert.ok(!(await readdir(invalid)).includes("src"));
+  }
+});
 
 async function fixture(t) {
   const directory = await mkdtemp(path.join(repo, ".generator-test-"));

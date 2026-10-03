@@ -1,0 +1,26 @@
+{
+  "name": "create-tilcayo-app",
+  "version": "0.0.1",
+  "description": "Create a complete Tilcayo API application",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "create-tilcayo-app": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.8.1",
+    "@tilcayo/cli": "^0.0.1",
+    "picocolors": "^1.1.1"
+  }
+}

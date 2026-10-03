@@ -1,642 +1,207 @@
-# Tilcayo
+﻿# Tilcayo
 
-An opinionated full-stack TypeScript framework for modern web applications with less repetitive setup and clearer conventions.
+A TypeScript API framework built on Node.js, Express, Mongoose, and Zod.
+**Keep it simple stupid:** plain functions, typed controllers, explicit routes, and short generator commands.
 
-**KISS — keep it simple:** plain functions, readable controllers, reusable database methods, and short generator commands. Built on TypeScript, Node.js, Express, Mongoose, and Zod, with the underlying tools still accessible.
-
-> **Current scope:** API routing, middleware, validation, MongoDB, JWT authentication, error handling, and CLI generators. React integration, authorization, and MySQL are not implemented yet.
+Includes MongoDB CRUD and references, request validation, JWT authentication,
+middleware, pagination, and application scaffolding. React, roles/permissions,
+and SQL adapters are not implemented yet. Package release verification is in progress.
 
 ## Why the name?
 
-Tilcayo takes its name from *Leopardus tilcayo*, a small wild cat from Bolivia’s Yungas cloud forest recognized as a distinct species in 2026 through genomic research. Its name comes from local communities. Small, focused, and distinct—the inspiration behind this framework. [Read the story at National Geographic](https://news.nationalgeographic.org/photos-new-wild-cat-species/).
+Tilcayo takes its name from *Leopardus tilcayo*, a small wild cat from Bolivia's
+Yungas region. The cat's name comes from local communities.
+Its small size and distinct identity inspired the framework's focus on simplicity.
+[Read about the species](https://portal.pucrs.br/es/noticias/buscar/Nueva-especie-de-felino-Leopardus-tilcayo/).
 
-## Quick start
+## Create an application
 
-Use Node.js 22.9+ and npm. From the repository root:
+Use Node.js 22.9+ and npm. From this repository:
 
 ```sh
 npm install
 npm run build
+node packages/create-tilcayo-app/dist/bin.js my-api --type api --auth --yes
+cd my-api
+npx tilcayo dev
 ```
 
-Create a root `.env` beside `package.json`:
+The creator installs dependencies, builds the app, and creates a private `.env`
+with distinct random auth secrets. Set `MONGODB_URI` before starting.
+Local generation links packages from this checkout; keep it available.
+
+Run the creator without arguments for interactive setup. Options include
+`--type minimal`, `--package-manager npm|pnpm|yarn`, and `--no-install`.
+After publishing, the entry command will be `npm create tilcayo-app@latest`.
+
+| App command | Purpose |
+| --- | --- |
+| `npx tilcayo dev` | Build, watch, and restart |
+| `npx tilcayo build` | Compile the application |
+| `npx tilcayo start` | Run the compiled app with `.env` |
+| `npx tilcayo routes:list` | List registered routes from `dist/app.js` |
+
+Route listing supports `--method GET`, `--path /api`, `--json`, `--entry`, and
+`--env-file`. On PowerShell, use `npm.cmd` / `npx.cmd` if script execution is blocked.
+
+## Generate resources
+
+Run inside the application directory:
+
+```sh
+npx tilcayo make:resource Product name:string price:number active:boolean
+```
+
+This creates a model, CRUD controller, Zod validator, and route module:
+
+```text
+src/models/Product.ts
+src/controllers/products.controller.ts
+src/validators/products.validator.ts
+src/routes/products.routes.ts
+```
+
+Register the generated routes in `src/app.ts`:
+
+```ts
+import productRoutes from "./routes/products.routes.js";
+
+app.routes(productRoutes);
+```
+
+The routes provide `GET /products`, `POST /products`, and
+`GET`, `PUT`, and `DELETE /products/:id`. Controllers use standalone
+`index`, `store`, `show`, `update`, and `destroy` functions.
+All target files are checked for collisions before generation.
+
+| Field syntax | Meaning |
+| --- | --- |
+| `name:string` | Required nonempty string |
+| `price:number` | Required JSON number |
+| `active:boolean` | Required JSON boolean |
+| `publishedAt:date` | ISO timestamp with timezone, converted to a Date |
+| `"year:number?"` | Optional field; `"year?:number"` also works |
+| `author:ref:Author` | One Author ObjectId |
+| `tags:refs:Tag` | Array of Tag ObjectIds |
+| `"author:ref:Author?"` / `"tags:refs:Tag?"` | Optional relationships |
+
+Updates make every field optional. MongoDB is the default database;
+`--mongodb` selects it explicitly. Individual generators are also available:
+`make:model`, `make:controller`, `make:validator`, `make:route`, and `make:service`.
+Use `make:controller books --resource` for CRUD after creating the model.
+
+## Relationships
+
+```sh
+npx tilcayo make:resource Author name:string
+npx tilcayo make:resource Book title:string author:ref:Author
+```
+
+Relationship resources also generate a typed service. Population is explicit:
+
+```ts
+import { getBooks, getBookById } from "./services/books.service.js";
+
+await getBooks(); // Returns author IDs
+await getBooks({ populate: ["author"] });
+await getBookById(id, { populate: ["author"] });
+```
+
+Register the referenced models before populating them, for example by registering
+their generated routes. Validators reject malformed IDs with HTTP 422. References
+do not enforce document existence or cascade deletes. HTTP query strings do not
+control population. See [MongoDB relationships](MONGODB-RELATIONSHIPS.md).
+
+## Authentication
+
+For an application without auth scaffolding:
+
+```sh
+npx tilcayo make:auth
+```
+
+The app needs `@tilcayo/core` and `@tilcayo/auth`. The command creates auth config,
+controllers, validators, and routes. It also:
+
+- Generates missing or empty auth secrets in `.env`, preserving nonempty values.
+- Adds blank auth placeholders to `.env.example` and environment rules to `.gitignore`.
+- Reuses an existing `createAuth()` config and refuses other source collisions.
+
+Environment files use concise groups:
 
 ```dotenv
-MONGODB_URI=mongodb://127.0.0.1:27017/tilcayo
+# Database
+MONGODB_URI=mongodb://127.0.0.1:27017/my_api
+
+# Authentication - private values belong in .env
 AUTH_ACCESS_SECRET=
 AUTH_REFRESH_SECRET=
 ```
 
-Use a running local MongoDB instance or your Atlas connection string. `.env` is ignored by Git.
-
-Set both auth secrets before starting the example. Generate each independently:
-
-```sh
-node --input-type=module -e "import { randomBytes } from 'node:crypto'; console.log(randomBytes(32).toString('hex'))"
-```
-
-The secrets must differ and contain at least 32 bytes each. Never commit their values.
-
-```sh
-npm run dev
-```
-
-The example connects to MongoDB, then listens at **http://localhost:9149**. Source changes rebuild and restart it. `npm start` does the same thing.
-
-## Generate a resource
-
-Run generators **inside your application directory**:
-
-```sh
-cd examples/basic-api
-npx tilcayo make:resource Notebook title:string price:number active:boolean
-```
-
-This creates working CRUD with matching model fields, controller body types, and validation:
-
-```text
-src/
-├── models/Notebook.ts
-├── controllers/notebooks.controller.ts
-├── validators/notebooks.validator.ts
-└── routes/notebooks.routes.ts
-```
-
-Add the printed registration to `src/app.ts`, after creating the app:
-
-```typescript
-import notebooksRoutes from "./routes/notebooks.routes.js";
-
-app.routes(notebooksRoutes);
-```
-
-| Request | Action |
-| --- | --- |
-| `GET /notebooks` | List all |
-| `POST /notebooks` | Create |
-| `GET /notebooks/:id` | Fetch one |
-| `PUT /notebooks/:id` | Update supplied fields |
-| `DELETE /notebooks/:id` | Delete |
-
-Existing files are never overwritten. A resource checks all targets before writing. Choose a fresh name: the example already contains Book, Product, and Article files.
-
-Resources also support MongoDB relationships: `tilcayo make:resource Book title:string author:ref:Author`.
-Use `ref` for one ObjectId and `refs` for arrays; append `?` for optional relations.
-See [MongoDB relationships](MONGODB-RELATIONSHIPS.md) for validation, explicit population, and tests.
-
-### List registered routes
-
-From the repository root, build and list the example application's routes:
-
-```sh
-npm run routes
-npm run routes -- --path /api/auth
-npm run routes -- --method GET
-```
-
-The table shows method, full path, handler name, middleware (including inherited and global middleware), and validation targets such as body, params, or query. Unnamed functions appear as `anonymous`.
-
-After building, you can also run the CLI inside the application directory:
-
-```sh
-npx tilcayo routes:list --env-file ../../.env
-npx tilcayo routes:list --env-file ../../.env --path /api/auth --json
-```
-
-The command imports `dist/app.js` by default; use `--entry` for another compiled module. Export your app as the default export or a named `app`, and keep database connections and `listen()` in a separate startup module. The example uses `src/app.ts` for registration and `src/index.ts` for startup. The command loads `.env` from the current directory if present, or the explicit `--env-file`; auth configuration still requires valid secrets. It does not connect to MongoDB or start the example server.
-
-Only registered routes are listed. After generating routes, register them in `src/app.ts` and rebuild. `--path` matches a path substring, and `--method` accepts GET, POST, PUT, PATCH, or DELETE. `--json` returns a JSON array for scripts; use the CLI directly to avoid npm build output.
-
-### Individual commands
-
-```sh
-npx tilcayo make:model Book
-npx tilcayo make:controller books
-npx tilcayo make:controller books --resource
-npx tilcayo make:validator books
-npx tilcayo make:route books
-npx tilcayo make:service books
-```
-
-These are alternatives, not a sequence to run against existing files. A plain controller contains placeholders; `--resource` generates working CRUD and requires its model first. Routes detect the existing controller’s action names and attach available validators.
-
-### Fields
-
-Resource, model, controller, and validator commands accept fields:
-
-```sh
-npx tilcayo make:resource Event title:string "capacity?:number" startsAt:date
-```
-
-| Syntax | Meaning |
-| --- | --- |
-| `title:string` | Required, nonempty string |
-| `price:number` | Required JSON number |
-| `active:boolean` | Required JSON boolean |
-| `startsAt:date` | ISO timestamp with timezone, parsed into a Date |
-| `"year?:number"` | Optional number; quotes protect `?` from shell expansion |
-
-Updates make all fields optional. Individual commands without fields leave a schema or body type to complete. Fill in an empty validator before using writes—it strips unspecified fields.
-
-### Database default
-
-The example configures Mongo once in its application `package.json`:
-
-```json
-{
-  "tilcayo": {
-    "database": "mongo"
-  }
-}
-```
-
-Mongo is also the default if omitted. Other adapters are not implemented. Older `--mongo`, `--crud`, and `--fields "title:string,year?:number"` options remain supported.
-
-To select MongoDB explicitly (overriding the project default), use `--mongodb`:
-
-```sh
-npx tilcayo make:resource Notebook title:string price:number active:boolean --mongodb
-```
-
-`--mongodb` is an alias for `--mongo` and also works with model and controller commands.
-
-### Command not found?
-
-The CLI is installed locally in this workspace. Use **`npx tilcayo`**, rather than a bare `tilcayo` command.
-
-```sh
-# From the repository root
-npm install
-npm run build -w @tilcayo/cli
-cd examples/basic-api
-npx tilcayo --help
-```
-
-Direct alternative from the app directory:
-
-```sh
-node ../../packages/cli/dist/bin.js --help
-```
-
-If PowerShell blocks npm scripts, use `npm.cmd` and `npx.cmd` in that shell.
-
-## Models and controllers
-
-Define a schema and give it a name:
-
-```typescript
-import mongoose from "mongoose";
-import { mongoModel } from "@tilcayo/core";
-
-const notebookSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  price: { type: Number, required: true },
-  active: { type: Boolean, required: true },
-}, { timestamps: true });
-
-export const Notebook = mongoModel("Notebook", notebookSchema);
-```
-
-Keep plain body types beside the controller:
-
-```typescript
-import type { TilcayoContext } from "@tilcayo/core";
-import { Notebook } from "../models/Notebook.js";
-
-type CreateNotebookBody = {
-  title: string;
-  price: number;
-  active: boolean;
-};
-
-type UpdateNotebookBody = Partial<CreateNotebookBody>;
-
-export const index = async (ctx: TilcayoContext) => {
-  const notebooks = await Notebook.all();
-  return ctx.response.success(notebooks, "Notebooks retrieved");
-};
-
-export const store = async (ctx: TilcayoContext<CreateNotebookBody>) => {
-  const notebook = await Notebook.create(ctx.body);
-  return ctx.response.created(notebook, "Notebook created");
-};
-```
-
-Controllers receive `params`, `query`, `body`, `headers`, `method`, `path`, `ip`, and response helpers through `ctx`. No Express request or response imports are needed.
-
-## Routes and validation
-
-Zod validates requests before the controller runs. TypeScript body types provide compile-time checks; keep them aligned with the validator.
-
-```typescript
-import { z } from "zod";
-
-export const createNotebookSchema = z.object({
-  title: z.string().min(1),
-  price: z.number(),
-  active: z.boolean(),
-});
-
-export const updateNotebookSchema = createNotebookSchema.partial();
-```
-
-Attach validation to individual routes:
-
-```typescript
-import { defineRoutes } from "@tilcayo/core";
-import * as NotebookController from "../controllers/notebooks.controller.js";
-import { createNotebookSchema } from "../validators/notebooks.validator.js";
-
-export default defineRoutes((router) => {
-  router.get("/notebooks", NotebookController.index);
-  router.post("/notebooks", NotebookController.store, {
-    validate: { body: createNotebookSchema },
-  });
-});
-```
-
-The router supports `get`, `post`, `put`, `patch`, `delete`, prefix groups, and `resource`. Generated resource routes attach body and Mongo ID validators to the appropriate actions. Validation can also target `query` and `params`.
-
-## Middleware
-
-Attach reusable functions to routes, groups, or resources:
-
-```typescript
-import { defineRoutes, rateLimit, bodyLimit } from "@tilcayo/core";
-
-export default defineRoutes((router) => {
-  router.group({
-    prefix: "/api",
-    middleware: [rateLimit({ windowMs: 60_000, max: 100 })],
-  }, () => {
-    router.resource("/notebooks", NotebookController, {
-      store: {
-        middleware: [rateLimit({ windowMs: 60_000, max: 20 }), bodyLimit(16 * 1024)],
-        validate: { body: createNotebookSchema },
-      },
-    });
-  });
-});
-```
-
-Import your controller and validator as in the route examples above. Execution order:
-
-```text
-App middleware → Group → Resource → Route → JSON parsing → Validation → Controller
-```
-
-| Helper | Purpose |
-| --- | --- |
-| `rateLimit({ windowMs: 60_000, max: 100 })` | Requests per IP per time window; returns 429 and `Retry-After` |
-| `cors({ origin: "http://localhost:5173" })` | Allowed browser origin and OPTIONS preflight handling |
-| `requestId()` | Generates `ctx.requestId` and an `X-Request-Id` response header |
-| `requestLogger()` | Logs ID, method, path, status, and duration; accepts a custom log callback |
-| `securityHeaders()` | Sets nosniff, frame denial, and no-referrer headers |
-| `bodyLimit(16 * 1024)` | Limits JSON bytes before parsing; returns 413 |
-| `cache({ maxAge: 30 })` | Browser/proxy cache headers for explicitly public GET routes; seconds |
-
-For all matched routes, use app-level middleware:
-
-```typescript
-const app = createApp({
-  middleware: [requestId(), requestLogger(), securityHeaders()],
-  bodyLimit: 102400,
-});
-```
-
-Import these helpers from `@tilcayo/core`. The default JSON limit is 100 KB;
-route and group limits can lower it. CORS belongs before rate limiting so
-preflight requests do not consume the limit. Credentials require explicit origins.
-
-Each limiter has its own counter. Reusing one shares the quota across routes;
-group and route limits both apply. Counters are process-local, reset on restart,
-and track at most 10,000 IPs by default (`maxKeys` is configurable). At capacity,
-new IPs receive 429 until slots expire. Proxy forwarding headers are not trusted;
-behind a proxy, requests currently share the proxy IP's quota.
-
-Caching is opt-in for public data; it does not store responses on the server.
-Authorization/cookie requests, responses setting cookies, and errors use `no-store`.
-Use request logging for matched routes; unmatched 404s are handled separately.
-Authentication is provided by `@tilcayo/auth`; authorization remains future work.
-
-Custom middleware stays a plain function:
-
-```typescript
-import type { Middleware } from "@tilcayo/core";
-
-const addVersion: Middleware = async (ctx, next) => {
-  ctx.header("X-API-Version", "1");
-  return next();
-};
-```
-
-Call and return `next()` once to continue, return a response to stop, or throw
-a framework error. The middleware body is unparsed; access validated bodies in
-controllers. See `examples/basic-api/src/routes/api.routes.ts` for working examples.
-
-## Authentication
-
-### Generate auth for an app
-
-After building the workspace, run inside your application directory:
-
-```sh
-cd examples/basic-api
-npx tilcayo make:auth
-```
-
-```text
-src/auth.ts
-src/controllers/auth.controller.ts
-src/routes/auth.routes.ts
-src/validators/auth.validator.ts
-```
-
-The controller exposes `register`, `login`, `refresh`, `logout`, and `me`.
-It calls the package's auth handlers so password hashing and token rotation stay
-in one place. Validators reuse the package defaults. User and RefreshToken models
-are provided by `@tilcayo/auth`.
-
-The app needs `@tilcayo/core` and `@tilcayo/auth` as dependencies (already installed
-in this workspace example). Set `MONGODB_URI`, `AUTH_ACCESS_SECRET`, and
-`AUTH_REFRESH_SECRET` as shown in Quick start. Connect MongoDB before listening.
-
 Register the generated routes in `src/app.ts`:
 
-```typescript
+```ts
 import authRoutes from "./routes/auth.routes.js";
 
 app.routes(authRoutes);
 ```
 
-Replace `app.routes(auth.routes)` if present; register only one set of auth routes.
-The generator prints these steps; it does not edit your bootstrap or environment.
-It reuses an existing `export const auth = createAuth(...)` config and refuses to
-overwrite other files. The example already includes the generated files.
+The generator updates environment files but does not edit application startup.
+Load `.env` and connect MongoDB before listening. Register one set of auth routes.
 
-Generated routes use the existing `middleware: [...]` format, with a shared login/
-registration rate limit, body validation, and `auth.middleware` on `/me`.
-`auth.requestMiddleware` supplies no-store headers, safe errors, and a 16 KB body limit.
-
-### Built-in routes without generation
-
-Configure one instance in your application's `src/auth.ts`:
-
-```typescript
-import { createAuth } from "@tilcayo/auth";
-
-export const auth = createAuth({
-  accessTokenSecret: process.env.AUTH_ACCESS_SECRET!,
-  refreshTokenSecret: process.env.AUTH_REFRESH_SECRET!,
-});
-```
-
-Register its routes after connecting MongoDB:
-
-```typescript
-app.routes(auth.routes);
-```
-
-| Route | Body / authentication |
+| Endpoint | Purpose |
 | --- | --- |
-| `POST /api/auth/register` | `name`, `email`, `password`; returns safe user and tokens (201) |
-| `POST /api/auth/login` | `email`, `password`; returns safe user and tokens (200) |
-| `POST /api/auth/refresh` | `refreshToken`; returns a new token pair (200) |
-| `POST /api/auth/logout` | `refreshToken`; revokes it, repeatable (204) |
-| `GET /api/auth/me` | Bearer access token; returns safe user (200) |
+| `POST /api/auth/register` | Create a user with name, email, and password |
+| `POST /api/auth/login` | Exchange email and password for tokens |
+| `POST /api/auth/refresh` | Rotate a refresh token |
+| `POST /api/auth/logout` | Revoke a refresh token |
+| `GET /api/auth/me` | Read the user with a Bearer access token |
 
-Protect routes using the existing middleware format:
+Protect routes with `middleware: [auth.middleware]` and read the user with
+`auth.user(ctx)`. Access tokens last 15 minutes; refresh tokens last 7 days.
+Logout revokes the refresh token; issued access tokens remain valid until expiry.
+Use HTTPS and keep `.env` private.
 
-```typescript
-router.get("/api/profile", getProfile, {
-  middleware: [auth.middleware],
-});
-```
+## Core APIs
 
-Read the safe user in the controller:
+- **Routing:** `createApp()`, `defineRoutes()`, `app.routes()`, route groups, and `router.resource()`.
+- **Validation:** Zod schemas on route `body`, `query`, and `params`; invalid requests return 422.
+- **Responses:** `ctx.response.success()`, `.created()`, and `.noContent()`; typed `TilcayoContext` without Express objects.
+- **Database:** `mongoModel()` exposes CRUD, filtering, sorting, bulk operations, pagination, and `.raw` for Mongoose queries.
+- **Middleware:** `cors`, `rateLimit`, `requestId`, `requestLogger`, `securityHeaders`, `bodyLimit`, and `cache`.
 
-```typescript
-import type { TilcayoContext } from "@tilcayo/core";
-import { auth } from "../auth.js";
+Pagination is opt-in: `Product.paginate(ctx.query)` or `Product.cursorPaginate()`.
+Keep filters and bulk operations in application code. Rate limits are process-local
+and do not trust proxy forwarding headers. The Mongo connection helper currently
+configures public DNS servers before connecting.
 
-export const getProfile = async (ctx: TilcayoContext) => {
-  return ctx.response.success(auth.user(ctx), "Profile retrieved");
-};
-```
-
-For handlers needing a typed authenticated context, the same instance also offers a wrapper:
-
-```typescript
-import type { AuthenticatedContext } from "@tilcayo/auth";
-
-const profile = (ctx: AuthenticatedContext) => ctx.response.success(ctx.auth.user);
-router.get("/api/profile", auth.guard(profile));
-```
-
-Both forms verify the access token and load the user. Missing, expired, invalid,
-wrong-type tokens and deleted users receive 401. Roles and permissions are not included.
-
-### Token and password rules
-
-- Access tokens expire after **15 minutes**; refresh tokens after **7 days**.
-- JWTs use JOSE HS256 with `sub`, `jti`, `type`, `iat`, `exp`, `iss`, and `aud`.
-- Passwords use bcryptjs, default **12 rounds**. Input is 8 characters minimum and
-  72 UTF-8 bytes maximum to avoid bcrypt truncation. Email is trimmed and lowercased.
-- Users store name, email (unique index), password hash (hidden by default), and timestamps.
-- MongoDB stores only the SHA-256 refresh-token hash, user ID, expiry, revocation time,
-  and timestamps. A TTL index removes expired records; requests also check expiry.
-- Refresh atomically consumes the old token. Concurrent reuse succeeds at most once.
-  If new-token persistence fails, the old token remains revoked; log in again.
-- Logout revokes the supplied refresh token. Existing access tokens remain valid until
-  expiry; deleting the user immediately blocks protected requests.
-- Token responses are `no-store`. Passwords, hashes, and persistence records are never returned.
-
-Use HTTPS in deployment. Registration and login share an in-memory limit of
-20 attempts per IP per 15 minutes. It has the same single-process/proxy limits
-described under middleware. Use a shared gateway limiter for multiple servers.
-Mongo indexes must be enabled or provisioned by your deployment.
-
-Configuration options:
-
-| Option | Default |
-| --- | --- |
-| `accessTokenTtlSeconds` | `900` |
-| `refreshTokenTtlSeconds` | `604800` |
-| `issuer` / `audience` | `"tilcayo"` / `"tilcayo-app"` |
-| `passwordRounds` | `12` (allowed: 10–16) |
-| `prefix` | `"/api/auth"` |
-
-Each auth instance owns its configuration and middleware state. The default
-Mongo collections are `users` and `tilcayo_refresh_tokens`; instances sharing a
-database share users. Secrets, issuer, and audience distinguish their tokens.
-
-### Try it
-
-```http
-POST /api/auth/register
-Content-Type: application/json
-
-{"name":"Jane","email":"jane@example.com","password":"a-long-example-password"}
-```
-
-Read `data.tokens.accessToken` from the response, then send:
-
-```http
-GET /api/profile
-Authorization: Bearer <accessToken>
-```
-
-Duplicate email returns 409, wrong credentials return a generic 401, and invalid
-request bodies return 422. Core also exports `unauthorized()`, `forbidden()`, and
-`conflict()` for application errors.
-
-## Database methods
-
-
-| Method | Returns |
-| --- | --- |
-| `all()` / `where(filter, options?)` | Records |
-| `find(id)` / `first(filter?)` | One record or null |
-| `findOrFail(id)` / `firstOrFail(filter?)` | One record or a 404 error |
-| `create(data)` / `createMany(items)` | Created records |
-| `update(id, data)` / `delete(id)` | Updated/deleted record or null |
-| `count(filter?)` / `exists(filter)` | Number / boolean |
-| `paginate(query?, options?)` | Items and page metadata |
-| `cursorPaginate(options?)` | Items and next cursor |
-| `updateMany(filter, data)` / `deleteMany(filter)` | Affected count |
-| `upsert(filter, data)` | Updated or inserted record |
-| `distinct(field, filter?)` / `aggregate(pipeline)` | Reporting results |
-
-Filtering and sorting stay explicit:
-
-```typescript
-const notebooks = await Notebook.where(
-  { active: true },
-  { sort: { price: 1 }, select: ["title", "price"], limit: 10 },
-);
-```
-
-Read options also support `populate` for schema references. Advanced Mongoose queries and transactions remain available through `Notebook.raw`.
-
-Bulk update/delete and upsert require nonempty filters. Keep filters server-controlled. Updates run Mongoose validation; bulk creation is not transactional.
-
-## Pagination
-
-Index actions use `all()` by default. To paginate, replace that call:
-
-```typescript
-const notebooks = await Notebook.paginate(ctx.query);
-return ctx.response.success(notebooks, "Notebooks retrieved");
-```
-
-Request:
-
-```http
-GET /notebooks?page=2&perPage=10
-```
-
-Result inside the response’s `data` field:
-
-```json
-{
-  "items": [],
-  "pagination": {
-    "page": 2,
-    "perPage": 10,
-    "total": 0,
-    "lastPage": 1,
-    "hasNextPage": false,
-    "hasPreviousPage": true
-  }
-}
-```
-
-- Defaults: page **1**, **20** records. Maximum page size: **100**.
-- Invalid page values return **400**; pages beyond the end return an empty list.
-- Only page parameters are read from the request; filters go in the second argument.
-
-```typescript
-await Notebook.paginate(ctx.query, {
-  filter: { active: true },
-  sort: { createdAt: -1 },
-});
-```
-
-For forward cursor pagination:
-
-```typescript
-const first = await Notebook.cursorPaginate({ perPage: 20 });
-
-if (first.pagination.nextCursor) {
-  const next = await Notebook.cursorPaginate({
-    after: first.pagination.nextCursor,
-    perPage: 20,
-  });
-}
-```
-
-Cursors use ascending Mongo ObjectIds, with no total count or custom sort. Offset pagination adds `_id` as a sorting tie-breaker; counts and items can differ during concurrent writes.
-
-## Responses and errors
-
-| Helper | HTTP status |
-| --- | --- |
-| `ctx.response.success(data, message)` | 200 |
-| `ctx.response.created(data, message)` | 201 |
-| `ctx.response.noContent()` | 204 |
-| `throw badRequest(message)` | 400 |
-| `throw notFound(message)` | 404 |
-| Route validation failure | 422 |
-
-Import error helpers from `@tilcayo/core`. Unexpected errors return a sanitized 500 response.
-
-## Mongo connection
-
-```typescript
-import { connectMongo, createApp } from "@tilcayo/core";
-
-await connectMongo(process.env.MONGODB_URI ?? "");
-
-const app = createApp();
-// Register your routes here.
-app.listen(9149);
-```
-
-The connection layer configures DNS (`8.8.8.8`, `1.1.1.1`) before connecting and logs success. Core also exports `disconnectMongo()` and typed `getMongoState()`.
-
-## Project layout
-
-```text
-packages/core/       Routing, context, validation, errors, Mongo helpers
-packages/auth/       JWT authentication, passwords, users, refresh tokens
-packages/cli/        Resource and individual file generators
-examples/basic-api/  Runnable API example
-tests/              Runtime, type-checking, and generator tests
-```
-
-The existing Book API is at `/api/books`. Its body requires `title` and `author`, with optional `publishedYear`. The example Product endpoints use sample data and placeholder writes.
-
-## Build and test
-
-From the repository root:
+## Develop and test
 
 ```sh
 npm run build
 node --test tests/*.test.mjs
 ```
 
-Run live MongoDB tests with the root `.env`:
+For live MongoDB tests, configure a root `.env` and run:
 
 ```sh
-node --env-file-if-exists=.env --test tests/books-mongo.test.mjs
-node --env-file-if-exists=.env --test tests/auth-mongo.test.mjs
+node --env-file=.env --test tests/books-mongo.test.mjs tests/auth-mongo.test.mjs tests/relationships.test.mjs
 ```
 
-Live tests use and remove a temporary database. Without a URI, they are skipped.
+Live tests create and remove isolated test databases. Without `MONGODB_URI`, they
+are skipped. To run the existing example, copy `.env.example` to `.env`, configure
+MongoDB and two distinct auth secrets of at least 32 bytes each, then run `npm run dev`.
+The example listens on port 9149; its auth source files already exist.
 
-Production startup, with environment variables supplied externally:
+| Directory | Contents |
+| --- | --- |
+| `packages/core` | Runtime, routing, validation, middleware, Mongo helpers |
+| `packages/auth` | Authentication and token management |
+| `packages/cli` | Generators and application commands |
+| `packages/create-tilcayo-app` | Application setup wizard |
+| `examples/basic-api` | Working API example |
+| `tests` | Runtime, generator, and compilation tests |
 
-```sh
-npm run build
-npm run start:prod -w @tilcayo/basic-api
-```
+See the [creator guide](packages/create-tilcayo-app/README.md),
+[relationship guide](MONGODB-RELATIONSHIPS.md), and
+[testing and release guide](TESTING-AND-RELEASE.md) for detailed workflows.
