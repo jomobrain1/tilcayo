@@ -131,9 +131,9 @@ test("noninteractive CLI supports each manager, skips installation and keeps sec
 test("published starter templates keep registry dependencies", () => {
   const files = templates({ name: "published-app", type: "api", auth: true, packageManager: "npm", install: true });
   const manifest = JSON.parse(files["package.json"]);
-  assert.equal(manifest.dependencies["@tilcayo/core"], "^0.0.1");
-  assert.equal(manifest.dependencies["@tilcayo/auth"], "^0.0.1");
-  assert.equal(manifest.devDependencies["@tilcayo/cli"], "^0.0.1");
+  assert.equal(manifest.dependencies["@tilcayo/core"], "^0.0.2");
+  assert.equal(manifest.dependencies["@tilcayo/auth"], "^0.0.2");
+  assert.equal(manifest.devDependencies["@tilcayo/cli"], "^0.0.2");
 });
 
 test("tilcayo build reports compilation failure and start requires a build", async (t) => {

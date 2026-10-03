@@ -5,7 +5,14 @@ A TypeScript API framework built on Node.js, Express, Mongoose, and Zod.
 
 Includes MongoDB CRUD and references, request validation, JWT authentication,
 middleware, pagination, and application scaffolding. React, roles/permissions,
-and SQL adapters are not implemented yet. Package release verification is in progress.
+and SQL adapters are not implemented yet. All four packages are available on npm.
+
+| Package | Guide |
+| --- | --- |
+| [create-tilcayo-app](https://www.npmjs.com/package/create-tilcayo-app) | [Create and start a project](packages/create-tilcayo-app/README.md) |
+| [@tilcayo/core](https://www.npmjs.com/package/@tilcayo/core) | [Runtime, validation, and MongoDB](packages/core/README.md) |
+| [@tilcayo/auth](https://www.npmjs.com/package/@tilcayo/auth) | [Authentication](packages/auth/README.md) |
+| [@tilcayo/cli](https://www.npmjs.com/package/@tilcayo/cli) | [Commands and generators](packages/cli/README.md) |
 
 ## Why the name?
 
@@ -16,23 +23,41 @@ Its small size and distinct identity inspired the framework's focus on simplicit
 
 ## Create an application
 
-Use Node.js 22.9+ and npm. From this repository:
+Use Node.js 22.9+ and npm. Open a terminal where you keep your projects, outside
+this framework repository:
 
 ```sh
-npm install
-npm run build
-node packages/create-tilcayo-app/dist/bin.js my-api --type api --auth --yes
+npm create tilcayo-app@latest my-api -- --type api --auth --yes
 cd my-api
-npx tilcayo dev
 ```
 
 The creator installs dependencies, builds the app, and creates a private `.env`
-with distinct random auth secrets. Set `MONGODB_URI` before starting.
-Local generation links packages from this checkout; keep it available.
+with distinct random auth secrets. Configure the new app's `.env`:
 
-Run the creator without arguments for interactive setup. Options include
+```dotenv
+PORT=9149
+MONGODB_URI=mongodb://127.0.0.1:27017/my_api
+```
+
+Keep the generated auth secret entries. Start MongoDB locally or use your Atlas
+connection string. Then run:
+
+```sh
+npm run dev
+```
+
+Open `http://localhost:9149/health`:
+
+```json
+{"success":true,"message":"Success","data":{"status":"ok"}}
+```
+
+This is a backend API. Connect your own frontend or test requests using Postman
+or Thunder Client.
+
+Run `npm create tilcayo-app@latest` for interactive setup. Options include
 `--type minimal`, `--package-manager npm|pnpm|yarn`, and `--no-install`.
-After publishing, the entry command will be `npm create tilcayo-app@latest`.
+Choose `--type minimal --no-auth` for a health endpoint without a database.
 
 | App command | Purpose |
 | --- | --- |
@@ -43,6 +68,27 @@ After publishing, the entry command will be `npm create tilcayo-app@latest`.
 
 Route listing supports `--method GET`, `--path /api`, `--json`, `--entry`, and
 `--env-file`. On PowerShell, use `npm.cmd` / `npx.cmd` if script execution is blocked.
+
+Generated apps also provide `npm run dev`, `npm run build`, `npm start`, and
+`npm run routes`. Build before listing routes so compiled output is current.
+
+## Continue building your app
+
+| Location | Purpose |
+| --- | --- |
+| `src/app.ts` | Register routes and middleware |
+| `src/index.ts` | Database connection and server startup/shutdown |
+| `src/config.ts` | Configuration |
+| `src/models/` | Database schemas |
+| `src/controllers/` | Request handlers and responses |
+| `src/validators/` | Zod request validation |
+| `src/services/` | Business logic |
+| `src/routes/` | URLs and route middleware |
+| `.env` | Private configuration; keep out of Git |
+
+Generate a resource, register its routes, customize the files, and test the HTTP
+endpoints. Dev rebuilds and restarts when source changes. Application changes do
+not need npm publishing: build and run your API as a Node.js service.
 
 ## Generate resources
 
@@ -73,6 +119,15 @@ The routes provide `GET /products`, `POST /products`, and
 `GET`, `PUT`, and `DELETE /products/:id`. Controllers use standalone
 `index`, `store`, `show`, `update`, and `destroy` functions.
 All target files are checked for collisions before generation.
+
+Test `POST http://localhost:9149/products` with `Content-Type: application/json`:
+
+```json
+{"name":"Notebook","price":250,"active":true}
+```
+
+Use the returned `data._id` in `/products/:id`. Generated CRUD routes are public
+until you attach authentication middleware, even when auth was selected at setup.
 
 | Field syntax | Meaning |
 | --- | --- |
@@ -177,10 +232,22 @@ configures public DNS servers before connecting.
 
 ## Develop and test
 
+These commands are for framework contributors working in this repository:
+
 ```sh
+npm install
 npm run build
 node --test tests/*.test.mjs
 ```
+
+To test the local creator after building:
+
+```sh
+node packages/create-tilcayo-app/dist/bin.js local-api --type api --auth --yes
+```
+
+Local generation links packages from this checkout; keep it available and rebuild
+after framework changes. The published creator uses npm dependencies instead.
 
 For live MongoDB tests, configure a root `.env` and run:
 

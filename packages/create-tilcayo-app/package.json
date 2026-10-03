@@ -1,12 +1,12 @@
 {
   "name": "create-tilcayo-app",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Create a complete Tilcayo API application",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "create-tilcayo-app": "./dist/bin.js"
+    "create-tilcayo-app": "dist/bin.js"
   },
   "files": [
     "dist",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^1.8.1",
-    "@tilcayo/cli": "^0.0.1",
+    "@tilcayo/cli": "^0.0.2",
     "picocolors": "^1.1.1"
   }
 }
