@@ -1,0 +1,17 @@
+.tl-gap-1 { gap: var(--tl-space-1); }
+.tl-gap-2 { gap: var(--tl-space-2); }
+.tl-gap-3 { gap: var(--tl-space-3); }
+.tl-gap-4 { gap: var(--tl-space-4); }
+.tl-gap-6 { gap: var(--tl-space-6); }
+.tl-gap-8 { gap: var(--tl-space-8); }
+.tl-mt-2 { margin-top: var(--tl-space-2); }
+.tl-mt-4 { margin-top: var(--tl-space-4); }
+.tl-mt-6 { margin-top: var(--tl-space-6); }
+.tl-mb-2 { margin-bottom: var(--tl-space-2); }
+.tl-mb-4 { margin-bottom: var(--tl-space-4); }
+.tl-mb-6 { margin-bottom: var(--tl-space-6); }
+.tl-p-2 { padding: var(--tl-space-2); }
+.tl-p-4 { padding: var(--tl-space-4); }
+.tl-p-6 { padding: var(--tl-space-6); }
+.tl-px-4 { padding-inline: var(--tl-space-4); }
+.tl-py-4 { padding-block: var(--tl-space-4); }

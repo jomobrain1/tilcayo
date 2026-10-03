@@ -6,7 +6,9 @@ A TypeScript API framework built on Node.js, Express, Mongoose, and Zod.
 
 Includes MongoDB CRUD and references, request validation, JWT authentication,
 middleware, pagination, and application scaffolding. React, roles/permissions,
-and SQL adapters are not implemented yet. All four packages are available on npm.
+and SQL adapters are not implemented yet. The four backend/tooling packages are
+available on npm. The CSS foundation, `@tilcayo/styles`, is available in this
+checkout and has not been published yet.
 
 | Package | Guide |
 | --- | --- |
@@ -14,6 +16,7 @@ and SQL adapters are not implemented yet. All four packages are available on npm
 | [@tilcayo/core](https://www.npmjs.com/package/@tilcayo/core) | [Runtime, validation, and MongoDB](packages/core/README.md) |
 | [@tilcayo/auth](https://www.npmjs.com/package/@tilcayo/auth) | [Authentication](packages/auth/README.md) |
 | [@tilcayo/cli](https://www.npmjs.com/package/@tilcayo/cli) | [Commands and generators](packages/cli/README.md) |
+| @tilcayo/styles (unpublished) | [CSS foundation and preview](packages/styles/README.md) |
 
 ## Why the name?
 
@@ -323,6 +326,7 @@ The example listens on port 9149; its auth source files already exist.
 | Directory | Contents |
 | --- | --- |
 | `packages/core` | Runtime, routing, validation, middleware, Mongo helpers |
+| `packages/styles` | CSS tokens, components, responsive layouts, and utilities |
 | `packages/auth` | Authentication and token management |
 | `packages/cli` | Generators and application commands |
 | `packages/create-tilcayo-app` | Application setup wizard |

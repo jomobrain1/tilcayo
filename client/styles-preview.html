@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tilcayo styles preview</title>
+  <script type="module">import "../packages/styles/dist/index.css";</script>
+</head>
+<body>
+  <div class="tl-app-shell">
+    <aside class="tl-sidebar">
+      <nav class="tl-stack" aria-label="Preview sections">
+        <strong>Tilcayo / Styles</strong>
+        <a href="#foundation">Foundation</a>
+        <a href="#controls">Controls</a>
+        <a href="#feedback">Feedback</a>
+        <a href="#tables">Tables</a>
+      </nav>
+    </aside>
+    <main class="tl-main">
+      <nav class="tl-navbar" aria-label="Preview navigation">
+        <a class="tl-navbar-brand" href="#foundation">Tilcayo</a>
+        <ul class="tl-navbar-nav"><li><a href="#controls">Forms</a></li><li><a href="#tables">Tables</a></li></ul>
+        <div class="tl-navbar-actions"><span class="tl-badge tl-badge-neutral">CSS foundation</span></div>
+      </nav>
+      <div class="tl-content">
+        <div class="tl-container tl-stack tl-stack-lg">
+          <header id="foundation">
+            <h1 class="tl-heading-1">A simple foundation.</h1>
+            <p class="tl-text-lg tl-text-muted">Readable styles for everyday application interfaces.</p>
+          </header>
+          <section aria-labelledby="layout-title">
+            <h2 id="layout-title" class="tl-heading-2">Responsive layout</h2>
+            <div class="tl-grid tl-grid-cols-4">
+              <div class="tl-card"><h3 class="tl-heading-3">Tokens</h3><p class="tl-text-sm">Theme with CSS variables.</p></div>
+              <div class="tl-card"><h3 class="tl-heading-3">Layout</h3><p class="tl-text-sm">One, two, then four columns.</p></div>
+              <div class="tl-card"><h3 class="tl-heading-3">Focus</h3><p class="tl-text-sm">Use Tab to explore controls.</p></div>
+              <div class="tl-card"><h3 class="tl-heading-3">Native</h3><p class="tl-text-sm">Semantic HTML throughout.</p></div>
+            </div>
+          </section>
+          <section class="tl-card tl-stack" id="controls" aria-labelledby="controls-title">
+            <div class="tl-card-header"><h2 id="controls-title" class="tl-card-title">Buttons and form controls</h2></div>
+            <div class="tl-flex tl-flex-wrap tl-gap-2">
+              <button class="tl-btn tl-btn-primary" type="button">Primary</button>
+              <button class="tl-btn tl-btn-secondary" type="button">Secondary</button>
+              <button class="tl-btn tl-btn-danger" type="button">Danger</button>
+              <button class="tl-btn tl-btn-outline" type="button">Outline</button>
+              <button class="tl-btn tl-btn-ghost" type="button">Ghost</button>
+              <button class="tl-btn tl-btn-primary" type="button" disabled>Disabled</button>
+              <button class="tl-btn tl-btn-sm" type="button">Small</button>
+              <button class="tl-btn tl-btn-lg" type="button">Large</button>
+            </div>
+            <div class="tl-card-body tl-grid tl-grid-cols-2">
+              <div class="tl-form-group"><label class="tl-label" for="title">Title</label><input id="title" class="tl-input" placeholder="A book title" aria-describedby="title-help"><p class="tl-help-text" id="title-help">Use the full title.</p></div>
+              <div class="tl-form-group"><label class="tl-label" for="year">Year</label><input id="year" class="tl-input" type="number" value="2026"></div>
+              <div class="tl-form-group"><label class="tl-label" for="category">Category</label><select id="category" class="tl-select"><option>Fiction</option><option>Nonfiction</option></select></div>
+              <div class="tl-form-group"><label class="tl-label" for="reference">Reference</label><input id="reference" class="tl-input" aria-invalid="true" aria-describedby="reference-error"><p class="tl-form-error" id="reference-error">A reference is required.</p></div>
+              <div class="tl-form-group"><label class="tl-label" for="notes">Notes</label><textarea id="notes" class="tl-textarea" placeholder="Add a short description"></textarea></div>
+              <div class="tl-form-group"><label class="tl-label" for="locked">Disabled field</label><input id="locked" class="tl-input" disabled value="Read only in this preview"><label><input class="tl-checkbox" type="checkbox"> Available</label><fieldset><legend>Format</legend><label><input class="tl-radio" type="radio" name="format" checked> Print</label> <label><input class="tl-radio" type="radio" name="format"> Digital</label></fieldset></div>
+            </div>
+            <div class="tl-card-footer tl-text-sm tl-text-muted">Static examples; these controls do not submit data.</div>
+          </section>
+          <section id="feedback" class="tl-stack" aria-labelledby="feedback-title">
+            <h2 id="feedback-title" class="tl-heading-2">Feedback</h2>
+            <div class="tl-alert tl-alert-success">Success: your changes were saved.</div>
+            <div class="tl-alert tl-alert-danger">Error: check the highlighted fields.</div>
+            <div class="tl-alert tl-alert-warning">Warning: a required detail is missing.</div>
+            <div class="tl-alert tl-alert-info">Information: this is a static styles preview.</div>
+            <div class="tl-flex tl-flex-wrap tl-gap-2"><span class="tl-badge tl-badge-primary">Draft</span><span class="tl-badge tl-badge-success">Available</span><span class="tl-badge tl-badge-warning">Pending</span><span class="tl-badge tl-badge-danger">Unavailable</span><span class="tl-badge tl-badge-neutral">Archived</span></div>
+          </section>
+          <section id="tables" aria-labelledby="table-title">
+            <h2 id="table-title" class="tl-heading-2">Tables</h2>
+            <div class="tl-table-wrapper" tabindex="0" role="region" aria-label="Scrollable sample books">
+              <table class="tl-table tl-table-striped">
+                <caption>Sample books</caption>
+                <thead><tr><th scope="col">Title</th><th scope="col">Reference</th><th scope="col">Year</th><th scope="col">Status</th></tr></thead>
+                <tbody><tr><td>The River</td><td>LIBRARY-REFERENCE-00000000001</td><td>2026</td><td>Available</td></tr><tr><td>Mountain paths</td><td>LIBRARY-REFERENCE-00000000002</td><td>2025</td><td>Pending</td></tr></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="tl-card tl-stack" data-tl-theme="dark" aria-labelledby="dark-title">
+            <h2 id="dark-title" class="tl-heading-2">Explicit dark theme</h2>
+            <p class="tl-text-muted">The same classes inherit a different set of tokens.</p>
+            <div class="tl-flex tl-flex-wrap tl-gap-2"><button class="tl-btn tl-btn-primary" type="button">Primary</button><button class="tl-btn tl-btn-danger" type="button">Danger</button></div>
+            <div class="tl-form-group"><label class="tl-label" for="dark-input">Title</label><input class="tl-input" id="dark-input" placeholder="Dark surface"></div>
+            <div class="tl-alert tl-alert-success">Success remains readable.</div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

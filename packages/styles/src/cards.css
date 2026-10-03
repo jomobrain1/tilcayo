@@ -1,0 +1,14 @@
+.tl-card {
+  min-width: 0;
+  padding: var(--tl-space-6);
+  background: var(--tl-surface);
+  color: var(--tl-text);
+  border: 1px solid var(--tl-border);
+  border-radius: var(--tl-radius-lg);
+  box-shadow: var(--tl-shadow-sm);
+  overflow-wrap: anywhere;
+}
+.tl-card-header { padding-bottom: var(--tl-space-4); border-bottom: 1px solid var(--tl-border); }
+.tl-card-body { padding-block: var(--tl-space-4); }
+.tl-card-footer { padding-top: var(--tl-space-4); border-top: 1px solid var(--tl-border); }
+.tl-card-title { margin: 0; font-size: var(--tl-text-xl); font-weight: 600; }

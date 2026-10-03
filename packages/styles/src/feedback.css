@@ -1,0 +1,32 @@
+.tl-alert {
+  padding: var(--tl-space-4);
+  border: 1px solid currentColor;
+  border-radius: var(--tl-radius-md);
+  background: var(--tl-surface);
+  color: var(--tl-text);
+  overflow-wrap: anywhere;
+}
+.tl-alert-info { color: var(--tl-info); }
+.tl-alert-success { color: var(--tl-success); }
+.tl-alert-warning { color: var(--tl-warning); }
+.tl-alert-danger { color: var(--tl-danger); }
+.tl-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--tl-space-1) var(--tl-space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--tl-radius-full);
+  font-size: var(--tl-text-xs);
+  font-weight: 600;
+  background: var(--tl-surface);
+  color: var(--tl-text-muted);
+}
+.tl-badge-primary { color: var(--tl-primary); }
+.tl-badge-success { color: var(--tl-success); }
+.tl-badge-warning { color: var(--tl-warning); }
+.tl-badge-danger { color: var(--tl-danger); }
+.tl-badge-neutral { color: var(--tl-text-muted); }
+/* A plain surface remains the fallback in browsers without color-mix. */
+@supports (background: color-mix(in srgb, black 10%, white)) {
+  .tl-alert, .tl-badge { background: color-mix(in srgb, currentColor 8%, var(--tl-surface)); }
+}

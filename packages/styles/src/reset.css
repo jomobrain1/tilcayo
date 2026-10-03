@@ -1,0 +1,27 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--tl-font-sans);
+  font-size: var(--tl-text-base);
+  line-height: 1.5;
+  background: var(--tl-background);
+  color: var(--tl-text);
+}
+
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+button, input, select, textarea { font: inherit; }
+
+/* Preserve native outlines where focus-visible is unsupported. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--tl-focus);
+  outline-offset: 3px;
+}

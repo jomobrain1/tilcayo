@@ -1,0 +1,17 @@
+.tl-heading-1, .tl-heading-2, .tl-heading-3, .tl-heading-4 {
+  margin-block: 0 var(--tl-space-3);
+  line-height: 1.25;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.tl-heading-1 { font-size: var(--tl-text-3xl); }
+.tl-heading-2 { font-size: var(--tl-text-2xl); }
+.tl-heading-3 { font-size: var(--tl-text-xl); }
+.tl-heading-4 { font-size: var(--tl-text-lg); }
+.tl-text { font-size: var(--tl-text-base); }
+.tl-text-sm { font-size: var(--tl-text-sm); }
+.tl-text-lg { font-size: var(--tl-text-lg); }
+.tl-text-muted { color: var(--tl-text-muted); }
+.tl-font-medium { font-weight: 500; }
+.tl-font-semibold { font-weight: 600; }
+.tl-font-bold { font-weight: 700; }
