@@ -1,6 +1,7 @@
 ﻿# Tilcayo
 
 A TypeScript API framework built on Node.js, Express, Mongoose, and Zod.
+
 **Keep it simple stupid:** plain functions, typed controllers, explicit routes, and short generator commands.
 
 Includes MongoDB CRUD and references, request validation, JWT authentication,
@@ -27,37 +28,63 @@ Use Node.js 22.9+ and npm. Open a terminal where you keep your projects, outside
 this framework repository:
 
 ```sh
-npm create tilcayo-app@latest my-api -- --type api --auth --yes
+npm create tilcayo-app@latest
+```
+
+Follow the prompts to choose your project name, package manager, application type,
+and whether to include authentication. For example, name your project `my-api`,
+then enter its directory:
+
+```sh
 cd my-api
 ```
 
-The creator installs dependencies, builds the app, and creates a private `.env`
-with distinct random auth secrets. Configure the new app's `.env`:
+The creator installs dependencies, builds the app, and creates a private `.env`.
+If you enable authentication, it also generates distinct random auth secrets.
+For a MongoDB API or any app with authentication, configure the new app's `.env`:
 
 ```dotenv
 PORT=9149
 MONGODB_URI=mongodb://127.0.0.1:27017/my_api
 ```
 
-Keep the generated auth secret entries. Start MongoDB locally or use your Atlas
-connection string. Then run:
+Start MongoDB locally or use your Atlas connection string. Keep the generated
+auth secrets if authentication is enabled. A minimal app without authentication
+does not need MongoDB. Start your app:
 
 ```sh
 npm run dev
 ```
 
-Open `http://localhost:9149/health`:
+Open `http://localhost:9149/health` in your browser. The API returns:
 
 ```json
-{"success":true,"message":"Success","data":{"status":"ok"}}
+{
+  "success": true,
+  "message": "Success",
+  "data": {
+    "status": "ok"
+  }
+}
 ```
 
 This is a backend API. Connect your own frontend or test requests using Postman
 or Thunder Client.
 
-Run `npm create tilcayo-app@latest` for interactive setup. Options include
-`--type minimal`, `--package-manager npm|pnpm|yarn`, and `--no-install`.
-Choose `--type minimal --no-auth` for a health endpoint without a database.
+### Create without prompts
+
+To create a MongoDB API with authentication without choosing options interactively:
+
+```sh
+npm create tilcayo-app@latest my-api -- --type api --auth --yes
+```
+
+Then enter `my-api`, configure `.env`, and run `npm run dev` as above.
+Use `--no-auth` to omit authentication, `--type minimal --no-auth` for a
+database-free starter, `--package-manager npm|pnpm|yarn` to choose the installer,
+or `--no-install` to generate files without installing dependencies.
+
+### Application commands
 
 | App command | Purpose |
 | --- | --- |
@@ -67,7 +94,7 @@ Choose `--type minimal --no-auth` for a health endpoint without a database.
 | `npx tilcayo routes:list` | List registered routes from `dist/app.js` |
 
 Route listing supports `--method GET`, `--path /api`, `--json`, `--entry`, and
-`--env-file`. On PowerShell, use `npm.cmd` / `npx.cmd` if script execution is blocked.
+`--env-file`.
 
 Generated apps also provide `npm run dev`, `npm run build`, `npm start`, and
 `npm run routes`. Build before listing routes so compiled output is current.
@@ -123,7 +150,11 @@ All target files are checked for collisions before generation.
 Test `POST http://localhost:9149/products` with `Content-Type: application/json`:
 
 ```json
-{"name":"Notebook","price":250,"active":true}
+{
+  "name": "Notebook",
+  "price": 250,
+  "active": true
+}
 ```
 
 Use the returned `data._id` in `/products/:id`. Generated CRUD routes are public
@@ -217,17 +248,46 @@ Protect routes with `middleware: [auth.middleware]` and read the user with
 Logout revokes the refresh token; issued access tokens remain valid until expiry.
 Use HTTPS and keep `.env` private.
 
+## Middleware
+
+Middleware runs before or around a route handler. Configure it for the whole app,
+a route group, or an individual route. For example, in `src/app.ts`:
+
+```ts
+import { createApp, requestId, securityHeaders, rateLimit } from "@tilcayo/core";
+
+const app = createApp({
+  middleware: [
+    requestId(),
+    securityHeaders(),
+    rateLimit({ windowMs: 60_000, max: 100 }),
+  ],
+});
+```
+
+| Middleware | Purpose |
+| --- | --- |
+| `requestId()` | Add a request ID and `X-Request-Id` header |
+| `requestLogger()` | Log method, path, status, and duration |
+| `securityHeaders()` | Set basic HTTP security headers |
+| `cors({ origin })` | Allow requests from configured browser origins |
+| `rateLimit({ windowMs, max })` | Limit requests per client IP |
+| `bodyLimit(bytes)` | Limit request body size |
+| `cache({ maxAge })` | Set cache headers for public GET responses |
+
+For a single route, pass `{ middleware: [...] }` as its options. Middleware runs
+in registration order. Rate limits are process-local and do not trust proxy
+forwarding headers; `cache` sets HTTP headers rather than storing responses.
+
 ## Core APIs
 
 - **Routing:** `createApp()`, `defineRoutes()`, `app.routes()`, route groups, and `router.resource()`.
 - **Validation:** Zod schemas on route `body`, `query`, and `params`; invalid requests return 422.
 - **Responses:** `ctx.response.success()`, `.created()`, and `.noContent()`; typed `TilcayoContext` without Express objects.
 - **Database:** `mongoModel()` exposes CRUD, filtering, sorting, bulk operations, pagination, and `.raw` for Mongoose queries.
-- **Middleware:** `cors`, `rateLimit`, `requestId`, `requestLogger`, `securityHeaders`, `bodyLimit`, and `cache`.
 
 Pagination is opt-in: `Product.paginate(ctx.query)` or `Product.cursorPaginate()`.
-Keep filters and bulk operations in application code. Rate limits are process-local
-and do not trust proxy forwarding headers. The Mongo connection helper currently
+Keep filters and bulk operations in application code. The Mongo connection helper currently
 configures public DNS servers before connecting.
 
 ## Develop and test
