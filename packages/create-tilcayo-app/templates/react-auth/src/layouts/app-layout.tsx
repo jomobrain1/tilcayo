@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router'
 import { Navigation } from '../components/navigation'
+import { Toaster } from '../components/toaster'
 
 export function AppLayout() {
   return (
@@ -9,6 +10,7 @@ export function AppLayout() {
       <main id="main" className="tl-container starter-main" tabIndex={-1}>
         <Outlet />
       </main>
+      <Toaster />
     </>
   )
 }

@@ -78,3 +78,14 @@ Deploy `dist/` with client routes falling back to `index.html`. Vite's proxy run
 only during development: production must route `/api` to your backend or use a
 public `VITE_API_URL` when building. Local generation links the framework's styles
 and React packages, so keep the checkout available and rebuild packages after edits.
+
+## Toasts
+
+Login and registration show one success toast for five seconds, with a dismiss button.
+Messages use `successMessage`, then the backend response message, then a default.
+For example, `<AuthForm mode="login" successMessage="Welcome back!" />`.
+Form errors stay inline. The shared layout keeps the toast visible across navigation.
+
+Elsewhere, import `toast` from `src/lib/toast` and call
+`toast.success("Profile saved")`, `toast.error("Unable to save")`, or `toast.dismiss()`.
+A new toast replaces the previous one. No extra package is required.

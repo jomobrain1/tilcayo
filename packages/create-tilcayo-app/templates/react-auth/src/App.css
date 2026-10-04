@@ -144,3 +144,42 @@
 .auth-footer { text-align: center; font-size: 0.875rem; }
 .auth-footer a { font-weight: 600; text-decoration: none; }
 .auth-footer a:hover { text-decoration: underline; }
+
+.starter-toaster {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 100;
+  width: min(24rem, calc(100% - 2rem));
+  pointer-events: none;
+}
+.starter-toast {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0.75rem 0.75rem 1rem;
+  border: 1px solid var(--tl-border);
+  border-left: 3px solid currentColor;
+  border-radius: var(--tl-radius-md);
+  background: var(--tl-surface);
+  box-shadow: var(--tl-shadow-md);
+  pointer-events: auto;
+}
+.starter-toast-success { color: var(--tl-text); }
+.starter-toast-error { color: var(--tl-danger); }
+.starter-toast p { flex: 1; margin: 0; overflow-wrap: anywhere; }
+.starter-toast button {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--tl-radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.starter-toast button:hover { background: var(--tl-secondary-hover); }
+.starter-toast button:focus-visible { outline: 2px solid var(--tl-focus); }

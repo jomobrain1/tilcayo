@@ -3,8 +3,9 @@ import { Link, useLocation } from 'react-router'
 import { useAuth } from '../app/auth'
 import { authErrorMessage } from '../lib/auth-feedback'
 import { PasswordField } from './password-field'
+import { toast } from '../lib/toast'
 
-export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
+export function AuthForm({ mode, successMessage }: { mode: 'login' | 'register'; successMessage?: string }) {
   const registering = mode === 'register'
   const { login, register, loginStatus, registerStatus } = useAuth()
   const location = useLocation()
@@ -23,8 +24,10 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
       return
     }
     try {
-      if (registering) await register({ name: String(data.get('name') ?? '').trim(), email, password })
-      else await login({ email, password })
+      const response = registering
+        ? await register({ name: String(data.get('name') ?? '').trim(), email, password })
+        : await login({ email, password })
+      toast.success(successMessage?.trim() || response.message?.trim() || (registering ? 'Your account is ready!' : 'Welcome back!'))
       // GuestOnly redirects to the intended page when the session changes.
     } catch (failure) { setError(authErrorMessage(failure)) }
   }
