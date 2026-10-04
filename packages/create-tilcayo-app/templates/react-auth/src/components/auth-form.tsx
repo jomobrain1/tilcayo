@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation } from 'react-router'
 import { useAuth } from '../app/auth'
 import { authErrorMessage } from '../lib/auth-feedback'
+import { PasswordField } from './password-field'
 
 export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   const registering = mode === 'register'
@@ -30,7 +31,12 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
 
   return (
     <section className="auth-panel tl-card tl-stack" aria-labelledby="auth-title">
-      <header className="tl-stack">
+      <header className="auth-heading">
+        <span className="auth-mark" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m3 10 9-8 9 8M5 9v12h14V9M9 21v-8h6v8" />
+          </svg>
+        </span>
         <h1 id="auth-title" className="tl-heading-2">{registering ? 'Create your account' : 'Welcome back'}</h1>
         <p className="tl-text-muted">{registering ? 'Enter your details to get started.' : 'Log in to continue to your account.'}</p>
       </header>
@@ -38,28 +44,21 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
         {error && <p className="tl-alert tl-alert-danger" role="alert">{error}</p>}
         <fieldset disabled={pending} className="auth-fields tl-stack">
           {registering && <div className="tl-form-group">
-            <label className="tl-label" htmlFor="name">Name</label>
-            <input className="tl-input" id="name" name="name" autoComplete="name" required minLength={2} maxLength={100} />
+            <label className="tl-label" htmlFor="name">Full name</label>
+            <input className="tl-input" id="name" name="name" autoComplete="name" placeholder="Alex Carter" required minLength={2} maxLength={100} />
           </div>}
           <div className="tl-form-group">
             <label className="tl-label" htmlFor="email">Email</label>
-            <input className="tl-input" id="email" name="email" type="email" autoComplete="email" required maxLength={254} />
+            <input className="tl-input" id="email" name="email" type="email" autoComplete="email" placeholder="you@example.com" required maxLength={254} />
           </div>
-          <div className="tl-form-group">
-            <label className="tl-label" htmlFor="password">Password</label>
-            <input className="tl-input" id="password" name="password" type="password" autoComplete={registering ? 'new-password' : 'current-password'} required minLength={8} maxLength={72} aria-describedby={registering ? 'password-help' : undefined} />
-            {registering && <p id="password-help" className="tl-text-muted">Use at least 8 characters.</p>}
-          </div>
-          {registering && <div className="tl-form-group">
-            <label className="tl-label" htmlFor="confirm-password">Confirm password</label>
-            <input className="tl-input" id="confirm-password" name="confirmPassword" type="password" autoComplete="new-password" required minLength={8} maxLength={72} />
-          </div>}
+          <PasswordField name="password" label="Password" autoComplete={registering ? 'new-password' : 'current-password'} placeholder={registering ? 'At least 8 characters' : 'Enter your password'} />
+          {registering && <PasswordField name="confirmPassword" label="Confirm password" autoComplete="new-password" placeholder="Repeat your password" />}
           <button className="tl-btn tl-btn-primary auth-submit" type="submit">
-            {pending ? 'Please wait…' : registering ? 'Create account' : 'Log in'}
+            {pending ? 'Please wait...' : registering ? 'Create account' : 'Log in'}
           </button>
         </fieldset>
       </form>
-      <p className="tl-text-muted">
+      <p className="auth-footer tl-text-muted">
         {registering ? 'Already have an account? ' : 'New to Tilcayo? '}
         <Link to={registering ? '/login' : '/register'} state={location.state}>{registering ? 'Log in' : 'Create an account'}</Link>
       </p>
