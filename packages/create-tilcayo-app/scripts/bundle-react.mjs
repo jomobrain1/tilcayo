@@ -21,3 +21,15 @@ files['README.md'] = '# Tilcayo React starter\n\nReact, TypeScript, Vite, React 
 files['README.md'] += '\n## API client\n\n`src/lib/api.ts` uses @tilcayo/react with public VITE_API_URL or /api. It sends no requests on startup. Never put secrets in VITE_* variables. Local generation links both styles and API client packages from the checkout; future published generation uses npm versions.\n';
 files['README.md'] += '\nThe Redux Provider uses src/app/store.ts. Inject server endpoints into src/app/api.ts and use typed client-state hooks from src/app/hooks.ts. No backend is needed to render the starter.\n';
 await writeFile(new URL('../dist/react-starter.json', import.meta.url), JSON.stringify(files, null, 2) + '\n');
+
+const authFiles = {};
+const authRoot = new URL('../templates/react-auth/', import.meta.url);
+async function collectAuth(directory = '') {
+  for (const entry of await readdir(new URL(directory, authRoot), { withFileTypes: true })) {
+    const name = directory + entry.name;
+    if (entry.isDirectory()) await collectAuth(name + '/');
+    else authFiles[name] = await readFile(new URL(name, authRoot), 'utf8');
+  }
+}
+await collectAuth();
+await writeFile(new URL('../dist/react-auth.json', import.meta.url), JSON.stringify(authFiles, null, 2) + '\n');

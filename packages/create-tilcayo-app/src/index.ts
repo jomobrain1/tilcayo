@@ -52,7 +52,7 @@ export async function generateApp(options: StarterOptions, root = process.cwd())
     await writeFile(destination, source, { flag: "wx", ...(filename === ".env" ? { mode: 0o600 } : {}) });
   }
   if (options.type === "api") await make(["make:resource", "Note", "title:string", "content?:string"], target);
-  if (options.auth) await make(["make:auth"], target);
+  if (options.auth && options.type !== "react") await make(["make:auth"], target);
   return target;
 }
 

@@ -17,7 +17,7 @@ function run(script, args, cwd) {
 }
 let child;
 try {
-  run(path.join(repo, 'packages/create-tilcayo-app/dist/bin.js'), ['fresh-react', '--type', 'react', '--yes'], root);
+  run(path.join(repo, 'packages/create-tilcayo-app/dist/bin.js'), ['fresh-react', '--type', 'react', '--yes', ...(process.argv.includes('--auth') ? ['--auth'] : [])], root);
   const target = path.join(root, 'fresh-react');
   run(npm, ['run', 'lint'], target);
   const reservation = createServer(); reservation.listen(0, '127.0.0.1'); await once(reservation, 'listening');

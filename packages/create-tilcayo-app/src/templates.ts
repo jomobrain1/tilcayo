@@ -10,9 +10,15 @@ export function templates(options: StarterOptions, localPackages: Record<string,
     manifest.engines = { node: '^22.12.0 || >=24.0.0' };
     manifest.dependencies['@tilcayo/styles'] = localPackages.styles ?? '^0.0.2';
     manifest.dependencies['@tilcayo/react'] = localPackages.react ?? '^0.0.2';
-    manifest.tilcayo = { type: 'react', packageManager: options.packageManager };
+    manifest.tilcayo = { type: 'react', auth: options.auth, packageManager: options.packageManager };
     files['package.json'] = JSON.stringify(manifest, null, 2) + '\n';
     if (options.packageManager === 'yarn') files['.yarnrc.yml'] = 'nodeLinker: node-modules\n';
+    if (options.auth) {
+      const authFiles: Record<string, string> = JSON.parse(readFileSync(new URL('./react-auth.json', import.meta.url), 'utf8'));
+      Object.assign(files, authFiles);
+      files['.gitignore'] += '\n.env\n.env.*\n!.env.example\n';
+      delete files['src/lib/api.ts'];
+    }
     return files;
   }
   const mongo = options.type === "api" || options.auth;

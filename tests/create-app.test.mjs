@@ -138,7 +138,7 @@ test("published starter templates keep registry dependencies", () => {
 
 test("React starter includes the client, local styles, and no backend secrets", async (t) => {
   const root = await fixture(t);
-  assert.throws(() => parseOptions(['web-app', '--type', 'react', '--auth']), /does not include authentication/);
+  assert.equal(parseOptions(['web-app', '--type', 'react', '--auth']).options.auth, true);
   for (const packageManager of ['npm', 'pnpm', 'yarn']) {
     const options = { name: `react-${packageManager}`, type: 'react', auth: false, packageManager, install: false };
     const target = await generateApp(options, root);
@@ -164,6 +164,31 @@ test("React starter includes the client, local styles, and no backend secrets", 
     assert.equal(registry.dependencies['@tilcayo/react'], '^0.0.2');
     assert.ok(!JSON.stringify(registry).includes('file:'));
     await assert.rejects(() => generateApp(options, root), /already exists/);
+  }
+});
+
+test('React auth starter generates frontend routes and guards without backend scaffolding or secrets', async (t) => {
+  const root = await fixture(t);
+  for (const packageManager of ['npm', 'pnpm', 'yarn']) {
+    const target = await generateApp({ name: `auth-${packageManager}`, type: 'react', auth: true, packageManager, install: false }, root);
+    const manifest = JSON.parse(await readFile(path.join(target, 'package.json'), 'utf8'));
+    assert.equal(manifest.tilcayo.auth, true);
+    assert.equal(manifest.dependencies['@tilcayo/auth'], undefined);
+    const app = await readFile(path.join(target, 'src/App.tsx'), 'utf8');
+    for (const route of ['/login', '/register', '/dashboard']) assert.ok(app.includes(`path="${route}"`));
+    assert.match(app, /RequireAuth/);
+    assert.match(app, /GuestOnly/);
+    assert.match(app, /AuthBootstrap/);
+    assert.match(await readFile(path.join(target, 'src/app/store.ts'), 'utf8'), /auth: auth.authReducer/);
+    assert.match(await readFile(path.join(target, 'src/app/api.ts'), 'utf8'), /auth.api/);
+    assert.match(await readFile(path.join(target, 'src/components/auth-form.tsx'), 'utf8'), /Passwords do not match/);
+    assert.match(await readFile(path.join(target, 'vite.config.ts'), 'utf8'), /127.0.0.1:9149/);
+    const env = await readFile(path.join(target, '.env.example'), 'utf8');
+    assert.match(env, /VITE_API_URL=\/api/);
+    assert.ok(!env.includes('SECRET'));
+    assert.ok(!(await readdir(target)).includes('.env'));
+    assert.ok(!(await readdir(path.join(target, 'src'))).includes('controllers'));
+    assert.ok(!(await readdir(path.join(target, 'src/lib'))).includes('api.ts'));
   }
 });
 

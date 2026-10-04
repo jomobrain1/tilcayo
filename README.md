@@ -47,8 +47,9 @@ The checked-in `examples/react-starter` is a generated example. Run
 dependencies. Local generation links `@tilcayo/styles` from this checkout.
 The creator build bundles the current `client` source into its distributable.
 Publish `@tilcayo/styles`, `@tilcayo/react`, and the updated creator before using this option through
-`npm create tilcayo-app@latest`. React authentication is not scaffolded; connect
-a separate API. On PowerShell, use `npm.cmd` if script execution is blocked.
+`npm create tilcayo-app@latest`. Add `--auth` to scaffold login/register pages, a protected dashboard, route guards,
+and session bootstrap. Connect a separate Tilcayo auth API; the generated README
+explains setup. Tokens are in memory, so reloading signs out. On PowerShell, use `npm.cmd` if script execution is blocked.
 
 ### Backend API
 

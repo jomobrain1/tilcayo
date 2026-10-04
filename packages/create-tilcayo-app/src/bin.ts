@@ -46,11 +46,11 @@ async function main() {
         { value: "react" as const, label: color.cyan("React"), hint: "React client with Tilcayo styles and responsive navigation" },
       ],
     }));
-    if (missing.has("auth") && options.type !== "react") options.auth = answer(await select({
+    if (missing.has("auth")) options.auth = answer(await select({
       message: "Include authentication?",
       initialValue: options.auth,
       options: [
-        { value: true, label: color.green("Yes"), hint: "Register, login, refresh and logout; requires MongoDB" },
+        { value: true, label: color.green("Yes"), hint: options.type === "react" ? "Login/register pages, dashboard and route guards; connects to a Tilcayo auth API" : "Register, login, refresh and logout; requires MongoDB" },
         { value: false, label: color.yellow("No"), hint: "Start without authentication" },
       ],
     }));
@@ -67,7 +67,8 @@ async function main() {
   const cli = options.packageManager === "npm" ? "npx tilcayo" : `${options.packageManager} exec tilcayo`;
   if (options.type === "react") console.log(`  ${options.packageManager} run dev`);
   else console.log(`  ${cli} dev\n\nWith Tilcayo on PATH, use tilcayo dev directly.`);
-  if (options.type === "api" || options.auth) console.log("Start MongoDB or update MONGODB_URI in .env before starting the API.");
+  if (options.type === "react" && options.auth) console.log("Open /login or /register. Start a Tilcayo auth API on port 9149; see README.md for setup and API URL configuration.");
+  else if (options.type === "api" || options.auth) console.log("Start MongoDB or update MONGODB_URI in .env before starting the API.");
 }
 
 main().catch((error: unknown) => {

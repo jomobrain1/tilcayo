@@ -94,7 +94,9 @@ For a React client, select React in the wizard or pass `--type react --yes`.
 Use Node.js 22.12+ or 24+. The client includes the current Tilcayo starter pages,
 responsive hamburger menu, TypeScript, Vite, React Router, and `@tilcayo/styles`.
 Run `npm run dev`, `npm run build`, `npm run preview`, or `npm run lint` in the
-generated client. `--auth` is rejected for React; connect a separate backend.
+generated client. Add `--auth` for login/register pages, a protected dashboard,
+guest/auth route guards, auth bootstrap and logout navigation. This frontend connects
+to a separate Tilcayo auth API; its Vite proxy targets port 9149.
 
 To test from the repository root:
 
@@ -150,7 +152,7 @@ automatically.
 
 ## Authentication
 
-With `--auth`, these endpoints are registered:
+For backend starters with `--auth`, these endpoints are registered:
 
 | Endpoint | Input |
 | --- | --- |
@@ -201,8 +203,25 @@ it through `npx tilcayo`, `pnpm exec tilcayo`, or `yarn exec tilcayo`.
 [Generators](https://www.npmjs.com/package/@tilcayo/cli) ·
 [Runtime](https://www.npmjs.com/package/@tilcayo/core)
 
-React starters also include `@tilcayo/react` and `src/lib/api.ts`, configured with
+Plain React starters include `@tilcayo/react` and `src/lib/api.ts`, configured with
 public `VITE_API_URL` or `/api`. No API requests run on startup. Local generation
 links both frontend packages; future published generation uses registry versions.
 Publish `@tilcayo/react` as well before releasing this creator. Never put secrets
 in VITE_* variables. See [API client](../react/README.md).
+
+### React auth installation (local, unpublished)
+
+From `examples`, after building the workspace:
+
+```sh
+node ../packages/create-tilcayo-app/dist/bin.js my-auth-app --type react --auth --yes
+cd my-auth-app
+npm run dev
+```
+
+Open `/register` or `/login`. The generated README explains creating a separate
+auth backend and connecting MongoDB. Frontend files live in `src/app/auth.ts`,
+`src/middleware/auth.tsx`, `src/components/auth-form.tsx`, and `src/pages/`.
+The creator ships the auth overlay in `dist/react-auth.json`. Tokens remain in
+memory: a reload signs out. No backend secrets are generated in the frontend.
+Existing generated apps are not overwritten or upgraded by this command.

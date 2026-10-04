@@ -298,8 +298,10 @@ the replacement refresh token, clears local user/cache even on revocation failur
 and rejects that failure to the caller. Log out before starting another session.
 Late responses cannot resurrect a logged-out user.
 
-The plain React creator still rejects --auth and remains standalone. This milestone
-provides opt-in architecture; login pages, protected routing and auth scaffolding
-are later work. Run node packages/react/tests/pack-consumer.mjs to verify a clean
+The React creator supports `--type react --auth` for login/register pages,
+a protected dashboard, guest/auth route guards, session bootstrap and logout.
+Without `--auth`, the starter remains standalone. Auth scaffolding connects to a
+separate backend; its generated README explains setup and the in-memory session
+limitation. Run node packages/react/tests/pack-consumer.mjs to verify a clean
 React/TypeScript package consumer, and node tests/react-starter-consumer.mjs to
 verify fresh generation, installation, build, lint and Vite startup.

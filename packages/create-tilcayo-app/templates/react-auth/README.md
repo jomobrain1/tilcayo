@@ -1,0 +1,77 @@
+# Tilcayo React auth starter
+
+React, TypeScript, Vite, React Router, Redux Toolkit, and Tilcayo styles/auth.
+Use Node.js 22.12+ or 24+. Dependencies and the production build are prepared by
+the creator unless `--no-install` was supplied.
+
+```sh
+npm run dev
+```
+
+Open `/register` to create an account or `/login` to sign in. An authenticated
+user is sent to `/dashboard`, or back to the protected URL they requested.
+The header provides logout. Forms include pending states, native validation,
+password confirmation on registration, and server error feedback.
+
+## Connect the backend
+
+This is a frontend application. A Tilcayo backend with authentication and MongoDB
+must be running for registration and login to work. From the framework checkout's
+`examples` directory you can create a separate backend:
+
+```sh
+node ../packages/create-tilcayo-app/dist/bin.js my-api --type api --auth --yes
+cd my-api
+```
+
+Configure its private `.env` (`MONGODB_URI`), start MongoDB, and run `npm run dev`.
+Keep generated auth secrets on the backend only. It listens on port 9149.
+
+The frontend's Vite development proxy sends `/api` to `http://127.0.0.1:9149`.
+Edit `vite.config.ts` if your backend listens elsewhere. `src/app/auth.ts` uses
+`VITE_API_URL` or `/api`; `.env.example` contains only this public setting.
+With a different frontend API origin, configure backend CORS appropriately.
+
+The backend must expose:
+
+| Method | Path |
+| --- | --- |
+| POST | `/api/auth/register` |
+| POST | `/api/auth/login` |
+| POST | `/api/auth/logout` |
+| POST | `/api/auth/refresh` |
+| GET | `/api/auth/me` |
+
+## Routes and frontend middleware
+
+- `src/App.tsx`: explicit public, guest-only, and authenticated route groups.
+- `src/middleware/auth.tsx`: `RequireAuth` and `GuestOnly` navigation guards.
+- `src/pages/login.page.tsx`, `register.page.tsx`: authentication pages.
+- `src/components/auth-form.tsx`: shared editable form.
+- `src/pages/dashboard.page.tsx`: protected account page.
+- `src/app/auth.ts`: configured auth instance, hook, and session bootstrap.
+- `src/app/api.ts`: inject resource endpoints into this shared authenticated API.
+- `src/app/store.ts`, `hooks.ts`: Redux store and application-specific typed hooks.
+
+Add protected routes beneath the `RequireAuth` route in `App.tsx`. These guards
+control navigation; backend authentication middleware must still authorize data
+requests. The frontend never contains database credentials or JWT signing secrets.
+
+Tokens are kept in memory, not browser storage. Refresh handles access-token
+expiry within a running session, but reloading the page signs you out. Persistent
+sessions require a separate, explicitly designed storage/cookie strategy; no
+"remember me" behavior is provided. Login/register screens render without a
+backend; submitting them requires the API.
+
+## Build and deploy
+
+```sh
+npm run build
+npm run lint
+npm run preview
+```
+
+Deploy `dist/` with client routes falling back to `index.html`. Vite's proxy runs
+only during development: production must route `/api` to your backend or use a
+public `VITE_API_URL` when building. Local generation links the framework's styles
+and React packages, so keep the checkout available and rebuild packages after edits.
