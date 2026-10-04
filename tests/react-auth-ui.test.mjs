@@ -8,7 +8,7 @@ const ts = createRequire(new URL('../examples/react-starter/package.json', impor
 import { createElement as h } from 'react';
 import { renderToString } from 'react-dom/server';
 import { Provider } from 'react-redux';
-import { MemoryRouter, Routes, Route } from 'react-router';
+import { MemoryRouter, Routes, Route, useRoutes } from 'react-router';
 import { createTilcayoStore } from '../packages/react/dist/redux/index.js';
 import { templates } from '../packages/create-tilcayo-app/dist/templates.js';
 
@@ -37,13 +37,20 @@ test('generated auth forms, guards and safe return paths render against the real
   const { LoginPage } = await load('pages/login.page.js');
   const { RegisterPage } = await load('pages/register.page.js');
   const { returnPath, authErrorMessage } = await load('lib/auth-feedback.js');
-  function render(component, state) {
+  const { routes } = await load('routes.js');
+  function AppRoutes() { return useRoutes(routes); }
+  function render(component, state, pathname = '/') {
     const store = createTilcayoStore({ api: auth.api, reducers: { auth: () => state } });
-    try { return renderToString(h(Provider, { store }, h(MemoryRouter, null, component))); }
+    try { return renderToString(h(Provider, { store }, h(MemoryRouter, { initialEntries: [pathname] }, component))); }
     finally { store.dispatch(auth.api.util.resetApiState()); }
   }
   const guest = { user: null, isAuthenticated: false, initialized: true };
   const member = { user: { id: '1', name: 'Reader', email: 'reader@example.test' }, isAuthenticated: true, initialized: true };
+  assert.match(render(h(AppRoutes), guest, '/login'), /Welcome back/);
+  assert.match(render(h(AppRoutes), guest, '/register'), /Create your account/);
+  assert.ok(!render(h(AppRoutes), guest, '/dashboard').includes('Your account'));
+  assert.match(render(h(AppRoutes), member, '/dashboard'), /Your account/);
+  assert.match(render(h(AppRoutes), guest, '/missing'), /404 - Page not found/);
   const protectedRoute = h(Routes, null, h(Route, { element: h(RequireAuth) }, h(Route, { path: '/', element: h('p', null, 'Private content') })));
   assert.ok(!render(protectedRoute, guest).includes('Private content'));
   assert.match(render(protectedRoute, member), /Private content/);

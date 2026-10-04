@@ -44,7 +44,10 @@ The backend must expose:
 
 ## Routes and frontend middleware
 
-- `src/App.tsx`: explicit public, guest-only, and authenticated route groups.
+- `src/App.tsx`: router and authentication bootstrap.
+- `src/routes.tsx`: public, guest-only, and authenticated route objects.
+- `src/layouts/app-layout.tsx`: shared page layout.
+- `src/components/navigation.tsx`: responsive navigation and logout.
 - `src/middleware/auth.tsx`: `RequireAuth` and `GuestOnly` navigation guards.
 - `src/pages/login.page.tsx`, `register.page.tsx`: authentication pages.
 - `src/components/auth-form.tsx`: shared editable form.
@@ -53,7 +56,7 @@ The backend must expose:
 - `src/app/api.ts`: inject resource endpoints into this shared authenticated API.
 - `src/app/store.ts`, `hooks.ts`: Redux store and application-specific typed hooks.
 
-Add protected routes beneath the `RequireAuth` route in `App.tsx`. These guards
+Add protected routes beneath the `RequireAuth` group in `src/routes.tsx`. These guards
 control navigation; backend authentication middleware must still authorize data
 requests. The frontend never contains database credentials or JWT signing secrets.
 

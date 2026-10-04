@@ -18,7 +18,9 @@ Open the URL printed by Vite. Routes:
 - `/about`: starter overview
 - Any other path: not-found page with a link home
 
-Routes are explicit in `src/App.tsx`; page components live in `src/pages/`.
+Routes are plain React Router objects in `src/routes.tsx`; page components live in `src/pages/`.
+`src/App.tsx` starts the router. Shared layout and navigation live in
+`src/layouts/app-layout.tsx` and `src/components/navigation.tsx`.
 `src/main.tsx` imports the styles package, `src/index.css` overrides theme tokens,
 and `src/App.css` handles starter-specific layout.
 

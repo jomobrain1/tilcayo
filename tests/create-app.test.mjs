@@ -156,7 +156,7 @@ test("React starter includes the client, local styles, and no backend secrets", 
     assert.match(await readFile(path.join(target, 'src/app/hooks.ts'), 'utf8'), /withTypes/);
     assert.match(await readFile(path.join(target, 'src/app/store.ts'), 'utf8'), /createTilcayoStore/);
     assert.ok(!(await readdir(target)).includes('.env'));
-    for (const file of ['src/App.tsx', 'src/App.css', 'src/pages/home.page.tsx', 'src/pages/elements.page.tsx', 'src/pages/about.page.tsx']) {
+    for (const file of ['src/App.tsx', 'src/App.css', 'src/routes.tsx', 'src/layouts/app-layout.tsx', 'src/components/navigation.tsx', 'src/pages/not-found.page.tsx', 'src/pages/home.page.tsx', 'src/pages/elements.page.tsx', 'src/pages/about.page.tsx']) {
       assert.equal(await readFile(path.join(target, file), 'utf8'), await readFile(path.join(repo, 'client', file), 'utf8'));
     }
     const registry = JSON.parse(templates(options)['package.json']);
@@ -175,9 +175,11 @@ test('React auth starter generates frontend routes and guards without backend sc
     assert.equal(manifest.tilcayo.auth, true);
     assert.equal(manifest.dependencies['@tilcayo/auth'], undefined);
     const app = await readFile(path.join(target, 'src/App.tsx'), 'utf8');
-    for (const route of ['/login', '/register', '/dashboard']) assert.ok(app.includes(`path="${route}"`));
-    assert.match(app, /RequireAuth/);
-    assert.match(app, /GuestOnly/);
+    const routes = await readFile(path.join(target, 'src/routes.tsx'), 'utf8');
+    for (const route of ['/login', '/register', '/dashboard']) assert.ok(routes.includes(`path: '${route}'`));
+    assert.match(routes, /RequireAuth/);
+    assert.match(routes, /GuestOnly/);
+    assert.match(app, /useRoutes/);
     assert.match(app, /AuthBootstrap/);
     assert.match(await readFile(path.join(target, 'src/app/store.ts'), 'utf8'), /auth: auth.authReducer/);
     assert.match(await readFile(path.join(target, 'src/app/api.ts'), 'utf8'), /auth.api/);
