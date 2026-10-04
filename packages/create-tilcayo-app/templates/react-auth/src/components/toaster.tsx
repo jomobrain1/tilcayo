@@ -1,17 +1,25 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { toast, toastStore } from '../lib/toast'
 
-export function Toaster() {
+type ToasterProps = {
+  /** Milliseconds before dismissal. Set to 0 to dismiss manually. */
+  duration?: number
+  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  compact?: boolean
+  className?: string
+}
+
+export function Toaster({ duration = 5000, position = 'bottom-right', compact = false, className = '' }: ToasterProps) {
   const notification = useSyncExternalStore(toastStore.subscribe, toastStore.getSnapshot, () => null)
 
   useEffect(() => {
-    if (!notification) return
-    const timer = setTimeout(toast.dismiss, 5000)
+    if (!notification || duration <= 0 || !Number.isFinite(duration)) return
+    const timer = setTimeout(toast.dismiss, duration)
     return () => clearTimeout(timer)
-  }, [notification])
+  }, [notification, duration])
 
   return (
-    <aside className="starter-toaster" aria-label="Notifications">
+    <aside className={`starter-toaster ${className}`} data-position={position} data-compact={compact || undefined} aria-label="Notifications">
       <div role="status" aria-atomic="true">
         {notification && <div className={`starter-toast starter-toast-${notification.kind}`}>
           <p>{notification.message}</p>

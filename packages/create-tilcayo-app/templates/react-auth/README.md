@@ -91,3 +91,24 @@ Elsewhere, import `toast` from `src/lib/toast` and call
 Use `toast.warning("Check your details")` or `toast.info("Update available")` for other notices.
 Success is green, errors red, warnings amber, and information blue.
 A new toast replaces the previous one. No extra package is required.
+
+Customize the shared `Toaster` in `src/layouts/app-layout.tsx`:
+
+```tsx
+<Toaster duration={4000} position="top-right" compact className="my-toast" />
+```
+
+`duration` is in milliseconds (default 5000; 0 disables automatic dismissal).
+`position` accepts `top-left`, `top-right`, `bottom-left`, or `bottom-right` (default).
+`compact` reduces spacing and font size while keeping the close button easy to tap.
+`className` applies to the outer notification container. Style it in `src/App.css`:
+
+```css
+.my-toast {
+  --toast-background: #fff;
+  --toast-radius: 8px;
+  --toast-padding: 8px 12px;
+}
+```
+
+These CSS variables override the defaults, including compact padding.

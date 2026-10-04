@@ -147,21 +147,25 @@
 
 .starter-toaster {
   position: fixed;
-  right: 1rem;
-  bottom: 1rem;
   z-index: 100;
   width: min(24rem, calc(100% - 2rem));
   pointer-events: none;
 }
+.starter-toaster[data-position^="top"] { top: 1rem; }
+.starter-toaster[data-position^="bottom"] { bottom: 1rem; }
+.starter-toaster[data-position$="left"] { left: 1rem; }
+.starter-toaster[data-position$="right"] { right: 1rem; }
+.starter-toaster[data-compact] { --toast-default-padding: 0.25rem 0.5rem 0.25rem 0.75rem; }
+.starter-toaster[data-compact] .starter-toast { gap: 0.5rem; font-size: 0.875rem; }
 .starter-toast {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 0.75rem 0.75rem 1rem;
+  padding: var(--toast-padding, var(--toast-default-padding, 0.75rem 0.75rem 0.75rem 1rem));
   border: 1px solid var(--tl-border);
   border-left: 3px solid currentColor;
-  border-radius: var(--tl-radius-md);
-  background: var(--tl-surface);
+  border-radius: var(--toast-radius, var(--tl-radius-md));
+  background: var(--toast-background, var(--tl-surface));
   box-shadow: var(--tl-shadow-md);
   pointer-events: auto;
 }
