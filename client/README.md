@@ -40,3 +40,6 @@ The local creator supports this starter with `--type react`.
 ## API client
 
 `src/lib/api.ts` exports the `@tilcayo/react` client. It uses public `VITE_API_URL` or `/api` and makes no requests on startup. Only public configuration belongs in VITE_* variables. Local generation links both Tilcayo packages; build them before using the client. See [API client guide](../packages/react/README.md) in the checkout for requests and errors.
+
+The Redux Provider uses `src/app/store.ts`. Inject RTK Query endpoints into
+`src/app/api.ts`; use typed hooks from `src/app/hooks.ts` for client state.

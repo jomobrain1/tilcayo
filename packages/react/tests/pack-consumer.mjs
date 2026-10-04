@@ -23,10 +23,18 @@ try {
   assert.ok(dry.files.some(({ path }) => path === 'dist/index.d.ts'));
   const [pack] = JSON.parse(node(npm, args));
   await writeFile(path.join(directory, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
-  node(npm, ['install', './' + pack.filename, '--offline', '--ignore-scripts', '--no-audit', '--no-fund']);
+  node(npm, ['install', './' + pack.filename, 'react@^19', 'react-dom@^19', '@types/react@^19', '@reduxjs/toolkit@^2.13.0', 'react-redux@^9.3.0', '--ignore-scripts', '--no-audit', '--no-fund']);
   await writeFile(path.join(directory, 'main.ts'), `
 import { createApiClient, createResourceClient, isTilcayoApiError, isTilcayoNetworkError, type TilcayoResponse } from '@tilcayo/react';
-const api = createApiClient({ baseUrl: '/api' });
+import { createTilcayoApi, createTilcayoStore } from '@tilcayo/react/redux';
+import { useDispatch, useSelector } from 'react-redux';
+const queryApi = createTilcayoApi({ baseUrl: '/api' });
+const store = createTilcayoStore({ api: queryApi, reducers: { count: (state = 0) => state } });
+const count: number = store.getState().count;
+const dispatch = useDispatch.withTypes<typeof store.dispatch>();
+const select = useSelector.withTypes<ReturnType<typeof store.getState>>();
+export const injected = queryApi.injectEndpoints({ endpoints: b => ({ books: b.query<string[], void>({ query: () => '/books' }) }) });
+export const api = createApiClient({ baseUrl: '/api' });
 export const read = () => api.get<TilcayoResponse<{ title: string }[]>>('/books');
 export const write = () => api.post('/books', { title: 'Test' });
 const books = createResourceClient<{ id: string; title: string }, { title: string }, { title?: string }>({ api, path: '/books' });

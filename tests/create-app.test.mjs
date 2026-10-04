@@ -150,6 +150,11 @@ test("React starter includes the client, local styles, and no backend secrets", 
     const react = manifest.dependencies['@tilcayo/react'];
     assert.equal(path.resolve(target, react.slice(react.indexOf(':') + 1)), path.join(repo, 'packages/react'));
     assert.match(await readFile(path.join(target, 'src/lib/api.ts'), 'utf8'), /VITE_API_URL/);
+    assert.ok(manifest.dependencies['@reduxjs/toolkit']);
+    assert.ok(manifest.dependencies['react-redux']);
+    assert.match(await readFile(path.join(target, 'src/main.tsx'), 'utf8'), /Provider store=/);
+    assert.match(await readFile(path.join(target, 'src/app/hooks.ts'), 'utf8'), /withTypes/);
+    assert.match(await readFile(path.join(target, 'src/app/store.ts'), 'utf8'), /createTilcayoStore/);
     assert.ok(!(await readdir(target)).includes('.env'));
     for (const file of ['src/App.tsx', 'src/App.css', 'src/pages/home.page.tsx', 'src/pages/elements.page.tsx', 'src/pages/about.page.tsx']) {
       assert.equal(await readFile(path.join(target, file), 'utf8'), await readFile(path.join(repo, 'client', file), 'utf8'));

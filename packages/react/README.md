@@ -1,9 +1,8 @@
 # @tilcayo/react
 
-Tilcayo's small native-fetch API client. F2/F3 provide networking and REST resources: no Redux,
-RTK Query, authentication flow, CRUD generators, UI, or admin
-dashboard. The package is local/unpublished. No runtime or peer dependencies are
-required; React peers will be added when React-specific APIs exist. TypeScript is
+Tilcayo's small native-fetch API client. F2-F4 provide networking, REST resources, Redux and RTK Query. Authentication,
+CRUD generators, UI, and admin dashboards are not included yet. The package is local/unpublished. The root transport/resource entry has no runtime imports from React or Redux.
+The optional `/redux` entry requires the React, React Redux and Redux Toolkit peers. TypeScript is
 provided by the repository root for development.
 
 ## Installation
@@ -173,3 +172,47 @@ Delete expects the backend 204 response. This client targets standard Tilcayo CR
 use the transport directly for other response contracts or pagination envelopes.
 Create/update input generics may be FormData. There is no React state, loading
 state, or Redux dependency in this layer.
+
+## Redux and RTK Query (F4)
+
+Install @reduxjs/toolkit, react-redux, and react alongside this package to use
+@tilcayo/react/redux. React 18/19, React Redux 9.1+, and Toolkit 2.2+ are supported.
+The starter installs these automatically. The root entry stays framework-independent.
+
+```ts
+import { createTilcayoApi, createTilcayoStore } from '@tilcayo/react/redux';
+export const tilcayoApi = createTilcayoApi({ baseUrl: '/api', tagTypes: ['Book'] });
+export const store = createTilcayoStore({ api: tilcayoApi });
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+```
+
+Create one API per application/store, then use its injectEndpoints method for
+resource queries/mutations. There is no package-global mutable API configuration.
+The store registers its reducer and middleware; pass additional client-state
+reducers through reducers. Do not store server results in ordinary slices.
+For advanced middleware, preloaded state or other options, use configureStore
+directly with the API's reducer and middleware.
+
+The base query delegates to createApiClient. Pass a preconfigured client through
+createTilcayoBaseQuery({ client: api }) or configure baseUrl/headers/fetch directly.
+Queries use { url, method, body, query, headers }; RTK Query owns the abort signal.
+Responses preserve envelopes. HTTP 204 becomes null because RTK requires a
+defined data value. Errors are serializable objects with kind, message, and
+optional statusCode, code, details. Network errors have no fabricated HTTP status.
+
+Injected endpoints expose standard generated hooks: query data/isLoading/isFetching/
+isSuccess/isError/error, and mutation trigger plus status. The transport/resource
+layers do not duplicate those flags.
+
+Tag convention: Book/LIST for lists; Book/id for individual records. Creation
+invalidates LIST; updates/deletes invalidate both id and LIST. Declare Book in
+tagTypes (or enhanceEndpoints) and use providesTags/invalidatesTags normally.
+
+The starter adds src/app/api.ts, store.ts, hooks.ts and a React Redux Provider.
+Typed hooks use useDispatch.withTypes<AppDispatch>() and
+useSelector.withTypes<RootState>(); these types belong to the app, not the library.
+No endpoint is requested at startup.
+
+Implementation follows the official [custom base query](https://redux.js.org/toolkit/rtk-query/usage/customizing-queries)
+and [endpoint injection](https://redux.js.org/toolkit/rtk-query/usage/code-splitting) patterns.

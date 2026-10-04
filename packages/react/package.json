@@ -5,10 +5,47 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
-  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./redux": {
+      "types": "./dist/redux/index.d.ts",
+      "import": "./dist/redux/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "sideEffects": false,
-  "repository": { "type": "git", "url": "git+https://github.com/jomobrain1/tilcayo.git", "directory": "packages/react" },
-  "publishConfig": { "access": "public" },
-  "scripts": { "build": "tsc -p tsconfig.json", "test": "node --test tests/*.test.mjs" }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jomobrain1/tilcayo.git",
+    "directory": "packages/react"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@reduxjs/toolkit": "^2.2.0",
+    "react-redux": "^9.1.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@reduxjs/toolkit": {
+      "optional": true
+    },
+    "react-redux": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
 }
