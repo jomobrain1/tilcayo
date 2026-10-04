@@ -1,7 +1,7 @@
 # @tilcayo/react
 
-Tilcayo's small native-fetch API client. F2-F4 provide networking, REST resources, Redux and RTK Query. Authentication,
-CRUD generators, UI, and admin dashboards are not included yet. The package is local/unpublished. The root transport/resource entry has no runtime imports from React or Redux.
+Tilcayo's small native-fetch API client. F2-F5 provide networking, REST resources, Redux, RTK Query and opt-in authentication.
+CRUD generators, UI, and admin dashboards are not included. The package is local/unpublished. The root transport/resource entry has no runtime imports from React or Redux.
 The optional `/redux` entry requires the React, React Redux and Redux Toolkit peers. TypeScript is
 provided by the repository root for development.
 
@@ -131,8 +131,8 @@ const api = createApiClient({ fetch: customFetch, baseUrl: '/api' });
 ```
 
 The default is globalThis.fetch; window is never accessed. Dynamic headers can
-later supply Authorization. Token storage, refresh, retries and auth hooks are
-deliberately deferred.
+later supply Authorization. The optional auth integration below centralizes token handling and refresh;
+the low-level client itself does not retry.
 
 ## Starter configuration
 
@@ -216,3 +216,90 @@ No endpoint is requested at startup.
 
 Implementation follows the official [custom base query](https://redux.js.org/toolkit/rtk-query/usage/customizing-queries)
 and [endpoint injection](https://redux.js.org/toolkit/rtk-query/usage/code-splitting) patterns.
+
+## Frontend authentication (F5, opt-in)
+
+The backend uses bearer tokens, not cookies. Default routes are POST
+/api/auth/register, /login, /refresh, /logout and GET /api/auth/me. Login and
+registration return { success, message, data: { user, tokens } }; registration
+authenticates immediately. Refresh returns data.tokens and rotates the refresh
+token. Logout accepts { refreshToken } and returns 204. Me returns data.user
+fields directly (data is the user). The default frontend baseUrl is /api and
+authPath is /auth; change both to match a custom backend prefix.
+
+```ts
+// src/app/auth.ts ? create once, not inside a component
+import { createTilcayoAuth } from '@tilcayo/react/auth';
+export const auth = createTilcayoAuth({ baseUrl: '/api' });
+export const { useAuth, AuthBootstrap } = auth;
+export const tilcayoApi = auth.api;
+
+// src/app/store.ts
+import { createTilcayoStore } from '@tilcayo/react/redux';
+export const store = createTilcayoStore({
+  api: auth.api,
+  reducers: { auth: auth.authReducer },
+  devTools: false,
+});
+```
+
+Use this API **instead of** the plain starter API, and inject resource endpoints
+into auth.api. Mount AuthBootstrap beneath the React Redux Provider and above
+the app, optionally supplying a fallback. There is no additional context.
+The auth reducer must be mounted at auth. Create a new auth instance/store for
+each app or SSR request; never share sessions across users on the server.
+
+```tsx
+<Provider store={store}>
+  <AuthBootstrap fallback={<p>Checking session?</p>}>
+    <App />
+  </AuthBootstrap>
+</Provider>
+```
+
+```ts
+const { user, isAuthenticated, initialized, loading, error,
+  login, register, logout, restoreSession, loginStatus } = useAuth();
+await login({ email, password });
+await register({ name, email, password });
+await logout();
+await restoreSession();
+// loginStatus.isLoading / isSuccess / isError / error are normal RTK values.
+```
+
+Operation promises reject on errors; catch them in event handlers. The hook also
+exposes registerStatus, logoutStatus and restoreStatus. Loading is derived from
+RTK Query, while the auth slice contains only user, isAuthenticated and initialized.
+Normalized errors preserve kind, statusCode, code, message and validation details.
+API cache reset on logout/session expiry also resets cached request statuses.
+
+Tokens live only in the auth instance's memory, never Redux, RTK response caches,
+localStorage or sessionStorage. Auth mutation results intentionally contain only
+a safe user envelope; tokens are consumed centrally before caching. User fields
+are id, name, email, optional ISO createdAt/updatedAt. No password hashes are exposed.
+Login inputs still pass through normal RTK mutation actions, so avoid persisting
+Redux actions or recording credentials with production DevTools/logging middleware.
+
+A reload starts anonymous unless initialTokens is explicitly supplied by the
+application. No durable session is promised: the current backend has no HttpOnly
+refresh cookie. With credentials in memory, bootstrap requests /auth/me, refreshing
+once if necessary; without credentials it initializes anonymously without a request.
+A normal invalid session clears user/cache. A temporary /me network failure exposes
+an error and preserves an already known user rather than contradicting cached data.
+All VITE_* values must remain public configuration, never tokens or server secrets.
+
+Authorization is injected centrally. Cookies/credentials: include are not enabled
+by default; explicit transport credentials settings are honored. A protected 401
+shares one refresh promise with concurrent requests and retries at most once.
+Login/register/logout/refresh failures never recursively refresh. Refresh failure
+or a second 401 clears the session and cache. Aborting one waiter does not cancel
+a shared rotation needed by others. Logout waits for an active rotation, revokes
+the replacement refresh token, clears local user/cache even on revocation failure,
+and rejects that failure to the caller. Log out before starting another session.
+Late responses cannot resurrect a logged-out user.
+
+The plain React creator still rejects --auth and remains standalone. This milestone
+provides opt-in architecture; login pages, protected routing and auth scaffolding
+are later work. Run node packages/react/tests/pack-consumer.mjs to verify a clean
+React/TypeScript package consumer, and node tests/react-starter-consumer.mjs to
+verify fresh generation, installation, build, lint and Vite startup.

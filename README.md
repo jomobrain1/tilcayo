@@ -16,7 +16,7 @@ checkout and has not been published yet.
 | [@tilcayo/core](https://www.npmjs.com/package/@tilcayo/core) | [Runtime, validation, and MongoDB](packages/core/README.md) |
 | [@tilcayo/auth](https://www.npmjs.com/package/@tilcayo/auth) | [Authentication](packages/auth/README.md) |
 | [@tilcayo/cli](https://www.npmjs.com/package/@tilcayo/cli) | [Commands and generators](packages/cli/README.md) |
-| @tilcayo/react (unpublished) | [Native fetch API client](packages/react/README.md) |
+| @tilcayo/react (unpublished) | [API/resource clients, Redux, RTK Query, and opt-in auth](packages/react/README.md) |
 | @tilcayo/styles (unpublished) | [CSS foundation and preview](packages/styles/README.md) |
 
 ## Why the name?
@@ -351,7 +351,7 @@ The example listens on port 9149; its auth source files already exist.
 | Directory | Contents |
 | --- | --- |
 | `packages/core` | Runtime, routing, validation, middleware, Mongo helpers |
-| `packages/react` | Native fetch API client, response types, and HTTP/network errors |
+| `packages/react` | API/resource clients, Redux/RTK Query, and opt-in frontend auth |
 | `packages/styles` | CSS tokens, components, responsive layouts, and utilities |
 | `packages/auth` | Authentication and token management |
 | `packages/cli` | Generators and application commands |

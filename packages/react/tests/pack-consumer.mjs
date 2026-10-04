@@ -28,6 +28,16 @@ try {
 import { createApiClient, createResourceClient, isTilcayoApiError, isTilcayoNetworkError, type TilcayoResponse } from '@tilcayo/react';
 import { createTilcayoApi, createTilcayoStore } from '@tilcayo/react/redux';
 import { useDispatch, useSelector } from 'react-redux';
+import { createTilcayoAuth, type AuthUser } from '@tilcayo/react/auth';
+import { createElement } from 'react';
+const auth = createTilcayoAuth({ baseUrl: '/api' });
+export const authStore = createTilcayoStore({ api: auth.api, reducers: { auth: auth.authReducer } });
+const user: AuthUser | null = authStore.getState().auth.user;
+export function AuthProbe() {
+  const { user, login, initialized } = auth.useAuth();
+  return createElement('span', null, initialized ? user?.name : 'Loading');
+}
+export const Bootstrap = auth.AuthBootstrap;
 const queryApi = createTilcayoApi({ baseUrl: '/api' });
 const store = createTilcayoStore({ api: queryApi, reducers: { count: (state = 0) => state } });
 const count: number = store.getState().count;

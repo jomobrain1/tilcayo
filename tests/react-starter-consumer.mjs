@@ -41,4 +41,3 @@ try {
   assert.ok(path.basename(root).startsWith('tilcayo-starter-consumer-'));
   await rm(root, { recursive: true, force: true });
 }
-
