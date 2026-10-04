@@ -1,7 +1,7 @@
 # @tilcayo/react
 
-Tilcayo's small native-fetch API client. F2 provides networking only: no Redux,
-RTK Query, authentication flow, resource client, CRUD generators, UI, or admin
+Tilcayo's small native-fetch API client. F2/F3 provide networking and REST resources: no Redux,
+RTK Query, authentication flow, CRUD generators, UI, or admin
 dashboard. The package is local/unpublished. No runtime or peer dependencies are
 required; React peers will be added when React-specific APIs exist. TypeScript is
 provided by the repository root for development.
@@ -147,3 +147,29 @@ Public exports are createApiClient, TilcayoApiError, TilcayoNetworkError,
 isTilcayoApiError, isTilcayoNetworkError and the ApiClient, ApiClientConfig,
 ApiRequest, ApiRequestOptions, ApiQuery, ApiQueryValue and TilcayoResponse types.
 Import everything from `@tilcayo/react`; internal helpers are not package exports.
+
+## Resource client (F3)
+
+```ts
+import { createResourceClient } from "@tilcayo/react";
+interface Book { id: string; title: string }
+interface CreateBookInput { title: string }
+type UpdateBookInput = Partial<CreateBookInput>;
+const books = createResourceClient<Book, CreateBookInput, UpdateBookInput>({ api, path: "/books" });
+const response = await books.all({ query: { page: 2 } });
+await books.find("123");
+await books.create({ title: "1984" });
+await books.update("123", { title: "Animal Farm" });
+await books.delete("123");
+```
+
+Methods map to GET collection, GET item, POST collection, PUT item, and DELETE
+item. PUT matches the backend resource router. All methods accept ApiRequestOptions
+(headers, query, signal, credentials). IDs are encoded as a single path segment.
+Trailing collection slashes are trimmed; queries belong in options.
+The entity generic describes data: all returns TilcayoResponse<Book[]> and
+find/create/update return TilcayoResponse<Book>. Nothing is unwrapped at runtime.
+Delete expects the backend 204 response. This client targets standard Tilcayo CRUD;
+use the transport directly for other response contracts or pagination envelopes.
+Create/update input generics may be FormData. There is no React state, loading
+state, or Redux dependency in this layer.

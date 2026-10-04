@@ -25,10 +25,15 @@ try {
   await writeFile(path.join(directory, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
   node(npm, ['install', './' + pack.filename, '--offline', '--ignore-scripts', '--no-audit', '--no-fund']);
   await writeFile(path.join(directory, 'main.ts'), `
-import { createApiClient, isTilcayoApiError, isTilcayoNetworkError, type TilcayoResponse } from '@tilcayo/react';
+import { createApiClient, createResourceClient, isTilcayoApiError, isTilcayoNetworkError, type TilcayoResponse } from '@tilcayo/react';
 const api = createApiClient({ baseUrl: '/api' });
 export const read = () => api.get<TilcayoResponse<{ title: string }[]>>('/books');
 export const write = () => api.post('/books', { title: 'Test' });
+const books = createResourceClient<{ id: string; title: string }, { title: string }, { title?: string }>({ api, path: '/books' });
+export const createBook = () => books.create({ title: 'Test' });
+export const findBook = (): Promise<TilcayoResponse<{ id: string; title: string }>> => books.find('1');
+// @ts-expect-error create input requires title
+const invalidCreate = () => books.create({ id: '1' });
 export { isTilcayoApiError, isTilcayoNetworkError };
 // @ts-expect-error GET convenience method must not accept a body
 const invalid = () => api.get('/books', { body: {} });
