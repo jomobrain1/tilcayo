@@ -136,6 +136,32 @@ test("published starter templates keep registry dependencies", () => {
   assert.equal(manifest.devDependencies["@tilcayo/cli"], "^0.0.2");
 });
 
+test("React starter includes the client, local styles, and no backend secrets", async (t) => {
+  const root = await fixture(t);
+  assert.throws(() => parseOptions(['web-app', '--type', 'react', '--auth']), /does not include authentication/);
+  for (const packageManager of ['npm', 'pnpm', 'yarn']) {
+    const options = { name: `react-${packageManager}`, type: 'react', auth: false, packageManager, install: false };
+    const target = await generateApp(options, root);
+    const manifest = JSON.parse(await readFile(path.join(target, 'package.json'), 'utf8'));
+    assert.equal(manifest.scripts.dev, 'vite');
+    assert.equal(manifest.dependencies['@tilcayo/core'], undefined);
+    const styles = manifest.dependencies['@tilcayo/styles'];
+    assert.equal(path.resolve(target, styles.slice(styles.indexOf(':') + 1)), path.join(repo, 'packages/styles'));
+    const react = manifest.dependencies['@tilcayo/react'];
+    assert.equal(path.resolve(target, react.slice(react.indexOf(':') + 1)), path.join(repo, 'packages/react'));
+    assert.match(await readFile(path.join(target, 'src/lib/api.ts'), 'utf8'), /VITE_API_URL/);
+    assert.ok(!(await readdir(target)).includes('.env'));
+    for (const file of ['src/App.tsx', 'src/App.css', 'src/pages/home.page.tsx', 'src/pages/elements.page.tsx', 'src/pages/about.page.tsx']) {
+      assert.equal(await readFile(path.join(target, file), 'utf8'), await readFile(path.join(repo, 'client', file), 'utf8'));
+    }
+    const registry = JSON.parse(templates(options)['package.json']);
+    assert.equal(registry.dependencies['@tilcayo/styles'], '^0.0.2');
+    assert.equal(registry.dependencies['@tilcayo/react'], '^0.0.2');
+    assert.ok(!JSON.stringify(registry).includes('file:'));
+    await assert.rejects(() => generateApp(options, root), /already exists/);
+  }
+});
+
 test("tilcayo build reports compilation failure and start requires a build", async (t) => {
   const root = await fixture(t);
   const target = await generateApp({ name: "broken", type: "minimal", auth: false, packageManager: "npm", install: false }, root);

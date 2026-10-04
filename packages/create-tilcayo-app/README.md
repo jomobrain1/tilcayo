@@ -1,6 +1,6 @@
 # create-tilcayo-app
 
-Create a Tilcayo API with an interactive setup wizard:
+Create a Tilcayo API or React client with an interactive setup wizard:
 
 ```sh
 create-tilcayo-app
@@ -64,7 +64,7 @@ Open `http://localhost:9149/health`:
 {"success":true,"message":"Success","data":{"status":"ok"}}
 ```
 
-This starter is a backend API; no frontend UI is generated. On PowerShell, use
+The `api` and `minimal` starters are backend APIs. On PowerShell, use
 `npm.cmd` / `npx.cmd` if script execution is blocked.
 
 ## Options
@@ -74,7 +74,7 @@ With `npm create`, place creator flags after `--`.
 | Option | Purpose |
 | --- | --- |
 | `[project-name]` | New directory and package name |
-| `--type api\|minimal` | MongoDB note CRUD or minimal health endpoint |
+| `--type api\|minimal\|react` | MongoDB API, minimal API, or React client |
 | `--auth` / `--no-auth` | Include or omit authentication |
 | `--package-manager npm\|pnpm\|yarn` | Installation tool |
 | `--no-install` | Write files without installation or compilation |
@@ -89,6 +89,30 @@ npm create tilcayo-app@latest tiny-api -- --type minimal --no-auth --yes
 ```
 
 ## Continue building
+
+For a React client, select React in the wizard or pass `--type react --yes`.
+Use Node.js 22.12+ or 24+. The client includes the current Tilcayo starter pages,
+responsive hamburger menu, TypeScript, Vite, React Router, and `@tilcayo/styles`.
+Run `npm run dev`, `npm run build`, `npm run preview`, or `npm run lint` in the
+generated client. `--auth` is rejected for React; connect a separate backend.
+
+To test from the repository root:
+
+```sh
+npm run build
+cd examples
+node ../packages/create-tilcayo-app/dist/bin.js my-react-app --type react --yes
+cd my-react-app
+npm run dev
+```
+
+The build bundles the `client` source into `dist/react-starter.json`, so the packed
+creator does not need the checkout to generate a React app. Local generation
+links the checkout styles package; published generation uses `@tilcayo/styles`
+from npm. Publish the styles package and this updated creator before testing
+`npm create tilcayo-app@latest my-react-app -- --type react --yes`.
+
+For backend starters:
 
 | Location | Purpose |
 | --- | --- |
@@ -176,3 +200,9 @@ it through `npx tilcayo`, `pnpm exec tilcayo`, or `yarn exec tilcayo`.
 [Project guide](https://github.com/jomobrain1/tilcayo#readme) ·
 [Generators](https://www.npmjs.com/package/@tilcayo/cli) ·
 [Runtime](https://www.npmjs.com/package/@tilcayo/core)
+
+React starters also include `@tilcayo/react` and `src/lib/api.ts`, configured with
+public `VITE_API_URL` or `/api`. No API requests run on startup. Local generation
+links both frontend packages; future published generation uses registry versions.
+Publish `@tilcayo/react` as well before releasing this creator. Never put secrets
+in VITE_* variables. See [API client](../react/README.md).

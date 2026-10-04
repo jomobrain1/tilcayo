@@ -43,9 +43,10 @@ async function main() {
       options: [
         { value: "api" as const, label: color.green("API"), hint: "MongoDB with sample CRUD routes" },
         { value: "minimal" as const, label: color.magenta("Minimal"), hint: "Health-check endpoint only" },
+        { value: "react" as const, label: color.cyan("React"), hint: "React client with Tilcayo styles and responsive navigation" },
       ],
     }));
-    if (missing.has("auth")) options.auth = answer(await select({
+    if (missing.has("auth") && options.type !== "react") options.auth = answer(await select({
       message: "Include authentication?",
       initialValue: options.auth,
       options: [
@@ -58,13 +59,14 @@ async function main() {
   const target = await generateApp(options);
   console.log(`Created ${target}`);
   if (options.install) {
-    console.log(`Installing dependencies with ${options.packageManager} and building the API...`);
+    console.log(`Installing dependencies with ${options.packageManager} and building the application...`);
     await installApp(target, options.packageManager);
   }
   console.log(`\nNext:\n  cd ${options.name}`);
   if (!options.install) console.log(`  ${options.packageManager} install`);
   const cli = options.packageManager === "npm" ? "npx tilcayo" : `${options.packageManager} exec tilcayo`;
-  console.log(`  ${cli} dev\n\nWith Tilcayo on PATH, use tilcayo dev directly.`);
+  if (options.type === "react") console.log(`  ${options.packageManager} run dev`);
+  else console.log(`  ${cli} dev\n\nWith Tilcayo on PATH, use tilcayo dev directly.`);
   if (options.type === "api" || options.auth) console.log("Start MongoDB or update MONGODB_URI in .env before starting the API.");
 }
 

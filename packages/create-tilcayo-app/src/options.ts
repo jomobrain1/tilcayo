@@ -1,7 +1,7 @@
 export interface StarterOptions {
   name: string;
   packageManager: "npm" | "pnpm" | "yarn";
-  type: "api" | "minimal";
+  type: "api" | "minimal" | "react";
   auth: boolean;
   install: boolean;
 }
@@ -9,7 +9,7 @@ export interface StarterOptions {
 export const help = `Usage: create-tilcayo-app [project-name] [options]
 
   --package-manager npm|pnpm|yarn
-  --type api|minimal      MongoDB CRUD API or minimal health-check API
+  --type api|minimal|react MongoDB API, minimal API, or React client
   --auth / --no-auth      Include JWT authentication (requires MongoDB)
   --no-install           Generate files without installing dependencies
   --yes                  Use defaults for unanswered choices
@@ -24,7 +24,8 @@ export function validateOptions(options: StarterOptions): void {
     throw new Error("Use a project name containing lowercase letters, numbers, and hyphens (not a path or reserved system name).");
   }
   if (!["npm", "pnpm", "yarn"].includes(options.packageManager)) throw new Error("Package manager must be npm, pnpm, or yarn.");
-  if (!["api", "minimal"].includes(options.type)) throw new Error("Application type must be api or minimal.");
+  if (!["api", "minimal", "react"].includes(options.type)) throw new Error("Application type must be api, minimal, or react.");
+  if (options.type === "react" && options.auth) throw new Error("The React starter does not include authentication. Use --no-auth and connect a separate API.");
   if (typeof options.auth !== "boolean" || typeof options.install !== "boolean") throw new Error("Authentication and install choices must be booleans.");
 }
 

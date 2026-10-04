@@ -1,7 +1,20 @@
 import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { StarterOptions } from "./options.js";
 
 export function templates(options: StarterOptions, localPackages: Record<string, string> = {}): Record<string, string> {
+  if (options.type === "react") {
+    const files: Record<string, string> = JSON.parse(readFileSync(new URL('./react-starter.json', import.meta.url), 'utf8'));
+    const manifest = JSON.parse(files['package.json']);
+    manifest.name = options.name;
+    manifest.engines = { node: '^22.12.0 || >=24.0.0' };
+    manifest.dependencies['@tilcayo/styles'] = localPackages.styles ?? '^0.0.2';
+    manifest.dependencies['@tilcayo/react'] = localPackages.react ?? '^0.0.2';
+    manifest.tilcayo = { type: 'react', packageManager: options.packageManager };
+    files['package.json'] = JSON.stringify(manifest, null, 2) + '\n';
+    if (options.packageManager === 'yarn') files['.yarnrc.yml'] = 'nodeLinker: node-modules\n';
+    return files;
+  }
   const mongo = options.type === "api" || options.auth;
   const json = (value: unknown) => JSON.stringify(value, null, 2) + "\n";
   const env = `# Server\nPORT=9149\n${mongo ? `\n# Database\nMONGODB_URI=mongodb://127.0.0.1:27017/${options.name.replaceAll("-", "_")}\n` : ""}`;

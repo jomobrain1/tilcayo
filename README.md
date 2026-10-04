@@ -5,8 +5,8 @@ A TypeScript API framework built on Node.js, Express, Mongoose, and Zod.
 **Keep it simple stupid:** plain functions, typed controllers, explicit routes, and short generator commands.
 
 Includes MongoDB CRUD and references, request validation, JWT authentication,
-middleware, pagination, and application scaffolding. React, roles/permissions,
-and SQL adapters are not implemented yet. The four backend/tooling packages are
+middleware, pagination, and application scaffolding. A React starter is available
+in this checkout; roles/permissions and SQL adapters are not implemented yet. The four backend/tooling packages are
 available on npm. The CSS foundation, `@tilcayo/styles`, is available in this
 checkout and has not been published yet.
 
@@ -16,6 +16,7 @@ checkout and has not been published yet.
 | [@tilcayo/core](https://www.npmjs.com/package/@tilcayo/core) | [Runtime, validation, and MongoDB](packages/core/README.md) |
 | [@tilcayo/auth](https://www.npmjs.com/package/@tilcayo/auth) | [Authentication](packages/auth/README.md) |
 | [@tilcayo/cli](https://www.npmjs.com/package/@tilcayo/cli) | [Commands and generators](packages/cli/README.md) |
+| @tilcayo/react (unpublished) | [Native fetch API client](packages/react/README.md) |
 | @tilcayo/styles (unpublished) | [CSS foundation and preview](packages/styles/README.md) |
 
 ## Why the name?
@@ -26,6 +27,30 @@ Its small size and distinct identity inspired the framework's focus on simplicit
 [Read about the species](https://portal.pucrs.br/es/noticias/buscar/Nueva-especie-de-felino-Leopardus-tilcayo/).
 
 ## Create an application
+
+### React starter (local checkout)
+
+The local creator supports `--type react`. It generates the client with React,
+TypeScript, Vite, Home/Elements/About pages, Tilcayo styles, and responsive
+navigation. Use Node.js 22.12+ or 24+. From this repository:
+
+```sh
+npm run build
+cd examples
+node ../packages/create-tilcayo-app/dist/bin.js my-react-app --type react --yes
+cd my-react-app
+npm run dev
+```
+
+The checked-in `examples/react-starter` is a generated example. Run
+`npm run dev -w react-starter` from the repository root to start it after installing
+dependencies. Local generation links `@tilcayo/styles` from this checkout.
+The creator build bundles the current `client` source into its distributable.
+Publish `@tilcayo/styles`, `@tilcayo/react`, and the updated creator before using this option through
+`npm create tilcayo-app@latest`. React authentication is not scaffolded; connect
+a separate API. On PowerShell, use `npm.cmd` if script execution is blocked.
+
+### Backend API
 
 Use Node.js 22.9+ and npm. Open a terminal where you keep your projects, outside
 this framework repository:
@@ -326,6 +351,7 @@ The example listens on port 9149; its auth source files already exist.
 | Directory | Contents |
 | --- | --- |
 | `packages/core` | Runtime, routing, validation, middleware, Mongo helpers |
+| `packages/react` | Native fetch API client, response types, and HTTP/network errors |
 | `packages/styles` | CSS tokens, components, responsive layouts, and utilities |
 | `packages/auth` | Authentication and token management |
 | `packages/cli` | Generators and application commands |

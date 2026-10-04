@@ -16,15 +16,17 @@ async function localDependencies(target: string, options: StarterOptions): Promi
   catch { return {}; }
   if (manifest.name !== "tilcayo" || manifest.private !== true || !Array.isArray(manifest.workspaces) || !manifest.workspaces.includes("packages/*")) return {};
   const dependencies: Record<string, string> = {};
-  for (const name of ["core", "cli", ...(options.auth ? ["auth"] : [])]) {
+  for (const name of options.type === "react" ? ["styles", "react"] : ["core", "cli", ...(options.auth ? ["auth"] : [])]) {
     const directory = path.join(checkout, "packages", name);
     const pkg = JSON.parse(await readFile(path.join(directory, "package.json"), "utf8"));
     if (pkg.name !== `@tilcayo/${name}`) throw new Error(`Invalid local Tilcayo package: ${directory}`);
-    try { await access(path.join(directory, "dist/index.js")); }
-    catch { throw new Error(`Build the Tilcayo workspace before creating an application: ${directory}/dist/index.js is missing.`); }
+    const entry = name === "styles" ? "dist/index.css" : "dist/index.js";
+    try { await access(path.join(directory, entry)); }
+    catch { throw new Error(`Build the Tilcayo workspace before creating an application: ${directory}/${entry} is missing.`); }
     const relative = path.relative(target, directory).split(path.sep).join("/");
     dependencies[name] = `${options.packageManager === "npm" ? "file" : "link"}:${relative}`;
   }
+  if (options.type === "react") return dependencies;
   const require = createRequire(path.join(checkout, "packages/core/package.json"));
   for (const name of ["zod", ...(options.type === "api" || options.auth ? ["mongoose"] : [])]) {
     const directory = path.dirname(require.resolve(`${name}/package.json`));
@@ -67,10 +69,8 @@ export async function installApp(target: string, manager: StarterOptions["packag
   try {
     // Both the command and its arguments are fixed, not user-supplied shell text.
     await run(manager, ["install"], target, process.platform === "win32");
-    const require = createRequire(path.join(target, "package.json"));
-    const cli = path.join(path.dirname(require.resolve("@tilcayo/cli")), "bin.js");
-    await run(process.execPath, [cli, "build"], target);
+    await run(manager, ["run", "build"], target, process.platform === "win32");
   } catch {
-    throw new Error(`Project created at ${target}, but dependency installation or build failed. Check that ${manager} is installed and Tilcayo packages are available in your registry, then run ${manager} install and the Tilcayo build command inside the project.`);
+    throw new Error(`Project created at ${target}, but dependency installation or build failed. Check that ${manager} is installed and Tilcayo packages are available in your registry, then run ${manager} install and ${manager} run build inside the project.`);
   }
 }

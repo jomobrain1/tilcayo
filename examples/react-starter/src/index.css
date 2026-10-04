@@ -1,0 +1,29 @@
+/* Starter theme. The shared styles package keeps its own defaults. */
+:root {
+  --tl-primary: #171717;
+  --tl-primary-hover: #333333;
+  --tl-primary-foreground: #ffffff;
+  --tl-secondary: #ffffff;
+  --tl-secondary-hover: #f5f5f5;
+  --tl-secondary-foreground: #171717;
+  --tl-danger: #171717;
+  --tl-danger-hover: #333333;
+  --tl-danger-foreground: #ffffff;
+  --tl-success: #171717;
+  --tl-warning: #171717;
+  --tl-info: #171717;
+  --tl-focus: #171717;
+  --tl-background: #ffffff;
+  --tl-surface: #ffffff;
+  --tl-surface-muted: #ffffff;
+  --tl-text: #171717;
+  --tl-text-muted: #606060;
+  --tl-border: #dedede;
+  --tl-border-strong: #737373;
+  --tl-container-xl: 68rem;
+  --tl-shadow-sm: none;
+}
+#root { min-height: 100vh; }
+code { font-family: var(--tl-font-mono); font-size: 0.9em; overflow-wrap: anywhere; }
+.tl-btn-secondary { border-color: var(--tl-border); }
+.tl-alert, .tl-badge { background: #ffffff; }

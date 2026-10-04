@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+
+const repo = fileURLToPath(new URL('../../../', import.meta.url));
+const directory = await mkdtemp(path.join(tmpdir(), 'tilcayo-f2-consumer-'));
+function node(script, args = []) {
+  const result = spawnSync(process.execPath, [script, ...args], {
+    cwd: directory, encoding: 'utf8', windowsHide: true,
+    env: { ...process.env, NODE_PATH: '', npm_config_cache: path.join(directory, 'cache') },
+  });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  return result.stdout;
+}
+const npm = path.join(path.dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js');
+try {
+  const args = ['pack', path.join(repo, 'packages/react'), '--json', '--ignore-scripts'];
+  const [dry] = JSON.parse(node(npm, [...args, '--dry-run']));
+  assert.ok(dry.files.every(({ path }) => path.startsWith('dist/') || ['README.md', 'package.json'].includes(path)));
+  assert.ok(dry.files.some(({ path }) => path === 'dist/index.d.ts'));
+  const [pack] = JSON.parse(node(npm, args));
+  await writeFile(path.join(directory, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
+  node(npm, ['install', './' + pack.filename, '--offline', '--ignore-scripts', '--no-audit', '--no-fund']);
+  await writeFile(path.join(directory, 'main.ts'), `
+import { createApiClient, isTilcayoApiError, isTilcayoNetworkError, type TilcayoResponse } from '@tilcayo/react';
+const api = createApiClient({ baseUrl: '/api' });
+export const read = () => api.get<TilcayoResponse<{ title: string }[]>>('/books');
+export const write = () => api.post('/books', { title: 'Test' });
+export { isTilcayoApiError, isTilcayoNetworkError };
+// @ts-expect-error GET convenience method must not accept a body
+const invalid = () => api.get('/books', { body: {} });
+// @ts-expect-error Query values must not accept arbitrary objects
+const badQuery = () => api.get('/books', { query: { nested: {} } });
+`);
+  await writeFile(path.join(directory, 'tsconfig.json'), JSON.stringify({ compilerOptions: {
+    strict: true, target: 'ES2022', module: 'ESNext', moduleResolution: 'Bundler',
+    lib: ['ES2022', 'DOM', 'DOM.Iterable'], types: [], noEmit: true,
+  }, include: ['main.ts'] }));
+  node(path.join(repo, 'node_modules/typescript/bin/tsc'), ['-p', 'tsconfig.json']);
+  await writeFile(path.join(directory, 'index.html'), '<div id="app"></div><script type="module" src="/main.ts"></script>');
+  node(path.join(repo, 'node_modules/vite/bin/vite.js'), ['build']);
+  await writeFile(path.join(directory, 'smoke.mjs'), `
+import assert from 'node:assert/strict';
+import { createApiClient } from '@tilcayo/react';
+const api = createApiClient({ baseUrl: '/api', fetch: async (url) => {
+  assert.equal(url, '/api/books'); return Response.json({ success: true, message: 'Success', data: [] });
+} });
+assert.deepEqual((await api.get('/books')).data, []);
+`);
+  node(path.join(directory, 'smoke.mjs'));
+  console.log(JSON.stringify({ packedBytes: pack.size, unpackedBytes: pack.unpackedSize, files: pack.files.length, typecheck: 'passed', vite: 'passed', runtimeImport: 'passed' }));
+} finally {
+  const resolved = path.resolve(directory);
+  assert.equal(path.dirname(resolved), path.resolve(tmpdir()));
+  assert.ok(path.basename(resolved).startsWith('tilcayo-f2-consumer-'));
+  await rm(resolved, { recursive: true, force: true });
+}
