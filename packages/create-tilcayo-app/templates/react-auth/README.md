@@ -88,4 +88,6 @@ Form errors stay inline. The shared layout keeps the toast visible across naviga
 
 Elsewhere, import `toast` from `src/lib/toast` and call
 `toast.success("Profile saved")`, `toast.error("Unable to save")`, or `toast.dismiss()`.
+Use `toast.warning("Check your details")` or `toast.info("Update available")` for other notices.
+Success is green, errors red, warnings amber, and information blue.
 A new toast replaces the previous one. No extra package is required.

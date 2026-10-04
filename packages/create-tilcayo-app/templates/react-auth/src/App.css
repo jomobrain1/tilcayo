@@ -165,7 +165,9 @@
   box-shadow: var(--tl-shadow-md);
   pointer-events: auto;
 }
-.starter-toast-success { color: var(--tl-text); }
+.starter-toast-success { color: var(--tl-success); }
+.starter-toast-warning { color: var(--tl-warning); }
+.starter-toast-info { color: var(--tl-info); }
 .starter-toast-error { color: var(--tl-danger); }
 .starter-toast p { flex: 1; margin: 0; overflow-wrap: anywhere; }
 .starter-toast button {

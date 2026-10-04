@@ -1,4 +1,4 @@
-type Toast = { message: string; kind: 'success' | 'error' }
+type Toast = { message: string; kind: 'success' | 'error' | 'warning' | 'info' }
 
 let current: Toast | null = null
 const listeners = new Set<() => void>()
@@ -11,6 +11,8 @@ function update(value: Toast | null) {
 export const toast = {
   success: (message: string) => update({ message, kind: 'success' }),
   error: (message: string) => update({ message, kind: 'error' }),
+  warning: (message: string) => update({ message, kind: 'warning' }),
+  info: (message: string) => update({ message, kind: 'info' }),
   dismiss: () => update(null),
 }
 
