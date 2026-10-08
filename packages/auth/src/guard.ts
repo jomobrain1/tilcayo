@@ -41,5 +41,14 @@ export function createGuard(config: ResolvedAuthConfig) {
     return async (ctx) => handler({ ...ctx, auth: await safeAuthenticate(ctx) });
   }
 
-  return { middleware, guard, user };
+  // Run after middleware. Roles come from the database on every request.
+  function requireRole(role: string): Middleware {
+    if (!role.trim()) throw new Error("A role is required");
+    return (ctx, next) => {
+      if (!user(ctx).roles?.includes(role)) throw createHttpError(403, "FORBIDDEN", "Access denied");
+      return next();
+    };
+  }
+
+  return { middleware, guard, user, requireRole };
 }

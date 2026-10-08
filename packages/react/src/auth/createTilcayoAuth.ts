@@ -18,6 +18,7 @@ function safeUser(user: AuthUser): AuthUser {
   }
   return {
     id: user.id, name: user.name, email: user.email,
+    ...(Array.isArray(user.roles) && user.roles.every(role => typeof role === "string") ? { roles: [...user.roles] } : {}),
     ...(typeof user.createdAt === "string" ? { createdAt: user.createdAt } : {}),
     ...(typeof user.updatedAt === "string" ? { updatedAt: user.updatedAt } : {}),
   };

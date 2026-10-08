@@ -9,6 +9,7 @@ export function toAuthUser(user: UserRecord): AuthUser {
     id: String(user._id),
     name: user.name,
     email: user.email,
+    roles: user.roles ?? [],
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

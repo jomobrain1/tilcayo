@@ -54,6 +54,23 @@ async function serve(t, app) {
   };
 }
 
+test("role protection uses current database roles and denies anonymous users", async t => {
+  const c = config();
+  const auth = createAuth(c);
+  const record = new User.raw({ _id: id, name: 'Reader', email: 'reader@example.test', roles: [] });
+  t.mock.method(User, 'find', async () => record);
+  const app = createApp();
+  app.route.get('/admin', ctx => ctx.response.success(auth.user(ctx)), { middleware: [auth.middleware, auth.requireRole('admin')] });
+  const request = await serve(t, app);
+  assert.equal((await request('/admin')).status, 401);
+  const headers = { Authorization: `Bearer ${await createAccessToken(id, c)}` };
+  assert.equal((await request('/admin', { headers })).status, 403);
+  record.roles = ['admin'];
+  assert.equal((await request('/admin', { headers })).status, 200);
+  record.roles = [];
+  assert.equal((await request('/admin', { headers })).status, 403);
+});
+
 test("auth config validates secrets, lifetimes, rounds and prefix without exposing values", () => {
   for (const change of [
     { accessTokenSecret: "" }, { refreshTokenSecret: "short" }, { accessTokenSecret: " ".repeat(40) },

@@ -52,6 +52,12 @@ test('generated auth forms, guards and safe return paths render against the real
   assert.match(render(h(AppRoutes), guest, '/forgot-password'), /Send reset code/);
   assert.ok(!render(h(AppRoutes), guest, '/dashboard').includes('Your account'));
   assert.match(render(h(AppRoutes), member, '/dashboard'), /Your account/);
+  assert.match(render(h(AppRoutes), member, '/profile'), /Your account/);
+  assert.ok(!render(h(AppRoutes), member, '/admin').includes('Admin dashboard'));
+  const admin = { ...member, user: { ...member.user, roles: ['admin'] } };
+  assert.match(render(h(AppRoutes), admin, '/admin'), /Admin dashboard/);
+  assert.match(render(h(AppRoutes), admin, '/admin/profile'), /Your account/);
+  assert.match(render(h(AppRoutes), member, '/forbidden'), /Access denied/);
   assert.match(render(h(AppRoutes), guest, '/missing'), /404 - Page not found/);
   const protectedRoute = h(Routes, null, h(Route, { element: h(RequireAuth) }, h(Route, { path: '/', element: h('p', null, 'Private content') })));
   assert.ok(!render(protectedRoute, guest).includes('Private content'));
