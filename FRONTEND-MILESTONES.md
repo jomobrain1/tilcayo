@@ -52,3 +52,10 @@ written. Backend resource paths use `/api/books` and the frontend base URL is
 Generated resource routes are public. Add `[auth.middleware]` or
 `[auth.middleware, auth.requireRole("admin")]` to backend route options for
 private resources and put their frontend routes under the corresponding guard.
+
+## F11: React UI primitives
+
+`@tilcayo/ui` provides Button, Input, Select, Textarea, Card, Alert, Badge, Table,
+Spinner, FormField, Modal and Pagination on `@tilcayo/styles`. It preserves native
+HTML props and semantic markup, forwards input/button refs, connects field labels
+and descriptions, and uses native dialog focus behavior. It has no Redux coupling.

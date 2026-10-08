@@ -10,6 +10,7 @@ export function templates(options: StarterOptions, localPackages: Record<string,
     manifest.engines = { node: '^22.12.0 || >=24.0.0' };
     manifest.dependencies['@tilcayo/styles'] = localPackages.styles ?? '^0.0.2';
     manifest.dependencies['@tilcayo/react'] = localPackages.react ?? '^0.0.2';
+    manifest.dependencies['@tilcayo/ui'] = localPackages.ui ?? '^0.0.2';
     manifest.tilcayo = { type: 'react', auth: options.auth, packageManager: options.packageManager };
     files['package.json'] = JSON.stringify(manifest, null, 2) + '\n';
     if (options.packageManager === 'yarn') files['.yarnrc.yml'] = 'nodeLinker: node-modules\n';

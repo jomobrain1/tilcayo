@@ -12,9 +12,9 @@ function formField(field: ResourceField): string {
   }
   const type = field.kind === "primitive" && field.type === "number" ? "number" : field.kind === "primitive" && field.type === "date" ? "datetime-local" : "text";
   const value = field.kind === "reference" && field.many ? `initial?.${field.name}?.join(', ') ?? ''` : type === "datetime-local" ? `localDate(initial?.${field.name})` : `initial?.${field.name} ?? ''`;
-  return `      <label className="tl-stack" htmlFor="${field.name}">${label}${field.kind === "reference" && field.many ? " (comma-separated IDs)" : ""}
-        <input className="tl-input" id="${field.name}" name="${field.name}" type="${type}"${type === "number" ? ' step="any"' : ""}${required} defaultValue={${value}} />
-      </label>`;
+  return `      <FormField id="${field.name}" label="${label}${field.kind === "reference" && field.many ? " (comma-separated IDs)" : ""}">
+        {props => <Input {...props} name="${field.name}" type="${type}"${type === "number" ? ' step="any"' : ""}${required} defaultValue={${value}} />}
+      </FormField>`;
 }
 
 function formValue(field: ResourceField): string {
@@ -65,6 +65,7 @@ export const ${singular}Api = tilcayoApi.enhanceEndpoints({ addTagTypes: ['${ent
 export const { useGet${plural}Query, useGet${entity}Query, useCreate${entity}Mutation, useUpdate${entity}Mutation, useDelete${entity}Mutation } = ${singular}Api;
 `),
     file('components', `${singular}-form.tsx`, `import { useState, type FormEvent } from 'react';
+import { Button${fields.some(field => !(field.kind === "primitive" && field.type === "boolean")) ? ', FormField, Input' : ''} } from '@tilcayo/ui';
 import type { Create${entity}Input } from '../${slug}.types';
 import { errorMessage } from '../${slug}.feedback';
 
@@ -98,7 +99,7 @@ ${fields.map(formValue).join('\n')}
     <fieldset className="tl-stack" disabled={busy}>
       <legend>${entity} details</legend>
 ${fields.map(formField).join('\n')}
-      <button className="tl-btn tl-btn-primary" type="submit">{busy ? 'Saving...' : 'Save'}</button>
+      <Button type="submit">{busy ? 'Saving...' : 'Save'}</Button>
     </fieldset>
   </form>;
 }
@@ -109,6 +110,7 @@ ${fields.map(formField).join('\n')}
 }
 `),
     file('pages', `${slug}.page.tsx`, `import { Link } from 'react-router';
+import { Table } from '@tilcayo/ui';
 import { useGet${plural}Query } from '../${slug}.api';
 import { errorMessage } from '../${slug}.feedback';
 
@@ -119,11 +121,11 @@ export function ${plural}Page({ basePath = '/${slug}' }: { basePath?: string }) 
   return <section className="tl-stack">
     <h1>${plural}</h1>
     <Link className="tl-btn tl-btn-primary" to={basePath + '/new'}>Create ${singular}</Link>
-    {!data?.data.length ? <p>No ${slug} yet.</p> : <div className="tl-table-wrap"><table className="tl-table">
+    {!data?.data.length ? <p>No ${slug} yet.</p> : <Table>
       <caption>${plural}</caption>
       <thead><tr><th scope="col">ID</th>${fields.map(field => `<th scope="col">${field.name}</th>`).join('')}<th scope="col">Actions</th></tr></thead>
       <tbody>{data.data.map(item => <tr key={item._id}><td>{item._id}</td>${fields.map(field => `<td>{String(item.${field.name} ?? '')}</td>`).join('')}<td><Link to={basePath + '/' + encodeURIComponent(item._id)}>View</Link></td></tr>)}</tbody>
-    </table></div>}
+    </Table>}
   </section>;
 }
 `),

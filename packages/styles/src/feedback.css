@@ -7,6 +7,29 @@
   overflow-wrap: anywhere;
 }
 .tl-alert-info { color: var(--tl-info); }
+.tl-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-inline-end: var(--tl-space-2);
+  border: 2px solid var(--tl-border);
+  border-top-color: var(--tl-primary);
+  border-radius: 50%;
+  animation: tl-spin 0.8s linear infinite;
+}
+@keyframes tl-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .tl-spinner { animation: none; } }
+.tl-modal {
+  width: min(32rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  overflow: auto;
+  padding: var(--tl-space-6);
+  border: 1px solid var(--tl-border);
+  border-radius: var(--tl-radius-md);
+  background: var(--tl-surface);
+  color: var(--tl-text);
+}
+.tl-modal::backdrop { background: rgb(0 0 0 / 50%); }
 .tl-alert-success { color: var(--tl-success); }
 .tl-alert-warning { color: var(--tl-warning); }
 .tl-alert-danger { color: var(--tl-danger); }

@@ -16,7 +16,7 @@ async function localDependencies(target: string, options: StarterOptions): Promi
   catch { return {}; }
   if (manifest.name !== "tilcayo" || manifest.private !== true || !Array.isArray(manifest.workspaces) || !manifest.workspaces.includes("packages/*")) return {};
   const dependencies: Record<string, string> = {};
-  for (const name of options.type === "react" ? ["styles", "react"] : ["core", "cli", ...(options.auth ? ["auth"] : [])]) {
+  for (const name of options.type === "react" ? ["styles", "ui", "react"] : ["core", "cli", ...(options.auth ? ["auth"] : [])]) {
     const directory = path.join(checkout, "packages", name);
     const pkg = JSON.parse(await readFile(path.join(directory, "package.json"), "utf8"));
     if (pkg.name !== `@tilcayo/${name}`) throw new Error(`Invalid local Tilcayo package: ${directory}`);
