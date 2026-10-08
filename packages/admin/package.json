@@ -1,0 +1,14 @@
+{
+  "name": "@tilcayo/admin",
+  "version": "0.0.2",
+  "type": "module",
+  "description": "Protected management layouts for Tilcayo React applications",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "README.md"],
+  "sideEffects": false,
+  "scripts": { "build": "tsc -p tsconfig.json", "test": "node --test tests/*.test.mjs" },
+  "peerDependencies": { "react": "^18.0.0 || ^19.0.0", "react-router": "^7.0.0 || ^8.0.0", "@tilcayo/ui": "^0.0.2", "@tilcayo/styles": "^0.0.2" },
+  "publishConfig": { "access": "public" }
+}

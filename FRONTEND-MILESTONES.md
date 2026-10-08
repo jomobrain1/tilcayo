@@ -59,3 +59,11 @@ private resources and put their frontend routes under the corresponding guard.
 Spinner, FormField, Modal and Pagination on `@tilcayo/styles`. It preserves native
 HTML props and semantic markup, forwards input/button refs, connects field labels
 and descriptions, and uses native dialog focus behavior. It has no Redux coupling.
+
+## F12: admin dashboard
+
+`@tilcayo/admin` exports a responsive AdminLayout, AdminDashboard, AdminProfile
+and ResourceLayout. Pass the current user and logout action from `useAuth()`, add
+resource links, and nest routes beneath the F7 admin guard. The package has no
+store singleton. Its sidebar collapses on mobile; the page includes a skip link,
+semantic navigation and a dedicated main area. Backend authorization is required.
