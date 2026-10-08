@@ -17,3 +17,11 @@ Frontend guards control navigation; the server guard checks current database rol
 
 Sessions remain in memory. Reloading signs out unless the application supplies
 bootstrap credentials through the existing auth configuration.
+
+## F8: frontend resource types
+
+`tilcayo make:types Book title:string year:number? author:ref:Author` creates
+`src/features/books/books.types.ts`. Entity types use Mongo's `_id` and ISO string
+timestamps. Dates are strings; unpopulated references are string IDs (or arrays).
+Create inputs omit server fields; update inputs use `Partial`. The generator
+shares the backend field parser and refuses to overwrite files.

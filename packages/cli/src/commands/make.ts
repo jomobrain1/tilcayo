@@ -10,6 +10,7 @@ import { routeTemplate } from "../generators/route.js";
 import { serviceTemplate } from "../generators/service.js";
 import { authFiles } from "../generators/auth.js";
 import { prepareAuthEnv } from "../utils/authEnv.js";
+import { frontendTypesTemplate } from "../generators/frontendTypes.js";
 
 export const help = `Usage: tilcayo <command> <name> [field:type ...]
 
@@ -19,6 +20,7 @@ Commands:
   start                  Start the compiled API using .env
   routes:list [--entry dist/app.js] [--env-file .env] [--method GET] [--path /api] [--json]
   make:auth
+  make:types Book title:string year:number? author:ref:Author
   make:resource Product name:string price:number active:boolean
   make:resource Book title:string author:ref:Author
   make:resource Article title:string tags:refs:Tag
@@ -103,7 +105,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
     ];
   }
   const kind = command.startsWith("make:") ? command.slice(5) : "";
-  if (!["resource", "model", "controller", "validator", "route", "service"].includes(kind)) {
+  if (!["resource", "model", "controller", "validator", "route", "service", "types"].includes(kind)) {
     throw new Error(`Unknown command: ${command}. Run tilcayo --help.`);
   }
   if ((input === "--help" || input === "-h") && options.length === 0) return [help];
@@ -130,7 +132,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
   if (fields !== undefined && positional.length) throw new Error("Use positional fields or --fields, not both.");
   fields ??= positional.length ? positional.join(",") : undefined;
   if (fields !== undefined) {
-    if (!["resource", "model", "controller", "validator"].includes(kind)) throw new Error(`make:${kind} does not accept fields.`);
+    if (!["resource", "model", "controller", "validator", "types"].includes(kind)) throw new Error(`make:${kind} does not accept fields.`);
     parseFields(fields, true);
   }
   let resource = kind === "resource" || flags.has("--resource");
@@ -143,6 +145,10 @@ export async function make(args: string[], root = process.cwd()): Promise<string
     throw new Error(`Unsupported database: ${database}. Only mongo is implemented.`);
   }
   const filename = names.plural.toLowerCase();
+  if (kind === "types") {
+    const source = frontendTypesTemplate(names, fields ? parseFields(fields, true) : []);
+    return [`Created ${await writeSource(root, `features/${filename}`, `${filename}.types.ts`, source)}`];
+  }
   const messages: string[] = [];
   const registration = [
     `import ${names.singular}Routes from "./routes/${filename}.routes.js";`,
