@@ -123,4 +123,27 @@ Load referenced models before populating, for example by registering their route
 [Create an app](https://www.npmjs.com/package/create-tilcayo-app) ·
 [CLI](https://www.npmjs.com/package/@tilcayo/cli) ·
 [Authentication](https://www.npmjs.com/package/@tilcayo/auth)
+# Frontend and full-stack commands
+
+Run from the application root:
+
+```sh
+tilcayo make:types Book title:string year:number? author:ref:Author
+tilcayo make:frontend Book title:string year:number? author:ref:Author
+tilcayo make:resource Book title:string year:number? author:ref:Author --fullstack
+tilcayo add:auth
+tilcayo add:admin
+```
+
+Frontend resources live in `src/features/`. Full-stack generation expects `api/`
+and `client/` and checks both sides for collisions before writing. Register the
+generated backend route and spread the generated frontend route array into the
+layout children as printed by the command.
+
+Installers are explicit commands, never npm installation side effects. `add:auth`
+replaces only recognized, unchanged starter integration files and preserves other
+pages/routes. It refuses customized integration files. `add:admin` requires auth
+and registers `/admin` routes. Run your package manager's install and build after
+either command. Assign roles through trusted server code and protect resource
+endpoints with server middleware. See [milestone details](../../FRONTEND-MILESTONES.md).
 

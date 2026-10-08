@@ -67,3 +67,18 @@ and ResourceLayout. Pass the current user and logout action from `useAuth()`, ad
 resource links, and nest routes beneath the F7 admin guard. The package has no
 store singleton. Its sidebar collapses on mobile; the page includes a skip link,
 semantic navigation and a dedicated main area. Backend authorization is required.
+
+## F13: explicit auth/admin installers
+
+`tilcayo add:auth` supports API, React and full-stack apps. It registers backend
+auth routes, prepares secrets and adds dependencies; on React it installs auth
+pages, nested routes, store/API integration and session bootstrap. The three
+frontend integration files must still match the plain starter; customized files
+are refused before writing. Other routes and pages are preserved. Add navigation
+links yourself. Backend apps must already have a MongoDB startup connection.
+
+`tilcayo add:admin` requires frontend auth. It adds a separate protected admin
+route module, dashboard/profile routes and shell, preserving existing navigation.
+Both commands preflight source collisions and integration points, report all
+changed files, update dependency manifests, and leave dependency installation
+explicit. No npm lifecycle scripts generate application files.

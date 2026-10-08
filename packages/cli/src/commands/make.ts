@@ -16,6 +16,8 @@ import { frontendFiles } from "../generators/frontend.js";
 export const help = `Usage: tilcayo <command> <name> [field:type ...]
 
 Commands:
+  add:auth               Add auth to a recognized API, React, or full-stack app
+  add:admin              Add the admin shell to an auth-enabled React app
   dev                    Rebuild and restart the API on changes
   build                  Compile the application
   start                  Start the compiled API using .env

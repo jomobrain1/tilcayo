@@ -9,7 +9,7 @@ interface AdminLayoutProps {
   basePath?: string;
   user?: AdminUser | null;
   links?: AdminLink[];
-  onLogout?: () => void | Promise<void>;
+  onLogout?: () => unknown | Promise<unknown>;
   children?: ReactNode;
 }
 
