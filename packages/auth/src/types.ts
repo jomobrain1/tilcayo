@@ -9,6 +9,8 @@ export interface AuthConfig {
   audience?: string;
   passwordRounds?: number;
   prefix?: string;
+  /** Required to enable email password recovery. Never log or return the code. */
+  sendPasswordResetCode?: (input: { email: string; code: string; expiresAt: Date }) => Promise<void>;
 }
 
 export interface AuthUser {
@@ -25,6 +27,7 @@ export interface AuthTokenPayload {
   jti: string;
   iat: number;
   exp: number;
+  sessionVersion: number;
 }
 
 export interface AuthenticatedContext<Body = unknown> extends TilcayoContext<Body> {
@@ -33,12 +36,16 @@ export interface AuthenticatedContext<Body = unknown> extends TilcayoContext<Bod
 
 export type AuthenticatedRouteHandler<Body = unknown> = (ctx: AuthenticatedContext<Body>) => unknown | Promise<unknown>;
 
-export function resolveConfig(config: AuthConfig): Readonly<Required<AuthConfig>> {
+export type ResolvedAuthConfig = Readonly<Required<Omit<AuthConfig, "sendPasswordResetCode">> & Pick<AuthConfig, "sendPasswordResetCode">>;
+
+export function resolveConfig(config: AuthConfig): ResolvedAuthConfig {
+  if (config.sendPasswordResetCode !== undefined && typeof config.sendPasswordResetCode !== "function") throw new Error("sendPasswordResetCode must be a function");
   for (const secret of [config.accessTokenSecret, config.refreshTokenSecret]) {
     if (typeof secret !== "string" || Buffer.byteLength(secret.trim()) < 32) throw new Error("Auth secrets must each contain at least 32 bytes");
   }
   if (config.accessTokenSecret === config.refreshTokenSecret) throw new Error("Use different access and refresh secrets");
   const resolved = {
+    sendPasswordResetCode: undefined,
     accessTokenTtlSeconds: 900, refreshTokenTtlSeconds: 604800,
     issuer: "tilcayo", audience: "tilcayo-app", passwordRounds: 12, prefix: "/api/auth",
     ...config,

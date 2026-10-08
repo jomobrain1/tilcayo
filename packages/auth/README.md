@@ -101,7 +101,7 @@ Register only one set of auth endpoints.
 
 Defaults: access tokens last 15 minutes and refresh tokens 7 days. Logout revokes
 the supplied refresh token; issued access tokens remain usable until expiry.
-Password reset, email verification, and roles/permissions are not implemented.
+Email verification and roles/permissions are not implemented.
 
 ## More guides
 
@@ -110,3 +110,56 @@ Password reset, email verification, and roles/permissions are not implemented.
 [CLI](https://www.npmjs.com/package/@tilcayo/cli) ·
 [Authentication](https://www.npmjs.com/package/@tilcayo/auth)
 
+
+## Password recovery
+
+Enable email OTP recovery by passing a delivery callback to `createAuth`:
+
+```ts
+sendPasswordResetCode: async ({ email, code, expiresAt }) => {
+  await yourMailer.send({ to: email, subject: "Password reset",
+    text: `Your code is ${code}. It expires at ${expiresAt.toISOString()}.` });
+},
+```
+
+The generated API and basic-api example include an SMTP adapter. Set
+`MAIL_USER` and `MAIL_PASS` (a Gmail app password) in the backend `.env`. Gmail
+defaults to `smtp.gmail.com:465`. Change `MAIL_HOST`, `MAIL_PORT`, and optionally
+`MAIL_FROM` / `MAIL_SECURE` to use another provider, or replace the delivery callback. These values never
+belong in frontend environment files. Without a callback, requesting recovery
+returns `503 RESET_UNAVAILABLE`; login and registration continue to work.
+
+| Endpoint | JSON input |
+| --- | --- |
+| `POST /api/auth/forgot-password` | `email` |
+| `POST /api/auth/verify-reset-code` | `email`, six-digit `code` |
+| `POST /api/auth/reset-password` | `resetToken`, `password` |
+
+Verification returns `data.resetToken`, a random, single-use credential restricted
+to resetting the password. Codes and reset tokens share a ten-minute expiry;
+verification does not extend it. Codes are keyed hashes in MongoDB, with five
+attempts, a sixty-second resend cooldown, and IP rate limits. Request responses
+are identical for known and unknown emails. Delivery runs in the background to
+keep provider latency out of the response; failures log a generic message and
+allow a retry. For a serverless deployment, have the callback enqueue a durable
+email job instead.
+
+A successful reset increments the user's session version, immediately invalidating
+existing access and refresh tokens, and revokes stored refresh tokens. Users must
+log in again. Old users/tokens without a version are treated as version zero.
+
+SMTP convenience helper (uses Nodemailer):
+
+```ts
+import { createSmtpPasswordResetSender } from "@tilcayo/auth";
+
+const sendPasswordResetCode = createSmtpPasswordResetSender({
+  user: process.env.MAIL_USER!,
+  password: process.env.MAIL_PASS!,
+  // host: "smtp.your-provider.com", port: 587,
+});
+// Pass sendPasswordResetCode to createAuth; call only when credentials are set.
+```
+
+Port 465 uses TLS immediately; other ports require STARTTLS. Connections retain
+certificate validation. Keep mail credentials private and out of source control.

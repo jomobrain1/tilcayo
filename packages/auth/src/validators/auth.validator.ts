@@ -6,3 +6,6 @@ export const registerSchema = z.object({ name: z.string().trim().min(2).max(100)
 export const loginSchema = z.object({ email, password });
 export const refreshSchema = z.object({ refreshToken: z.string().min(1).max(8192) });
 export const logoutSchema = refreshSchema;
+export const forgotPasswordSchema = z.object({ email });
+export const verifyResetCodeSchema = z.object({ email, code: z.string().regex(/^\d{6}$/) });
+export const resetPasswordSchema = z.object({ resetToken: z.string().regex(/^[a-f0-9]{64}$/), password });

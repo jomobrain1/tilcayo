@@ -19,9 +19,13 @@
   },
   "dependencies": {
     "@tilcayo/core": "^0.0.2",
-    "mongoose": "^9.10.2",
-    "zod": "^4.0.0",
+    "bcryptjs": "^3.0.0",
     "jose": "^6.0.0",
-    "bcryptjs": "^3.0.0"
+    "mongoose": "^9.10.2",
+    "nodemailer": "^9.1.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.2"
   }
 }

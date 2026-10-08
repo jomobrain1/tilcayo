@@ -48,6 +48,8 @@ test('generated auth forms, guards and safe return paths render against the real
   const member = { user: { id: '1', name: 'Reader', email: 'reader@example.test' }, isAuthenticated: true, initialized: true };
   assert.match(render(h(AppRoutes), guest, '/login'), /Welcome back/);
   assert.match(render(h(AppRoutes), guest, '/register'), /Create your account/);
+  assert.match(render(h(AppRoutes), guest, '/login'), /href="\/forgot-password"/);
+  assert.match(render(h(AppRoutes), guest, '/forgot-password'), /Send reset code/);
   assert.ok(!render(h(AppRoutes), guest, '/dashboard').includes('Your account'));
   assert.match(render(h(AppRoutes), member, '/dashboard'), /Your account/);
   assert.match(render(h(AppRoutes), guest, '/missing'), /404 - Page not found/);

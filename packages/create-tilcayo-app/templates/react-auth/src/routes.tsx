@@ -9,6 +9,8 @@ import { LoginPage } from './pages/login.page'
 import { RegisterPage } from './pages/register.page'
 import { DashboardPage } from './pages/dashboard.page'
 
+import { ForgotPasswordPage } from "./pages/forgot-password.page";
+
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
@@ -20,6 +22,7 @@ export const routes: RouteObject[] = [
         element: <GuestOnly />,
         children: [
           { path: '/login', element: <LoginPage /> },
+          { path: '/forgot-password', element: <ForgotPasswordPage /> },
           { path: '/register', element: <RegisterPage /> },
         ],
       },

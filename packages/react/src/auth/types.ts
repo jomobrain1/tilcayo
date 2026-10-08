@@ -18,3 +18,7 @@ export interface FrontendAuthConfig extends ApiClientConfig {
   /** Optional in-memory bootstrap credentials; never persisted by this package. */
   initialTokens?: AuthTokens;
 }
+
+export interface ForgotPasswordInput { email: string }
+export interface VerifyResetCodeInput extends ForgotPasswordInput { code: string }
+export interface ResetPasswordInput { resetToken: string; password: string }

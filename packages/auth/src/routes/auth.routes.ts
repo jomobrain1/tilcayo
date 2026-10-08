@@ -1,8 +1,8 @@
 import { defineRoutes, createHttpError, isTilcayoHttpError, bodyLimit, rateLimit, type Middleware } from "@tilcayo/core";
 import { createAuthControllers } from "../controllers/auth.controller.js";
 import { createGuard } from "../guard.js";
-import { registerSchema, loginSchema, refreshSchema, logoutSchema } from "../validators/auth.validator.js";
-import type { AuthConfig } from "../types.js";
+import { registerSchema, loginSchema, refreshSchema, logoutSchema, forgotPasswordSchema, verifyResetCodeSchema, resetPasswordSchema } from "../validators/auth.validator.js";
+import type { ResolvedAuthConfig } from "../types.js";
 
 export function authRequestMiddleware(): Middleware[] {
   const protectResponse: Middleware = async (ctx, next) => {
@@ -20,18 +20,22 @@ export function authRequestMiddleware(): Middleware[] {
 }
 
 export function createAuthRoutes(
-  config: Readonly<Required<AuthConfig>>,
+  config: ResolvedAuthConfig,
   auth: ReturnType<typeof createGuard>,
   controller: ReturnType<typeof createAuthControllers>,
   requestMiddleware: Middleware[],
 ) {
   const attempts = rateLimit({ windowMs: 15 * 60_000, max: 20 });
+  const recoveryAttempts = rateLimit({ windowMs: 15 * 60_000, max: 20 });
   return defineRoutes((router) => {
     router.group({ prefix: config.prefix, middleware: requestMiddleware }, () => {
       router.post("/register", controller.register, { middleware: [attempts], validate: { body: registerSchema } });
       router.post("/login", controller.login, { middleware: [attempts], validate: { body: loginSchema } });
       router.post("/refresh", controller.refresh, { validate: { body: refreshSchema } });
       router.post("/logout", controller.logout, { validate: { body: logoutSchema } });
+      router.post("/forgot-password", controller.forgotPassword, { middleware: [recoveryAttempts], validate: { body: forgotPasswordSchema } });
+      router.post("/verify-reset-code", controller.verifyResetCode, { middleware: [recoveryAttempts], validate: { body: verifyResetCodeSchema } });
+      router.post("/reset-password", controller.resetPassword, { middleware: [recoveryAttempts], validate: { body: resetPasswordSchema } });
       router.get("/me", (ctx) => ctx.response.success(auth.user(ctx), "Authenticated user retrieved"), { middleware: [auth.middleware] });
     });
   });

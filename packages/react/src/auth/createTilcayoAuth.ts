@@ -6,7 +6,7 @@ import type { TilcayoResponse } from "../api/types.js";
 import { createTilcayoBaseQuery, toQueryError, type TilcayoBaseQuery, type TilcayoQueryError } from "../redux/baseQuery.js";
 import { createTilcayoApi } from "../redux/createTilcayoApi.js";
 import { authSlice } from "./state.js";
-import type { AuthState, AuthTokens, AuthUser, FrontendAuthConfig, LoginInput, RegisterInput } from "./types.js";
+import type { AuthState, AuthTokens, AuthUser, FrontendAuthConfig, LoginInput, RegisterInput, ForgotPasswordInput, VerifyResetCodeInput, ResetPasswordInput } from "./types.js";
 
 type UserResponse = TilcayoResponse<AuthUser | null>;
 const anonymous = (): UserResponse => ({ success: true, message: "Not authenticated", data: null });
@@ -83,7 +83,7 @@ export function createTilcayoAuth({ initialTokens, authPath = "/auth", tagTypes 
     let result = await plain(args, context, extra);
     if (!isCurrent(version, context)) return stale();
     const url = (typeof args === "string" ? args : args.url).split(/[?#]/)[0].replace(/\/+$/, "");
-    const authOperation = ["login", "register", "refresh", "logout"].some(name => url === `${prefix}/${name}`);
+    const authOperation = ["login", "register", "refresh", "logout", "forgot-password", "verify-reset-code", "reset-password"].some(name => url === `${prefix}/${name}`);
     if (result.error?.statusCode === 401 && tokens && !authOperation) {
       if (tokens.accessToken === access) {
         const error = await refresh(context);
@@ -122,6 +122,15 @@ export function createTilcayoAuth({ initialTokens, authPath = "/auth", tagTypes 
   const api = baseApi.injectEndpoints({ endpoints: builder => ({
     login: builder.mutation<UserResponse, LoginInput>({ queryFn: (input, context) => authenticate("login", input, context) }),
     register: builder.mutation<UserResponse, RegisterInput>({ queryFn: (input, context) => authenticate("register", input, context) }),
+    forgotPassword: builder.mutation<TilcayoResponse<null>, ForgotPasswordInput>({
+      query: body => ({ url: `${prefix}/forgot-password`, method: "POST", body }),
+    }),
+    verifyResetCode: builder.mutation<TilcayoResponse<{ resetToken: string }>, VerifyResetCodeInput>({
+      query: body => ({ url: `${prefix}/verify-reset-code`, method: "POST", body }),
+    }),
+    resetPassword: builder.mutation<TilcayoResponse<null>, ResetPasswordInput>({
+      query: body => ({ url: `${prefix}/reset-password`, method: "POST", body }),
+    }),
     me: builder.query<UserResponse, void>({
       async queryFn(_arg, context) {
         if (!tokens) {
@@ -186,6 +195,12 @@ export function createTilcayoAuth({ initialTokens, authPath = "/auth", tagTypes 
     const [triggerLogin, loginStatus] = api.useLoginMutation();
     const [triggerRegister, registerStatus] = api.useRegisterMutation();
     const [triggerLogout, logoutStatus] = api.useLogoutMutation();
+    const [triggerForgotPassword, forgotPasswordStatus] = api.useForgotPasswordMutation();
+    const [triggerVerifyResetCode, verifyResetCodeStatus] = api.useVerifyResetCodeMutation();
+    const [triggerResetPassword, resetPasswordStatus] = api.useResetPasswordMutation();
+    const forgotPassword = useCallback((input: ForgotPasswordInput) => triggerForgotPassword(input).unwrap(), [triggerForgotPassword]);
+    const verifyResetCode = useCallback((input: VerifyResetCodeInput) => triggerVerifyResetCode(input).unwrap(), [triggerVerifyResetCode]);
+    const resetPassword = useCallback((input: ResetPasswordInput) => triggerResetPassword(input).unwrap(), [triggerResetPassword]);
     const [triggerRestore] = api.useLazyMeQuery();
     const restoreStatus = api.endpoints.me.useQueryState(undefined);
     const login = useCallback((input: LoginInput) => triggerLogin(input).unwrap(), [triggerLogin]);
@@ -193,7 +208,8 @@ export function createTilcayoAuth({ initialTokens, authPath = "/auth", tagTypes 
     const logout = useCallback(() => triggerLogout().unwrap(), [triggerLogout]);
     const restoreSession = useCallback(() => triggerRestore(undefined).unwrap(), [triggerRestore]);
     return {
-      ...session, login, register, logout, restoreSession,
+      ...session, login, register, logout, restoreSession, forgotPassword, verifyResetCode, resetPassword,
+      forgotPasswordStatus, verifyResetCodeStatus, resetPasswordStatus,
       loading: loginStatus.isLoading || registerStatus.isLoading || logoutStatus.isLoading || restoreStatus.isFetching,
       error: loginStatus.error ?? registerStatus.error ?? logoutStatus.error ?? restoreStatus.error ?? null,
       loginStatus, registerStatus, logoutStatus, restoreStatus,

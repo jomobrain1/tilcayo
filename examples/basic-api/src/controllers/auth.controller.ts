@@ -25,6 +25,11 @@ export const logout = (ctx: TilcayoContext<RefreshBody>) => {
   return auth.controllers.logout(ctx);
 };
 
+// Password recovery uses the shared auth implementation.
+export const forgotPassword = (ctx: TilcayoContext<{ email: string }>) => auth.controllers.forgotPassword(ctx);
+export const verifyResetCode = (ctx: TilcayoContext<{ email: string; code: string }>) => auth.controllers.verifyResetCode(ctx);
+export const resetPassword = (ctx: TilcayoContext<{ resetToken: string; password: string }>) => auth.controllers.resetPassword(ctx);
+
 // Read the user set by auth.middleware.
 export const me = (ctx: TilcayoContext) => {
   return ctx.response.success(auth.user(ctx), "Authenticated user retrieved");

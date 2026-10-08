@@ -165,10 +165,11 @@ test('auth endpoints track actual backend route registration', () => {
   const router = createRouter();
   const handler = () => {};
   createAuthRoutes({ prefix: '/api/auth' }, { middleware: handler, user: () => user },
-    { login: handler, register: handler, refresh: handler, logout: handler }, [])(router);
+    { login: handler, register: handler, refresh: handler, logout: handler, forgotPassword: handler, verifyResetCode: handler, resetPassword: handler }, [])(router);
   assert.deepEqual(router.all().map(route => [route.method, route.path]), [
     ['POST', '/api/auth/register'], ['POST', '/api/auth/login'], ['POST', '/api/auth/refresh'],
-    ['POST', '/api/auth/logout'], ['GET', '/api/auth/me'],
+    ['POST', '/api/auth/logout'], ['POST', '/api/auth/forgot-password'],
+    ['POST', '/api/auth/verify-reset-code'], ['POST', '/api/auth/reset-password'], ['GET', '/api/auth/me'],
   ]);
 });
 
@@ -182,7 +183,7 @@ test('useAuth reflects Redux across renders and exposes operations; bootstrap ga
   const render = () => renderToString(createElement(Provider, { store: app.store }, createElement(Probe)));
   assert.match(render(), /Anonymous/);
   assert.equal(observed.initialized, false);
-  for (const name of ['login', 'register', 'logout', 'restoreSession']) assert.equal(typeof observed[name], 'function');
+  for (const name of ['login', 'register', 'logout', 'restoreSession', 'forgotPassword', 'verifyResetCode', 'resetPassword']) assert.equal(typeof observed[name], 'function');
   const bootstrap = () => renderToString(createElement(Provider, { store: app.store },
     createElement(app.AuthBootstrap, { fallback: 'Checking' }, 'Ready')));
   assert.equal(bootstrap(), 'Checking');
@@ -251,4 +252,28 @@ test('aborting one protected query does not cancel shared rotation for another',
   first.abort(); release();
   assert.ok((await first).isError); assert.ok((await second).isSuccess);
   assert.equal(refreshes, 1);
+});
+
+
+test('password recovery sends the expected inputs without starting a session or refreshing on failure', async t => {
+  const calls = [];
+  const app = setup(t, async (url, init) => {
+    calls.push([url, JSON.parse(init.body)]);
+    if (url.endsWith('/verify-reset-code')) return success({ resetToken: 'reset-only' });
+    return success(null, 'Password recovery');
+  });
+  await app.run('forgotPassword', { email: user.email }).unwrap();
+  const verified = await app.run('verifyResetCode', { email: user.email, code: '012345' }).unwrap();
+  await app.run('resetPassword', { resetToken: verified.data.resetToken, password: 'new-password' }).unwrap();
+  assert.deepEqual(calls, [
+    ['/api/auth/forgot-password', { email: user.email }],
+    ['/api/auth/verify-reset-code', { email: user.email, code: '012345' }],
+    ['/api/auth/reset-password', { resetToken: 'reset-only', password: 'new-password' }],
+  ]);
+  assert.equal(app.store.getState().auth.isAuthenticated, false);
+  const failedCalls = [];
+  const failed = setup(t, async url => { failedCalls.push(url); return failure(); }, { initialTokens: tokens });
+  const result = await failed.run('verifyResetCode', { email: user.email, code: '999999' });
+  assert.equal(result.error.statusCode, 401);
+  assert.deepEqual(failedCalls, ['/api/auth/verify-reset-code']);
 });

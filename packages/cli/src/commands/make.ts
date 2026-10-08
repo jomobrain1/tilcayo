@@ -96,7 +96,8 @@ export async function make(args: string[], root = process.cwd()): Promise<string
       'import authRoutes from "./routes/auth.routes.js";',
       "app.routes(authRoutes);",
       "Replace app.routes(auth.routes) if present; do not register both.",
-      "Routes: POST /api/auth/register, /login, /refresh, /logout; GET /api/auth/me.",
+      "Set MAIL_USER and MAIL_PASS in .env for Gmail password recovery, or change MAIL_HOST / MAIL_PORT for another SMTP provider.",
+      "Routes: POST /api/auth/register, /login, /refresh, /logout, /forgot-password, /verify-reset-code, /reset-password; GET /api/auth/me.",
       "Protect other routes with middleware: [auth.middleware]. Read the user with auth.user(ctx).",
       "User and RefreshToken models are provided by @tilcayo/auth.",
     ];

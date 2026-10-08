@@ -35,7 +35,7 @@ export function templates(options: StarterOptions, localPackages: Record<string,
     }),
     "tsconfig.json": json({ compilerOptions: { target: "ES2022", module: "NodeNext", moduleResolution: "NodeNext", strict: true, esModuleInterop: true, skipLibCheck: true, forceConsistentCasingInFileNames: true, rootDir: "src", outDir: "dist", types: ["node"] }, include: ["src/**/*.ts"] }),
     ".gitignore": "node_modules/\ndist/\n.env\n.env.*\n!.env.example\n*.log\n.DS_Store\n",
-    ".env.example": env + (options.auth ? "\n# Authentication - use private values from .env\nAUTH_ACCESS_SECRET=\nAUTH_REFRESH_SECRET=\n" : ""),
+    ".env.example": env + (options.auth ? "\n# Authentication - use private values from .env\nAUTH_ACCESS_SECRET=\nAUTH_REFRESH_SECRET=\n\n# Password recovery (backend only)\nMAIL_USER=\nMAIL_PASS=\nMAIL_HOST=smtp.gmail.com\nMAIL_PORT=465\n" : ""),
     ".env": env + (options.auth ? `\n# Authentication - keep these secrets private\nAUTH_ACCESS_SECRET=${randomBytes(32).toString("hex")}\nAUTH_REFRESH_SECRET=${randomBytes(32).toString("hex")}\n` : ""),
     ...(options.packageManager === "yarn" ? { ".yarnrc.yml": "nodeLinker: node-modules\n" } : {}),
     "src/config.ts": `const port = Number(process.env.PORT ?? 9149);

@@ -12,6 +12,7 @@ import { parseEnv } from "node:util";
 
 const repo = fileURLToPath(new URL("../", import.meta.url));
 const binary = path.join(repo, "packages/cli/dist/bin.js");
+const mailDefaults = { MAIL_USER: "", MAIL_PASS: "", MAIL_HOST: "smtp.gmail.com", MAIL_PORT: "465" };
 const compiler = path.join(repo, "node_modules/typescript/bin/tsc");
 
 test("make:auth generates private secrets, shareable placeholders and ignore rules", async (t) => {
@@ -25,7 +26,7 @@ test("make:auth generates private secrets, shareable placeholders and ignore rul
   }
   assert.notEqual(values.AUTH_ACCESS_SECRET, values.AUTH_REFRESH_SECRET);
   const example = await readFile(path.join(cwd, ".env.example"), "utf8");
-  assert.deepEqual(parseEnv(example), { AUTH_ACCESS_SECRET: "", AUTH_REFRESH_SECRET: "" });
+  assert.deepEqual(parseEnv(example), { AUTH_ACCESS_SECRET: "", AUTH_REFRESH_SECRET: "", ...mailDefaults });
   assert.match(example, /# Authentication/);
   const ignored = await readFile(path.join(cwd, ".gitignore"), "utf8");
   assert.match(ignored, /^\.env$/m);
@@ -52,10 +53,27 @@ test("make:auth preserves configured secrets and other settings, filling empty q
     assert.ok(!output.includes(access));
     assert.ok(!output.includes(values.AUTH_REFRESH_SECRET));
     assert.deepEqual(parseEnv(await readFile(path.join(cwd, ".env.example"), "utf8")), {
-      PORT: "9234", AUTH_ACCESS_SECRET: "", AUTH_REFRESH_SECRET: "",
+      PORT: "9234", AUTH_ACCESS_SECRET: "", AUTH_REFRESH_SECRET: "", ...mailDefaults,
     });
     assert.ok((await readFile(path.join(cwd, ".gitignore"), "utf8")).startsWith("dist/\n"));
   }
+});
+
+test("make:auth preserves private SMTP settings and sanitizes shareable mail credentials", async t => {
+  const cwd = await fixture(t);
+  const settings = 'MAIL_USER=sender@example.test\nMAIL_PASS="test-private-password"\nMAIL_HOST=smtp.other.test\nMAIL_PORT=587\n';
+  await writeFile(path.join(cwd, ".env"), settings);
+  await writeFile(path.join(cwd, ".env.example"), settings);
+  const output = success(cwd, "make:auth");
+  const env = parseEnv(await readFile(path.join(cwd, ".env"), "utf8"));
+  const example = parseEnv(await readFile(path.join(cwd, ".env.example"), "utf8"));
+  assert.equal(env.MAIL_PASS, "test-private-password");
+  assert.equal(env.MAIL_HOST, "smtp.other.test");
+  assert.equal(example.MAIL_PASS, "");
+  assert.equal(example.MAIL_USER, "");
+  assert.equal(example.MAIL_HOST, "smtp.other.test");
+  assert.equal(example.MAIL_PORT, "587");
+  assert.ok(!output.includes("test-private-password"));
 });
 
 test("make:auth preflights environment files and does not change them on scaffold collisions", async (t) => {

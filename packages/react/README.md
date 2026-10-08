@@ -305,3 +305,12 @@ separate backend; its generated README explains setup and the in-memory session
 limitation. Run node packages/react/tests/pack-consumer.mjs to verify a clean
 React/TypeScript package consumer, and node tests/react-starter-consumer.mjs to
 verify fresh generation, installation, build, lint and Vite startup.
+
+### Email OTP password recovery
+
+`useAuth()` exposes `forgotPassword({ email })`,
+`verifyResetCode({ email, code })`, and `resetPassword({ resetToken, password })`,
+plus each method's mutation status. Verification returns `data.resetToken`.
+Keep this credential in component memory, then return to login after reset.
+Recovery never logs the user in. Configure mail delivery in `@tilcayo/auth` on
+the backend; the React auth starter includes a `/forgot-password` page.

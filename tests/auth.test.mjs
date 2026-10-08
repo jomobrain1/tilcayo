@@ -29,7 +29,7 @@ test("generated application auth routes validate requests and protect the curren
   const user = new User.raw({ _id: id, name: "Jane", email: "jane@example.com", passwordHash: "hidden" });
   t.mock.method(User, "find", async () => user);
   const request = await serve(t, createApp().routes(routes));
-  for (const action of ["register", "login", "refresh", "logout"]) {
+  for (const action of ["register", "login", "refresh", "logout", "forgot-password", "verify-reset-code", "reset-password"]) {
     const response = await request(`/api/auth/${action}`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
     });
@@ -106,7 +106,7 @@ test("JWTs enforce algorithm, claims, expiration, type, issuer, audience and ins
   ]) await assert.rejects(attempt(), { statusCode: 401 });
   for (const [overrides, algorithm] of [
     [{ exp: a.iat - 1 }, "HS256"], [{ type: "refresh" }, "HS256"], [{ sub: "bad-id" }, "HS256"],
-    [{ jti: undefined }, "HS256"], [{ exp: undefined }, "HS256"], [{}, "HS384"], [{ iat: a.exp + 1 }, "HS256"],
+    [{ sessionVersion: -1 }, "HS256"], [{ sessionVersion: "0" }, "HS256"], [{ jti: undefined }, "HS256"], [{ exp: undefined }, "HS256"], [{}, "HS384"], [{ iat: a.exp + 1 }, "HS256"],
   ]) {
     const token = await new SignJWT({ ...a, ...overrides }).setProtectedHeader({ alg: algorithm, typ: "JWT" }).sign(new TextEncoder().encode(c.accessTokenSecret));
     await assert.rejects(verifyAccessToken(token, c), { statusCode: 401 });

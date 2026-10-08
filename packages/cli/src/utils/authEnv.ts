@@ -32,6 +32,20 @@ function authSettings(source: string, example: boolean): string {
   if (missing.length) {
     source += `${source && !source.endsWith("\n") ? newline : ""}${source ? newline : ""}# Authentication${example ? " - generated in .env by tilcayo make:auth" : " - keep these secrets private"}${newline}${missing.join(newline)}${newline}`;
   }
+  const mailDefaults: Record<string, string> = {
+    MAIL_USER: "", MAIL_PASS: "", MAIL_HOST: "smtp.gmail.com", MAIL_PORT: "465",
+  };
+  const mailSettings: string[] = [];
+  for (const [key, fallback] of Object.entries(mailDefaults)) {
+    if (values[key] !== undefined) {
+      if (example && (key === "MAIL_USER" || key === "MAIL_PASS")) {
+        source = source.replace(new RegExp(`^[ \\t]*(?:export[ \\t]+)?${key}[ \\t]*=[ \\t]*(?:"[^"]*"|'[^']*'|[^\\r\\n]*)`, "gm"), `${key}=`);
+      }
+      continue;
+    }
+    mailSettings.push(`${key}=${fallback}`);
+  }
+  if (mailSettings.length) source += `${newline}# Password recovery (backend only)${newline}${mailSettings.join(newline)}${newline}`;
   return source;
 }
 
