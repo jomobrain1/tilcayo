@@ -39,3 +39,16 @@ native controls, ISO date conversion, unpopulated relation IDs, and disabled
 controls during saves. Blank optional inputs are omitted; customize the backend
 contract and form if a field needs an explicit clear operation. Pages provide
 loading/error/empty states, deletion confirmation and success navigation.
+
+## F10: full-stack resources
+
+Run `tilcayo make:resource Book title:string author:ref:Author --fullstack` from
+an app containing `api/package.json` and `client/package.json`. It generates
+backend model/service/controller/validator/routes in `api/src` and F9's frontend
+files in `client/src`. All target collisions are checked before either side is
+written. Backend resource paths use `/api/books` and the frontend base URL is
+`/api`. Registration instructions name both route integration points.
+
+Generated resource routes are public. Add `[auth.middleware]` or
+`[auth.middleware, auth.requireRole("admin")]` to backend route options for
+private resources and put their frontend routes under the corresponding guard.

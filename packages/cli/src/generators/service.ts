@@ -9,15 +9,14 @@ ${fields.filter((field) => field.kind === "reference").map((field) =>
 });
 `;
 
-export const serviceTemplate = ({ model, plural, pluralPascal }: ResourceNames, fields?: string): string => {
+export const serviceTemplate = ({ model, plural, pluralPascal }: ResourceNames, fields?: string, crud = false): string => {
   const parsed = fields === undefined ? [] : parseFields(fields, true);
   const relations = parsed.filter((field) => field.kind === "reference");
-  if (!relations.length) return `export const ${plural}Service = {
+  if (!relations.length && !crud) return `export const ${plural}Service = {
   // Add service functions here.
 };
 `;
-  return `import mongoose from "mongoose";
-import { notFound } from "@tilcayo/core";
+  return `${relations.length ? 'import mongoose from "mongoose";\n' : ''}import { notFound } from "@tilcayo/core";
 import type { z } from "zod";
 import { ${model} } from "../models/${model}.js";
 import type { create${model}Schema } from "../validators/${plural.toLowerCase()}.validator.js";
@@ -25,7 +24,7 @@ import type { create${model}Schema } from "../validators/${plural.toLowerCase()}
 type Create${model}Body = z.output<typeof create${model}Schema>;
 type Update${model}Body = Partial<Create${model}Body>;
 
-export type ${model}Relation = ${relations.map((field) => `"${field.name}"`).join(" | ")};
+export type ${model}Relation = ${relations.map((field) => `"${field.name}"`).join(" | ") || "never"};
 
 export interface ${model}QueryOptions {
   populate?: ${model}Relation[];

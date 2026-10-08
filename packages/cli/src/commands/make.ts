@@ -24,6 +24,7 @@ Commands:
   make:types Book title:string year:number? author:ref:Author
   make:frontend Book title:string year:number? author:ref:Author
   make:resource Product name:string price:number active:boolean
+  make:resource Book title:string author:ref:Author --fullstack
   make:resource Book title:string author:ref:Author
   make:resource Article title:string tags:refs:Tag
   make:resource Notebook title:string price:number active:boolean --mongodb
@@ -127,7 +128,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
     if (option === "--fields") {
       fields = options[++i];
       if (!fields?.trim() || fields.startsWith("--")) throw new Error('Use --fields "name:string,age:number".');
-    } else if (!["--resource", "--mongo", "--crud"].includes(option)) {
+    } else if (!["--resource", "--mongo", "--crud", "--fullstack"].includes(option)) {
       throw new Error("Unsupported flags. Run tilcayo --help.");
     }
   }
@@ -141,7 +142,15 @@ export async function make(args: string[], root = process.cwd()): Promise<string
   if (flags.has("--resource") && kind !== "controller" && kind !== "route") throw new Error("--resource is only supported for controllers and routes.");
   if (flags.has("--mongo") && !["resource", "model", "controller"].includes(kind)) throw new Error("--mongo is only supported for resources, models and controllers.");
   if (flags.has("--crud") && kind !== "controller") throw new Error("--crud is only supported for controllers.");
-  const database = await databaseFor(root);
+  const fullstack = flags.has("--fullstack");
+  if (fullstack && kind !== "resource") throw new Error("--fullstack is only supported for make:resource.");
+  const backendRoot = fullstack ? path.join(root, "api") : root;
+  const frontendRoot = path.join(root, "client");
+  if (fullstack) {
+    await databaseFor(frontendRoot);
+    if (await readSource(frontendRoot, "app", "api.ts") === undefined) throw new Error("Full-stack generation requires client/src/app/api.ts and api/package.json. Run from the full-stack app root.");
+  }
+  const database = await databaseFor(backendRoot);
   const crud = kind === "controller" && (resource || flags.has("--crud") || flags.has("--mongo"));
   if ((kind === "resource" || kind === "model" || crud) && !flags.has("--mongo") && database !== "mongo") {
     throw new Error(`Unsupported database: ${database}. Only mongo is implemented.`);
@@ -172,17 +181,20 @@ export async function make(args: string[], root = process.cwd()): Promise<string
     const references = fields !== undefined && parseFields(fields, true).some((field) => field.kind === "reference");
     const files = [
       { folder: "models", name: `${names.model}.ts`, source: modelTemplate(names, fields, true) },
-      { folder: "controllers", name: `${filename}.controller.ts`, source: controllerTemplate(names, true, true, fields, references) },
+      { folder: "controllers", name: `${filename}.controller.ts`, source: controllerTemplate(names, true, true, fields, references || fullstack) },
       { folder: "validators", name: `${filename}.validator.ts`, source: validatorTemplate(names, fields) },
-      { folder: "routes", name: `${filename}.routes.ts`, source: routeTemplate(names, true, true, true) },
+      { folder: "routes", name: `${filename}.routes.ts`, source: routeTemplate(names, true, true, true, fullstack ? "/api" : "") },
     ];
-    if (references) files.push({ folder: "services", name: `${filename}.service.ts`, source: serviceTemplate(names, fields) });
+    if (references || fullstack) files.push({ folder: "services", name: `${filename}.service.ts`, source: serviceTemplate(names, fields, fullstack) });
+    const plan = files.map(file => ({ ...file, root: backendRoot }));
+    if (fullstack) plan.push(...frontendFiles(names, fields ? parseFields(fields, true) : []).map(file => ({ ...file, root: frontendRoot })));
     // Check the entire resource before creating any files.
-    for (const file of files) {
-      if (await readSource(root, file.folder, file.name) !== undefined) throw new Error(`File already exists: src/${file.folder}/${file.name}`);
+    for (const file of plan) {
+      if (await readSource(file.root, file.folder, file.name) !== undefined) throw new Error(`File already exists: ${fullstack ? path.relative(root, file.root) + "/" : ""}src/${file.folder}/${file.name}`);
     }
-    for (const file of files) messages.push(`Created ${await writeSource(root, file.folder, file.name, file.source)}`);
-    return [...messages, "Register the routes in your application:", ...registration];
+    for (const file of plan) messages.push(`Created ${fullstack ? path.relative(root, file.root) + "/" : ""}${await writeSource(file.root, file.folder, file.name, file.source)}`);
+    return [...messages, `Register the routes in ${fullstack ? "api/" : ""}src/app.ts:`, ...registration,
+      ...(fullstack ? [`Spread ${filename}Routes from ./features/${filename}/${filename}.routes into client/src/routes.tsx layout children.`, "Generated API routes use /api; the client API base URL should be /api."] : [])];
   }
 
   let source: string;

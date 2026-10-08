@@ -1,7 +1,7 @@
 import type { ResourceNames } from "../utils/naming.js";
 import { handlerExpressions, handlerNames } from "./controller.js";
 
-export function routeTemplate(names: ResourceNames, resource: boolean, controller: boolean, validation: boolean): string {
+export function routeTemplate(names: ResourceNames, resource: boolean, controller: boolean, validation: boolean, prefix = ""): string {
   const handlers = handlerNames(names, resource);
   let imports = `import { defineRoutes } from "@tilcayo/core";\n`;
   if (controller) {
@@ -13,7 +13,7 @@ export function routeTemplate(names: ResourceNames, resource: boolean, controlle
   const update = `update${names.model}Schema`;
   const id = `${names.singular}IdSchema`;
   if (validation) imports += `import { ${create}, ${update}, ${id} } from "../validators/${names.plural.toLowerCase()}.validator.js";\n`;
-  const path = `/${names.plural.toLowerCase()}`;
+  const path = `${prefix}/${names.plural.toLowerCase()}`;
   const options = ["", `{ validate: { body: ${create} } }`, `{ validate: { params: ${id} } }`,
     `{ validate: { params: ${id}, body: ${update} } }`, `{ validate: { params: ${id} } }`];
   const expressions = handlerExpressions(names);
