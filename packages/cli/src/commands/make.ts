@@ -11,6 +11,7 @@ import { serviceTemplate } from "../generators/service.js";
 import { authFiles } from "../generators/auth.js";
 import { prepareAuthEnv } from "../utils/authEnv.js";
 import { frontendTypesTemplate } from "../generators/frontendTypes.js";
+import { frontendFiles } from "../generators/frontend.js";
 
 export const help = `Usage: tilcayo <command> <name> [field:type ...]
 
@@ -21,6 +22,7 @@ Commands:
   routes:list [--entry dist/app.js] [--env-file .env] [--method GET] [--path /api] [--json]
   make:auth
   make:types Book title:string year:number? author:ref:Author
+  make:frontend Book title:string year:number? author:ref:Author
   make:resource Product name:string price:number active:boolean
   make:resource Book title:string author:ref:Author
   make:resource Article title:string tags:refs:Tag
@@ -105,7 +107,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
     ];
   }
   const kind = command.startsWith("make:") ? command.slice(5) : "";
-  if (!["resource", "model", "controller", "validator", "route", "service", "types"].includes(kind)) {
+  if (!["resource", "model", "controller", "validator", "route", "service", "types", "frontend"].includes(kind)) {
     throw new Error(`Unknown command: ${command}. Run tilcayo --help.`);
   }
   if ((input === "--help" || input === "-h") && options.length === 0) return [help];
@@ -132,7 +134,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
   if (fields !== undefined && positional.length) throw new Error("Use positional fields or --fields, not both.");
   fields ??= positional.length ? positional.join(",") : undefined;
   if (fields !== undefined) {
-    if (!["resource", "model", "controller", "validator", "types"].includes(kind)) throw new Error(`make:${kind} does not accept fields.`);
+    if (!["resource", "model", "controller", "validator", "types", "frontend"].includes(kind)) throw new Error(`make:${kind} does not accept fields.`);
     parseFields(fields, true);
   }
   let resource = kind === "resource" || flags.has("--resource");
@@ -145,6 +147,17 @@ export async function make(args: string[], root = process.cwd()): Promise<string
     throw new Error(`Unsupported database: ${database}. Only mongo is implemented.`);
   }
   const filename = names.plural.toLowerCase();
+  if (kind === "frontend") {
+    const files = frontendFiles(names, fields ? parseFields(fields, true) : []);
+    for (const file of files) {
+      if (await readSource(root, file.folder, file.name) !== undefined) throw new Error(`File already exists: src/${file.folder}/${file.name}`);
+    }
+    const created: string[] = [];
+    for (const file of files) created.push(`Created ${await writeSource(root, file.folder, file.name, file.source)}`);
+    return [...created, `Import ${filename}Routes from ./features/${filename}/${filename}.routes and spread them into your layout's children.`,
+      `Mount the backend resource at the API base URL plus /${filename}. Endpoints share src/app/api.ts.`,
+      "Reference fields accept unpopulated Mongo IDs. Dates use the browser's local timezone."];
+  }
   if (kind === "types") {
     const source = frontendTypesTemplate(names, fields ? parseFields(fields, true) : []);
     return [`Created ${await writeSource(root, `features/${filename}`, `${filename}.types.ts`, source)}`];
