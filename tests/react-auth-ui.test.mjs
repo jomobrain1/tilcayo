@@ -21,7 +21,7 @@ test('generated auth forms, guards and safe return paths render against the real
     await rm(root, { recursive: true, force: true });
   });
   await writeFile(path.join(root, 'package.json'), '{"type":"module"}');
-  const files = templates({ name: 'auth-test', type: 'react', auth: true, install: false, packageManager: 'npm' });
+  const files = templates({ name: 'auth-test', type: 'react', auth: true, admin: true, install: false, packageManager: 'npm' });
   for (const [filename, source] of Object.entries(files)) {
     if (!filename.startsWith('src/') || !/\.tsx?$/.test(filename)) continue;
     const destination = path.join(root, filename.replace(/\.tsx?$/, '.js'));
@@ -53,10 +53,10 @@ test('generated auth forms, guards and safe return paths render against the real
   assert.ok(!render(h(AppRoutes), guest, '/dashboard').includes('Your account'));
   assert.match(render(h(AppRoutes), member, '/dashboard'), /Your account/);
   assert.match(render(h(AppRoutes), member, '/profile'), /Your account/);
-  assert.ok(!render(h(AppRoutes), member, '/admin').includes('Admin dashboard'));
+  assert.ok(!render(h(AppRoutes), member, '/admin').includes('Manage your application resources'));
   const admin = { ...member, user: { ...member.user, roles: ['admin'] } };
-  assert.match(render(h(AppRoutes), admin, '/admin'), /Admin dashboard/);
-  assert.match(render(h(AppRoutes), admin, '/admin/profile'), /Your account/);
+  assert.match(render(h(AppRoutes), admin, '/admin'), /Manage your application resources/);
+  assert.match(render(h(AppRoutes), admin, '/admin/profile'), /Profile/);
   assert.match(render(h(AppRoutes), member, '/forbidden'), /Access denied/);
   assert.match(render(h(AppRoutes), guest, '/missing'), /404 - Page not found/);
   const protectedRoute = h(Routes, null, h(Route, { element: h(RequireAuth) }, h(Route, { path: '/', element: h('p', null, 'Private content') })));

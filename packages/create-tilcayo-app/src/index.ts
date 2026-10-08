@@ -16,7 +16,7 @@ async function localDependencies(target: string, options: StarterOptions): Promi
   catch { return {}; }
   if (manifest.name !== "tilcayo" || manifest.private !== true || !Array.isArray(manifest.workspaces) || !manifest.workspaces.includes("packages/*")) return {};
   const dependencies: Record<string, string> = {};
-  for (const name of options.type === "react" ? ["styles", "ui", "react"] : ["core", "cli", ...(options.auth ? ["auth"] : [])]) {
+  for (const name of options.type === "react" ? ["styles", "ui", "react", ...(options.admin ? ["admin"] : [])] : ["core", "cli", ...(options.auth ? ["auth"] : [])]) {
     const directory = path.join(checkout, "packages", name);
     const pkg = JSON.parse(await readFile(path.join(directory, "package.json"), "utf8"));
     if (pkg.name !== `@tilcayo/${name}`) throw new Error(`Invalid local Tilcayo package: ${directory}`);
@@ -39,7 +39,16 @@ async function localDependencies(target: string, options: StarterOptions): Promi
 export async function generateApp(options: StarterOptions, root = process.cwd()): Promise<string> {
   validateOptions(options);
   const target = path.resolve(root, options.name);
-  const sources = templates(options, await localDependencies(target, options));
+  let packages: Record<string, string>;
+  if (options.type === "fullstack") {
+    const [api, client, app] = await Promise.all([
+      localDependencies(path.join(target, "api"), { ...options, type: "api" }),
+      localDependencies(path.join(target, "client"), { ...options, type: "react" }),
+      localDependencies(target, { ...options, type: "api" }),
+    ]);
+    packages = { ...api, ...client, ...(app.cli ? { rootCli: app.cli } : {}) };
+  } else packages = await localDependencies(target, options);
+  const sources = templates(options, packages);
   try {
     await mkdir(target);
   } catch (error) {
@@ -52,7 +61,11 @@ export async function generateApp(options: StarterOptions, root = process.cwd())
     await writeFile(destination, source, { flag: "wx", ...(filename === ".env" ? { mode: 0o600 } : {}) });
   }
   if (options.type === "api") await make(["make:resource", "Note", "title:string", "content?:string"], target);
-  if (options.auth && options.type !== "react") await make(["make:auth"], target);
+  if (options.type === "fullstack") {
+    await make(["make:resource", "Note", "title:string", "content?:string", "--fullstack"], target);
+    if (options.auth) await make(["make:auth"], path.join(target, "api"));
+  }
+  if (options.auth && options.type !== "react" && options.type !== "fullstack") await make(["make:auth"], target);
   return target;
 }
 

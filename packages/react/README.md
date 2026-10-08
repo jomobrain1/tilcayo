@@ -1,7 +1,9 @@
 # @tilcayo/react
 
-Tilcayo's small native-fetch API client. F2-F5 provide networking, REST resources, Redux, RTK Query and opt-in authentication.
-CRUD generators, UI, and admin dashboards are not included. The package is local/unpublished. The root transport/resource entry has no runtime imports from React or Redux.
+Tilcayo's native-fetch API client. F2-F6 provide networking, REST resources, Redux, RTK Query and opt-in authentication.
+CRUD generators live in `@tilcayo/cli`; React primitives and management layouts live
+in `@tilcayo/ui` and `@tilcayo/admin`. These frontend packages are local/unpublished.
+The root transport/resource entry has no runtime imports from React or Redux.
 The optional `/redux` entry requires the React, React Redux and Redux Toolkit peers. TypeScript is
 provided by the repository root for development.
 
@@ -173,7 +175,7 @@ use the transport directly for other response contracts or pagination envelopes.
 Create/update input generics may be FormData. There is no React state, loading
 state, or Redux dependency in this layer.
 
-## Redux and RTK Query (F4)
+## Redux and RTK Query (F4-F5)
 
 Install @reduxjs/toolkit, react-redux, and react alongside this package to use
 @tilcayo/react/redux. React 18/19, React Redux 9.1+, and Toolkit 2.2+ are supported.
@@ -217,7 +219,7 @@ No endpoint is requested at startup.
 Implementation follows the official [custom base query](https://redux.js.org/toolkit/rtk-query/usage/customizing-queries)
 and [endpoint injection](https://redux.js.org/toolkit/rtk-query/usage/code-splitting) patterns.
 
-## Frontend authentication (F5, opt-in)
+## Frontend authentication (F6, opt-in)
 
 The backend uses bearer tokens, not cookies. Default routes are POST
 /api/auth/register, /login, /refresh, /logout and GET /api/auth/me. Login and
@@ -314,3 +316,14 @@ plus each method's mutation status. Verification returns `data.resetToken`.
 Keep this credential in component memory, then return to login after reset.
 Recovery never logs the user in. Configure mail delivery in `@tilcayo/auth` on
 the backend; the React auth starter includes a `/forgot-password` page.
+
+### Protected routing (F7)
+
+Auth starters group guest pages, authenticated `/dashboard` and `/profile`, and
+optional role-protected `/admin` routes in separate nested modules.
+`RequireAuth` (also exported as `ProtectedRoute` from the generated middleware)
+waits for initialization and consumes `useAuth()`. Its optional `role` checks the
+current user's `roles` array. A denied role navigates to `/forbidden`.
+Backend guards enforce authorization with
+`[auth.middleware, auth.requireRole('admin')]` using current database roles.
+Assign roles through trusted server code; registration never grants them.

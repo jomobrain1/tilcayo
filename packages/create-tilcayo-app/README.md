@@ -225,3 +225,27 @@ auth backend and connecting MongoDB. Frontend files live in `src/app/auth.ts`,
 The creator ships the auth overlay in `dist/react-auth.json`. Tokens remain in
 memory: a reload signs out. No backend secrets are generated in the frontend.
 Existing generated apps are not overwritten or upgraded by this command.
+# Full-stack presets
+
+From a built source checkout:
+
+```sh
+node packages/create-tilcayo-app/dist/bin.js bookstore --fullstack --auth --admin --yes
+cd bookstore
+npm run dev
+```
+
+`--api` preserves API-only creation. `--fullstack` creates `api/` and `client/`
+workspaces with one dev command, separate dev scripts, both production builds,
+an API proxy and generated Notes CRUD. Set MongoDB in `api/.env`. Auth adds
+login/register/recovery/profile pages and protected routes; admin requires auth
+and adds `/admin` management pages. Provision roles through trusted server code.
+
+Run `tilcayo make:resource Book title:string author:ref:Author --fullstack` from
+the generated root and follow the printed route registration steps. Production
+hosts serve `client/dist` with SPA fallback and proxy `/api` to the Node API.
+`npm run start` starts the API only. See the generated README for configuration.
+
+The updated frontend packages and creator must be published before these flags
+work through `npm create tilcayo-app@latest`. Verify packed artifacts externally
+with `node tests/fullstack-starter-consumer.mjs` before release.

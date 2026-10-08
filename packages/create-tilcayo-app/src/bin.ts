@@ -44,6 +44,7 @@ async function main() {
         { value: "api" as const, label: color.green("API"), hint: "MongoDB with sample CRUD routes" },
         { value: "minimal" as const, label: color.magenta("Minimal"), hint: "Health-check endpoint only" },
         { value: "react" as const, label: color.cyan("React"), hint: "React client with Tilcayo styles and responsive navigation" },
+        { value: "fullstack" as const, label: color.blue("Full stack"), hint: "MongoDB API and React client in one workspace" },
       ],
     }));
     if (missing.has("auth")) options.auth = answer(await select({
@@ -65,9 +66,10 @@ async function main() {
   console.log(`\nNext:\n  cd ${options.name}`);
   if (!options.install) console.log(`  ${options.packageManager} install`);
   const cli = options.packageManager === "npm" ? "npx tilcayo" : `${options.packageManager} exec tilcayo`;
-  if (options.type === "react") console.log(`  ${options.packageManager} run dev`);
+  if (options.type === "react" || options.type === "fullstack") console.log(`  ${options.packageManager} run dev`);
   else console.log(`  ${cli} dev\n\nWith Tilcayo on PATH, use tilcayo dev directly.`);
   if (options.type === "react" && options.auth) console.log("Open /login or /register. Start a Tilcayo auth API on port 9149; see README.md for setup and API URL configuration.");
+  else if (options.type === "fullstack") console.log("Start MongoDB or update api/.env. The client proxies /api to the API on port 9149; see README.md.");
   else if (options.type === "api" || options.auth) console.log("Start MongoDB or update MONGODB_URI in .env before starting the API.");
 }
 

@@ -82,3 +82,28 @@ route module, dashboard/profile routes and shell, preserving existing navigation
 Both commands preflight source collisions and integration points, report all
 changed files, update dependency manifests, and leave dependency installation
 explicit. No npm lifecycle scripts generate application files.
+
+## F14: full-stack starter
+
+`create-tilcayo-app bookstore --fullstack --auth --admin` creates ordinary API
+and React workspaces. The root has one dev command and builds both apps. Vite
+proxies `/api` to the backend. Notes CRUD is generated and registered on both
+sides. Auth and admin are optional; admin requires auth. API-only and standalone
+React creation remain available. Environment and production hosting instructions
+live in the generated README. The CLI and creator bundle their templates into
+package artifacts, so installed commands do not read the framework source tree.
+
+Verification covers all three full-stack presets, strict generated TypeScript,
+relationship generation, HTTP CRUD with isolated model doubles, RTK cache
+invalidation, installer collisions and rendered protected routes. The external
+consumer script packs all eight packages, uses them in a fresh temporary app,
+generates Author/Book resources, builds, lints and lists routes.
+
+F15 release work remains: live MongoDB and browser verification, cross-platform
+and package-manager checks, then publication. Sessions remain in memory.
+
+Validation on October 8, 2026: all eight workspaces build; the complete suite has
+127 passing tests and four skipped live MongoDB tests. A packed external npm app
+passes installation, both builds, frontend lint, route listing and Vite startup.
+The in-app browser connection was unavailable, so visual verification is pending.
+Windows dev restart passes when the runner may stop its own child processes.

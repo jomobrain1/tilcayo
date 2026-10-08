@@ -77,7 +77,7 @@ test("starter generates every API/auth variant that compiles and lists its regis
       const listed = run(cli, ["routes:list", "--json"], target);
       assert.equal(listed.status, 0, listed.stderr);
       const routes = JSON.parse(listed.stdout);
-      assert.equal(routes.length, 1 + (type === "api" ? 5 : 0) + (auth ? 5 : 0));
+      assert.equal(routes.length, 1 + (type === "api" ? 5 : 0) + (auth ? 8 : 0));
       assert.ok(routes.some((route) => route.path === "/health"));
       assert.equal(routes.some((route) => route.path === "/api/auth/me"), auth);
       if (type === "minimal" && !auth) {
@@ -175,7 +175,7 @@ test('React auth starter generates frontend routes and guards without backend sc
     assert.equal(manifest.tilcayo.auth, true);
     assert.equal(manifest.dependencies['@tilcayo/auth'], undefined);
     const app = await readFile(path.join(target, 'src/App.tsx'), 'utf8');
-    const routes = await readFile(path.join(target, 'src/routes.tsx'), 'utf8');
+    const routes = await readFile(path.join(target, 'src/features/auth/auth.routes.tsx'), 'utf8');
     for (const route of ['/login', '/register', '/dashboard']) assert.ok(routes.includes(`path: '${route}'`));
     assert.match(routes, /RequireAuth/);
     assert.match(routes, /GuestOnly/);

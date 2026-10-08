@@ -2,7 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { authFiles } from "../generators/auth.js";
-import { adminFiles, authRoutesSource } from "../generators/admin.js";
+import { adminFiles } from "../generators/admin.js";
 import { prepareAuthEnv } from "../utils/authEnv.js";
 import { readSource, writeSource } from "../utils/files.js";
 import type { GeneratedSource } from "../generators/frontend.js";
@@ -64,7 +64,6 @@ async function planFrontendAuth(root: string, manifest: Manifest, changes: Chang
     name.startsWith("src/") && !Object.hasOwn(snapshot.starter, name) &&
     !["src/routes.tsx", "src/components/navigation.tsx", "src/layouts/app-layout.tsx", "src/layouts/admin-layout.tsx", "src/pages/not-found.page.tsx", "src/pages/about.page.tsx", "src/App.css"].includes(name),
   ).map(([name, source]) => ({ folder: path.dirname(name.slice(4)), name: path.basename(name), source }));
-  files.push({ folder: "features/auth", name: "auth.routes.tsx", source: authRoutesSource });
   await planFiles(root, files, changes);
   const routes = await readSource(root, "", "routes.tsx");
   if (!routes) throw new Error("Missing src/routes.tsx");

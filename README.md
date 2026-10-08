@@ -6,7 +6,7 @@ A TypeScript API framework built on Node.js, Express, Mongoose, and Zod.
 
 Includes MongoDB CRUD and references, request validation, JWT authentication,
 middleware, pagination, and application scaffolding. A React starter is available
-in this checkout; roles/permissions and SQL adapters are not implemented yet. The four backend/tooling packages are
+in this checkout; user roles and role guards are supported, while fine-grained permissions and SQL adapters are not implemented yet. The four backend/tooling packages are
 available on npm. The CSS foundation, `@tilcayo/styles`, is available in this
 checkout and has not been published yet.
 
@@ -18,6 +18,8 @@ checkout and has not been published yet.
 | [@tilcayo/cli](https://www.npmjs.com/package/@tilcayo/cli) | [Commands and generators](packages/cli/README.md) |
 | @tilcayo/react (unpublished) | [API/resource clients, Redux, RTK Query, and opt-in auth](packages/react/README.md) |
 | @tilcayo/styles (unpublished) | [CSS foundation and preview](packages/styles/README.md) |
+| @tilcayo/ui (unpublished) | [Accessible React primitives](packages/ui/README.md) |
+| @tilcayo/admin (unpublished) | [Protected management shell](packages/admin/README.md) |
 
 ## Why the name?
 
@@ -27,6 +29,33 @@ Its small size and distinct identity inspired the framework's focus on simplicit
 [Read about the species](https://portal.pucrs.br/es/noticias/buscar/Nueva-especie-de-felino-Leopardus-tilcayo/).
 
 ## Create an application
+
+### Full-stack starter (local checkout)
+
+```sh
+npm run build
+node packages/create-tilcayo-app/dist/bin.js bookstore --fullstack --auth --admin --yes
+cd bookstore
+npm run dev
+```
+
+Configure MongoDB in `api/.env` first. The starter includes an API, a React/Vite
+client, a shared dev command, an `/api` proxy, and Notes CRUD at `/notes`. Omit
+`--admin` or both `--auth --admin` for smaller presets. Roles are provisioned
+through trusted server code; registration does not assign admin rights.
+
+Generate both halves from the app root:
+
+```sh
+npx tilcayo make:resource Author name:string --fullstack
+npx tilcayo make:resource Book title:string author:ref:Author year:number? --fullstack
+```
+
+The commands print backend/frontend route registration steps. Existing apps can
+use `tilcayo add:auth` and `tilcayo add:admin`; installers refuse collisions and
+customized integration files. See [frontend milestones](FRONTEND-MILESTONES.md).
+Build and publish the updated packages before using these options through the
+registry creator. This command currently uses the local checkout.
 
 ### React starter (local checkout)
 

@@ -1,8 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { StarterOptions } from "./options.js";
+import { adminFiles } from "@tilcayo/cli";
+import { fullstackTemplates } from "./fullstack.js";
 
 export function templates(options: StarterOptions, localPackages: Record<string, string> = {}): Record<string, string> {
+  if (options.type === "fullstack") return fullstackTemplates(options, localPackages);
   if (options.type === "react") {
     const files: Record<string, string> = JSON.parse(readFileSync(new URL('./react-starter.json', import.meta.url), 'utf8'));
     const manifest = JSON.parse(files['package.json']);
@@ -11,7 +14,7 @@ export function templates(options: StarterOptions, localPackages: Record<string,
     manifest.dependencies['@tilcayo/styles'] = localPackages.styles ?? '^0.0.2';
     manifest.dependencies['@tilcayo/react'] = localPackages.react ?? '^0.0.2';
     manifest.dependencies['@tilcayo/ui'] = localPackages.ui ?? '^0.0.2';
-    manifest.tilcayo = { type: 'react', auth: options.auth, packageManager: options.packageManager };
+    manifest.tilcayo = { type: 'react', auth: options.auth, admin: options.admin ?? false, packageManager: options.packageManager };
     files['package.json'] = JSON.stringify(manifest, null, 2) + '\n';
     if (options.packageManager === 'yarn') files['.yarnrc.yml'] = 'nodeLinker: node-modules\n';
     if (options.auth) {
@@ -19,6 +22,13 @@ export function templates(options: StarterOptions, localPackages: Record<string,
       Object.assign(files, authFiles);
       files['.gitignore'] += '\n.env\n.env.*\n!.env.example\n';
       delete files['src/lib/api.ts'];
+    }
+    if (options.admin) {
+      manifest.dependencies['@tilcayo/admin'] = localPackages.admin ?? '^0.0.2';
+      for (const file of adminFiles()) files[`src/${file.folder}/${file.name}`] = file.source;
+      files['src/routes.tsx'] = "import { adminRoutes } from './features/admin/admin.routes';\n" + files['src/routes.tsx'].replace('export const routes: RouteObject[] = [', 'export const routes: RouteObject[] = [\n  ...adminRoutes,');
+      files['README.md'] += '\nAdmin pages are at /admin. Assign the admin role through trusted server code; registration does not grant admin rights. Authorize backend resource routes with auth.middleware and auth.requireRole("admin").\n';
+      files['package.json'] = JSON.stringify(manifest, null, 2) + '\n';
     }
     return files;
   }
