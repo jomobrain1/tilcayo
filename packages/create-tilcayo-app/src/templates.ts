@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { StarterOptions } from "./options.js";
-import { adminFiles } from "@tilcayo/cli";
+import { adminFiles, adminBackendFiles } from "@tilcayo/cli";
 import { fullstackTemplates } from "./fullstack.js";
 
 export function templates(options: StarterOptions, localPackages: Record<string, string> = {}): Record<string, string> {
@@ -24,10 +24,13 @@ export function templates(options: StarterOptions, localPackages: Record<string,
       delete files['src/lib/api.ts'];
     }
     if (options.admin) {
+      files['src/components/navigation.tsx'] = files['src/components/navigation.tsx']
+        .replace('const { isAuthenticated,', 'const { user, isAuthenticated,')
+        .replace('>Dashboard</NavLink>', ">Dashboard</NavLink>\n          {user?.roles?.includes('admin') && <NavLink to=\"/admin\" onClick={() => setIsOpen(false)}>Admin</NavLink>}");
       manifest.dependencies['@tilcayo/admin'] = localPackages.admin ?? '^0.0.2';
       for (const file of adminFiles()) files[`src/${file.folder}/${file.name}`] = file.source;
       files['src/routes.tsx'] = "import { adminRoutes } from './features/admin/admin.routes';\n" + files['src/routes.tsx'].replace('export const routes: RouteObject[] = [', 'export const routes: RouteObject[] = [\n  ...adminRoutes,');
-      files['README.md'] += '\nAdmin pages are at /admin. Assign the admin role through trusted server code; registration does not grant admin rights. Authorize backend resource routes with auth.middleware and auth.requireRole("admin").\n';
+      files['README.md'] += '\nAdmin overview and user directory are at /admin and /admin/users. On a separate API, register app.routes(auth.adminRoutes) to enable /api/admin/users. Assign the admin role through trusted server code; registration does not grant admin rights. Authorize backend resource routes with auth.middleware and auth.requireRole("admin").\n';
       files['package.json'] = JSON.stringify(manifest, null, 2) + '\n';
     }
     return files;
@@ -36,11 +39,12 @@ export function templates(options: StarterOptions, localPackages: Record<string,
   const json = (value: unknown) => JSON.stringify(value, null, 2) + "\n";
   const env = `# Server\nPORT=9149\n${mongo ? `\n# Database\nMONGODB_URI=mongodb://127.0.0.1:27017/${options.name.replaceAll("-", "_")}\n` : ""}`;
   return {
+    ...(options.admin ? Object.fromEntries(adminBackendFiles().map(file => [`src/${file.folder}/${file.name}`, file.source])) : {}),
     "package.json": json({
       name: options.name, version: "0.0.1", private: true, type: "module",
       engines: { node: ">=22.9.0" },
       tilcayo: { database: mongo ? "mongo" : "none", type: options.type, packageManager: options.packageManager },
-      scripts: { dev: "tilcayo dev", build: "tilcayo build", start: "tilcayo start", routes: "tilcayo routes:list" },
+      scripts: { dev: "tilcayo dev", build: "tilcayo build", start: "tilcayo start", routes: "tilcayo routes:list", ...(options.admin ? { 'seed:demo': 'node --env-file-if-exists=.env dist/scripts/seed-admin-demo.js' } : {}) },
       dependencies: { "@tilcayo/core": localPackages.core ?? "^0.0.2", ...(options.auth ? { "@tilcayo/auth": localPackages.auth ?? "^0.0.2" } : {}), ...(mongo ? { mongoose: localPackages.mongoose ?? "^9.10.2" } : {}), zod: localPackages.zod ?? "^4.0.0" },
       devDependencies: { "@tilcayo/cli": localPackages.cli ?? "^0.0.2", "@types/node": "^26.6.3", typescript: "^7.0.2", nodemon: "^3.1.14" },
     }),
@@ -58,10 +62,10 @@ ${mongo ? '  mongoUri: process.env.MONGODB_URI ?? "",\n' : ""}};
 `,
     "src/app.ts": `import { createApp, requestId, securityHeaders } from "@tilcayo/core";
 import healthRoutes from "./routes/health.routes.js";
-${options.type === "api" ? 'import notesRoutes from "./routes/notes.routes.js";\n' : ""}${options.auth ? 'import authRoutes from "./routes/auth.routes.js";\n' : ""}
+${options.type === "api" ? 'import notesRoutes from "./routes/notes.routes.js";\n' : ""}${options.auth ? 'import authRoutes from "./routes/auth.routes.js";\n' : ""}${options.admin ? 'import { auth } from "./auth.js";\nimport adminProductsRoutes from "./routes/admin-products.routes.js";\nimport adminOrdersRoutes from "./routes/admin-orders.routes.js";\n' : ""}
 const app = createApp({ middleware: [requestId(), securityHeaders()] });
 app.routes(healthRoutes);
-${options.type === "api" ? "app.routes(notesRoutes);\n" : ""}${options.auth ? "app.routes(authRoutes);\n" : ""}
+${options.type === "api" ? "app.routes(notesRoutes);\n" : ""}${options.auth ? "app.routes(authRoutes);\n" : ""}${options.admin ? "app.routes(auth.adminRoutes);\napp.routes(adminProductsRoutes);\napp.routes(adminOrdersRoutes);\n" : ""}
 export default app;
 `,
     "src/index.ts": `${mongo ? 'import { connectMongo, disconnectMongo } from "@tilcayo/core";\n' : ""}

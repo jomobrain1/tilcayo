@@ -3,11 +3,13 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { authFiles } from "../generators/auth.js";
 import { adminFiles } from "../generators/admin.js";
+import { adminBackendFiles } from "../generators/adminProducts.js";
 import { prepareAuthEnv } from "../utils/authEnv.js";
 import { readSource, writeSource } from "../utils/files.js";
 import type { GeneratedSource } from "../generators/frontend.js";
 
 interface Manifest {
+  scripts?: Record<string, string>;
   name?: string;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
@@ -115,6 +117,19 @@ export async function add(args: string[], root = process.cwd()): Promise<string[
     if (!routes) throw new Error("Missing src/routes.tsx");
     if (/path:\s*['"]\/admin['"]/.test(routes)) throw new Error("An /admin route already exists. Remove the placeholder or integrate @tilcayo/admin into it explicitly.");
     changes.push({ target: path.join(frontendRoot, "src/routes.tsx"), source: insertRoutes(routes, "adminRoutes", "./features/admin/admin.routes", false), create: false });
+    if (fullstack) {
+      const backendRoot = path.join(root, "api");
+      await planFiles(backendRoot, adminBackendFiles(), changes);
+      const backendManifest = await manifestAt(backendRoot);
+      backendManifest.scripts = { ...backendManifest.scripts, 'seed:demo': 'node --env-file-if-exists=.env dist/scripts/seed-admin-demo.js' };
+      manifests.push({ root: backendRoot, value: backendManifest });
+      manifest.scripts = { ...manifest.scripts, 'seed:demo': 'npm run build --workspace api && npm run seed:demo --workspace api', 'seed:demo:remove': 'npm run build --workspace api && npm run seed:demo --workspace api -- --remove' };
+      const source = await readSource(backendRoot, "", "app.ts");
+      if (!source?.includes("export default app;") || await readSource(backendRoot, "", "auth.ts") === undefined) throw new Error("Backend src/app.ts must export default app and src/auth.ts must export auth for admin integration.");
+      if (source.includes("app.routes(auth.adminRoutes)")) throw new Error("Backend admin routes are already registered.");
+      const withImport = /import\s*\{\s*auth\s*\}\s*from\s*['"]\.\/auth\.js['"]/.test(source) ? source : 'import { auth } from "./auth.js";\n' + source;
+      changes.push({ target: path.join(backendRoot, "src/app.ts"), source: 'import adminProductsRoutes from "./routes/admin-products.routes.js";\nimport adminOrdersRoutes from "./routes/admin-orders.routes.js";\n' + withImport.replace("export default app;", "app.routes(auth.adminRoutes);\napp.routes(adminProductsRoutes);\napp.routes(adminOrdersRoutes);\n\nexport default app;"), create: false });
+    }
     await addDependencies(frontendManifest, frontendRoot, ["admin", "ui", "styles"]);
     frontendManifest.tilcayo = { ...frontendManifest.tilcayo, admin: true };
     manifest.tilcayo = { ...manifest.tilcayo, admin: true };
@@ -139,5 +154,5 @@ export async function add(args: string[], root = process.cwd()): Promise<string[
     messages.push(`Updated ${path.relative(root, path.join(item.root, "package.json"))}`);
   }
   return [...messages, "Run your package manager install, then build. No dependencies were installed automatically.",
-    ...(command === "add:auth" ? ["Auth routes are registered. Add login/profile links to your navigation. Set the public VITE_API_URL when connecting a separate API; never put auth secrets in VITE_* variables.", "Backend auth requires a MongoDB startup connection. Configure .env before running the API."] : ["Admin routes are registered under /admin. Assign admin roles through trusted server code and authorize backend resource routes."])];
+    ...(command === "add:auth" ? ["Auth routes are registered. Add login/profile links to your navigation. Set the public VITE_API_URL when connecting a separate API; never put auth secrets in VITE_* variables.", "Backend auth requires a MongoDB startup connection. Configure .env before running the API."] : ["Admin routes are registered under /admin. Assign admin roles through trusted server code and authorize backend resource routes.", ...(fullstack ? [] : ["On your Tilcayo API, mount app.routes(auth.adminRoutes) to enable the protected /api/admin/users directory."])])];
 }

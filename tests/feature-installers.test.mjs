@@ -68,4 +68,6 @@ test('full-stack auth installs both sides and backend secrets without npm side e
   execFileSync(process.execPath, [compiler, '-p', path.join(root, 'api')], { encoding: 'utf8' });
   await add(['add:admin'], root);
   assert.equal(JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')).tilcayo.admin, true);
+  assert.match(await readFile(path.join(root, 'api/src/app.ts'), 'utf8'), /app.routes\(auth.adminRoutes\)/);
+  execFileSync(process.execPath, [compiler, '-p', path.join(root, 'api')], { encoding: 'utf8' });
 });

@@ -59,7 +59,7 @@ try {
   run(npm, ['run', 'build'], target);
   run(npm, ['run', 'lint', '--workspace', 'client'], target);
   const registered = run(npm, ['run', 'routes'], target);
-  for (const route of ['/api/notes', '/api/auth', '/api/authors', '/api/books']) assert.ok(registered.includes(route), route);
+  for (const route of ['/api/notes', '/api/auth', '/api/admin/users', '/api/admin/products', '/api/admin/orders', '/api/authors', '/api/books']) assert.ok(registered.includes(route), route);
   const reservation = createServer();
   reservation.listen(0, '127.0.0.1');
   await once(reservation, 'listening');

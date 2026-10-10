@@ -3,7 +3,7 @@ import { templates } from "./templates.js";
 
 // Each half remains an ordinary Tilcayo API or Vite app.
 export function fullstackTemplates(options: StarterOptions, localPackages: Record<string, string>): Record<string, string> {
-  const api = templates({ ...options, name: `${options.name}-api`, type: "api", admin: false }, localPackages);
+  const api = templates({ ...options, name: `${options.name}-api`, type: "api", admin: options.admin }, localPackages);
   const client = templates({ ...options, name: `${options.name}-client`, type: "react" }, localPackages);
   client["vite.config.ts"] = `import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -27,6 +27,7 @@ export default defineConfig({
     scripts: {
       dev: "node scripts/dev.mjs", "dev:api": "npm run dev --workspace api", "dev:client": "npm run dev --workspace client",
       build: "npm run build --workspaces", start: "npm run start --workspace api", routes: "npm run routes --workspace api",
+      ...(options.admin ? { 'seed:demo': 'npm run build --workspace api && npm run seed:demo --workspace api', 'seed:demo:remove': 'npm run build --workspace api && npm run seed:demo --workspace api -- --remove' } : {}),
     },
     devDependencies: { "@tilcayo/cli": localPackages.rootCli ?? "^0.0.2" },
   }, null, 2) + "\n";
@@ -54,6 +55,7 @@ The client runs on Vite's printed URL and proxies /api to port 9149. If you chan
 the API port, set API_PROXY_TARGET for the client dev process or edit
 client/vite.config.ts. Visit /notes for sample CRUD${options.auth ? ", /login to sign in, /register to create an account and /profile for your account" : ""}${options.admin ? ", and /admin for management" : ""}.
 ${options.auth ? "Tokens are kept in memory; reloading signs out. Configure backend SMTP settings for password recovery.\n" : ""}${options.admin ? "Provision the admin role through trusted server code; registration never grants it.\n" : ""}
+${options.admin ? "Admin users and role filters are at /admin/users. The catalog at /admin/products includes inventory cards and add/edit forms. Product data starts empty; add products in the UI. Protected catalog routes and the Product model are generated in api/src.\n" : ""}
 Generate both halves from this directory:
 
 \`\`\`sh
