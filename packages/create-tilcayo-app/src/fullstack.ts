@@ -10,6 +10,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: { dedupe: ['react', 'react-dom', 'react-redux', '@reduxjs/toolkit', 'react-router'] },
   server: { proxy: { '/api': { target: process.env.API_PROXY_TARGET || 'http://127.0.0.1:9149', changeOrigin: true } } },
 });
 `;
