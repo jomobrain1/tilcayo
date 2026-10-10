@@ -54,6 +54,44 @@ async function serve(t, app) {
   };
 }
 
+test("admin directory protects users, validates filters and returns public fields only", async t => {
+  const c = config();
+  const auth = createAuth(c);
+  const record = new User.raw({ _id: id, name: 'Reader', email: 'reader@example.test', roles: [], passwordHash: 'private', sessionVersion: 0 });
+  t.mock.method(User, 'find', async () => record);
+  const paginate = t.mock.method(User, 'paginate', async () => ({ items: [record], pagination: { page: 2, perPage: 10, total: 11, lastPage: 2, hasPreviousPage: true, hasNextPage: false } }));
+  t.mock.method(User, 'count', async filter => filter?.roles ? 1 : filter?.createdAt ? 2 : 11);
+  const request = await serve(t, createApp().routes(auth.adminRoutes));
+  assert.equal((await request('/api/admin/users')).status, 401);
+  const headers = { Authorization: `Bearer ${await createAccessToken(id, c)}` };
+  assert.equal((await request('/api/admin/users', { headers })).status, 403);
+  assert.equal(paginate.mock.callCount(), 0);
+  record.roles = ['admin'];
+  const response = await request('/api/admin/users?page=2&search=Reader%2B&role=admin', { headers });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  assert.equal(response.body.data.items[0].email, record.email);
+  assert.deepEqual(response.body.data.items[0].roles, ['admin']);
+  assert.equal(response.body.data.items[0].passwordHash, undefined);
+  assert.equal(response.body.data.items[0].sessionVersion, undefined);
+  assert.deepEqual(response.body.data.stats, { totalUsers: 11, adminUsers: 1, recentUsers: 2 });
+  const [query, options] = paginate.mock.calls[0].arguments;
+  assert.equal(query.page, 2);
+  assert.equal(query.perPage, 10);
+  assert.equal(options.filter.roles, 'admin');
+  assert.equal(options.filter.$or[0].name.$regex, 'Reader\\+');
+  assert.deepEqual(options.select, ['name', 'email', 'roles', 'createdAt', 'updatedAt']);
+  await request('/api/admin/users?role=member', { headers });
+  assert.deepEqual(paginate.mock.calls[1].arguments[1].filter.roles, { $ne: 'admin' });
+  for (const query of ['page=0', 'page=1.5', 'perPage=101', 'role=owner', 'search=' + 'a'.repeat(101), 'search[x]=value']) {
+    assert.equal((await request('/api/admin/users?' + query, { headers })).status, 422, query);
+  }
+  t.mock.method(User, 'paginate', async () => { throw new Error('database credentials are private'); });
+  const failure = await request('/api/admin/users', { headers });
+  assert.equal(failure.status, 500);
+  assert.ok(!JSON.stringify(failure.body).includes('credentials'));
+});
+
 test("role protection uses current database roles and denies anonymous users", async t => {
   const c = config();
   const auth = createAuth(c);

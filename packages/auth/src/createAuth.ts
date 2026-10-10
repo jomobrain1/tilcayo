@@ -2,6 +2,7 @@ import { resolveConfig, type AuthConfig } from "./types.js";
 import { createGuard } from "./guard.js";
 import { createAuthRoutes, authRequestMiddleware } from "./routes/auth.routes.js";
 import { createAuthControllers } from "./controllers/auth.controller.js";
+import { createAdminRoutes } from "./routes/admin.routes.js";
 
 export function createAuth(config: AuthConfig) {
   const resolved = resolveConfig(config);
@@ -10,6 +11,7 @@ export function createAuth(config: AuthConfig) {
   const requestMiddleware = authRequestMiddleware();
   return {
     routes: createAuthRoutes(resolved, auth, controllers, requestMiddleware),
+    adminRoutes: createAdminRoutes(auth),
     controllers,
     requestMiddleware,
     ...auth,
