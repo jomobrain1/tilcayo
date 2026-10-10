@@ -30,6 +30,25 @@
   color: var(--tl-text);
 }
 .tl-modal::backdrop { background: rgb(0 0 0 / 50%); }
+.tl-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tl-space-4);
+}
+.tl-modal-header h2 {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.tl-modal-close {
+  flex: 0 0 2.5rem;
+  width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0;
+  color: var(--tl-text-muted);
+}
+.tl-modal-close:hover { color: var(--tl-text); }
 .tl-alert-success { color: var(--tl-success); }
 .tl-alert-warning { color: var(--tl-warning); }
 .tl-alert-danger { color: var(--tl-danger); }

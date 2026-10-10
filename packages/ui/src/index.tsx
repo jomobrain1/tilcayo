@@ -62,7 +62,17 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
   }, [open]);
   // Native dialog provides focus containment, Escape handling and focus restoration.
   return <dialog ref={ref} className="tl-modal" aria-labelledby={titleId} onCancel={event => { event.preventDefault(); onClose(); }}>
-    <div className="tl-stack"><h2 id={titleId}>{title}</h2>{children}<Button variant="outline" onClick={onClose}>Close</Button></div>
+    <div className="tl-stack">
+      <header className="tl-modal-header">
+        <h2 id={titleId}>{title}</h2>
+        <Button className="tl-modal-close" variant="ghost" aria-label="Close dialog" title="Close" onClick={onClose}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+            <path d="m6 6 12 12M18 6 6 18" />
+          </svg>
+        </Button>
+      </header>
+      {children}
+    </div>
   </dialog>;
 }
 
