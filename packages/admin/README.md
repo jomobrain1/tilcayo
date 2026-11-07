@@ -21,6 +21,12 @@ AdminProfile with the current user, and ResourceLayout for resource headings.
 Generated CRUD routes can be nested with `createBooksRoutes('books', '/admin/books')`.
 
 The sidebar collapses on narrow screens and has an accessible toggle. The shell
+groups Overview under General, Users and Products under Management, and Profile
+under Account. Custom `links` accept an optional `group` name, for example
+`{ label: 'Books', to: '/admin/books', group: 'Management' }`. Links without a
+group appear under Resources.
+
+The shell
 does not grant permissions. Protect corresponding backend endpoints with
 `auth.middleware` and `auth.requireRole('admin')`; provision roles through trusted
 server code. Registration never assigns admin rights.
@@ -66,7 +72,7 @@ or cancelled status. The server snapshots the product name, SKU, price, and curr
 and calculates the total; later product edits do not change existing orders.
 These records do not charge payments or automatically adjust stock.
 
-The catalog defaults to image cards and can switch to a compact table. Set an
+The catalog defaults to a compact table and can switch to image cards. Set an
 image URL when adding or editing a product; unavailable images show a placeholder.
 Inventory remains a table. Product images use no-referrer requests.
 
@@ -77,23 +83,56 @@ marked records. Existing products, orders, users, and roles are preserved. Demo
 photos are hosted on Unsplash and need an internet connection.
 
 The default screens use a white background, white panels, compact tables, and
-colored metric icons. `AdminMetricCard` accepts a label, optional numeric value,
+monochrome metric icons and more space between panels. `AdminMetricCard` accepts a label, optional numeric value,
 note, icon, and tone; missing values display a dash. `AdminUserStats` renders the
 three account totals. The profile shows only available account information and
-assigned access. Quick actions link to existing management screens.
+assigned access.
 
-Product screens include live low-stock alerts and inventory health across all
+The Inventory tab includes live low-stock alerts and inventory health across all
 active products. Catalog tables include image thumbnails; the Cards/Table toggle
 and all top section tabs remain available. The sidebar keeps email and sign out
 at the bottom on desktop.
 
-Overview has four compact totals, recent users, and recent activity derived from
-account registrations, product creation, and recorded orders. Users has a fourth
-Members total. Its Featured profiles and Recent joins side panels contain
-presentation-only fictional school accounts; View all expands those sample lists.
-These samples do not create database users or change the real directory totals.
+Overview has permission-aware totals plus recent users and recent activity from
+account registrations, product creation and recorded orders. Users has a Members
+total and a real searchable directory; fictional highlights and redundant
+quick-action panels have been removed.
 
 Profile includes personal information, account details, security, permissions,
 and workspace shortcuts. Refresh session reloads current account information
 through the app's existing auth flow. The top account dropdown links to profile
 and signs out; the bell links to the overview activity section.
+
+
+## Sidebar headings, roles, and Trash
+
+Sidebar group headings are hidden by default. Custom integrations may enable them with
+`<AdminLayout showGroupHeadings />`. Generated apps keep these headings hidden and use a compact sidebar with a linked brand and a divider below it. The existing top section tabs remain.
+
+Generated admin apps expose `/admin/settings?section=access` for administrators to create/edit
+roles and choose visible tabs: Dashboard, Users, Catalog, Inventory, Categories,
+Orders and Trash. Assign roles in Users -> Roles. The built-in admin role has
+full access; only it can manage access. Route guards reject restricted URLs,
+menus hide disallowed links/tabs, and backend middleware checks current database
+permissions on every request. Refreshing reloads navigation after access changes.
+Custom navigation links can specify a `tab` permission key.
+
+Users, products and orders have a Delete action with confirmation. This moves
+the record to `/admin/settings?section=trash`, where Restore returns it to active lists. Deleted
+records are excluded from active counts, lists and category aggregation; new
+orders cannot reference deleted products. Trash requires both the Trash tab and
+the appropriate resource tab. No permanent-delete action is exposed. Email/SKU
+uniqueness is retained while records are in Trash, so restoration preserves identity.
+
+
+Settings is a single sidebar entry. Its top tabs switch between Roles & access
+and Trash, filtered by current permissions. Legacy `/admin/access` and
+`/admin/trash` URLs redirect to the corresponding Settings tab. The Tilcayo
+brand links to `/` (customizable with `homePath` on AdminLayout). Product and
+order delete controls use labeled trash icons and retain confirmation dialogs.
+Statuses use green for active/fulfilled, amber for draft/pending, muted gray for
+archived and red for cancelled. Admin controls use 4-6px corners; panels and
+modals use 8px corners. The product modal groups details, pricing/inventory and
+publishing, with explicit Cancel and Save actions.
+
+Use `<AdminLayout pending />` for session restoration: the navigation shell remains visible, the account area uses a placeholder, and protected outlets stay unmounted. Recheck permissions after verification; navigation links never grant access.

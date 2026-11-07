@@ -11,7 +11,7 @@ test('admin shell renders nested routes, resource links, profile and accessible 
     h(Route, { path: '/admin', element: h(AdminLayout, { user, onLogout() {}, links: [{ label: 'Books', to: '/admin/books' }] }) },
       h(Route, { index: true, element: page }), h(Route, { path: 'profile', element: page })) )));
   const shell = render(h(AdminDashboard, { user }), '/admin');
-  for (const value of ['Skip to content', 'aria-controls=', 'aria-expanded="false"', 'aria-label="Admin navigation"', 'href="/admin/books"', 'Welcome, Reader', 'Sign out', 'id="admin-main"']) assert.ok(shell.includes(value), value);
+  for (const value of ['Skip to content', 'aria-controls=', 'aria-expanded="false"', 'aria-label="Admin navigation"', 'href="/admin/books"', 'Dashboard', 'Sign out', 'id="admin-main"']) assert.ok(shell.includes(value), value);
   const profile = render(h(AdminProfile, { user }), '/admin/profile');
   assert.match(profile, /reader@example.test/);
   assert.match(profile, /aria-current="page"[^>]*>.*?<span>Profile<\/span>/);
@@ -28,4 +28,29 @@ test('directory renders custom roles, member fallback, safe text and empty resul
   assert.match(renderToStaticMarkup(h(AdminUsersTable, { users: [] })), /No users found/);
   const dashboard = renderToStaticMarkup(h(AdminDashboard, { stats: { totalUsers: 12, adminUsers: 2, recentUsers: 4 } }));
   for (const text of ['Total users', 'Administrators', 'New this week', '>12<', '>2<', '>4<']) assert.ok(dashboard.includes(text), text);
+});
+
+
+test('sidebar headings are opt-in and restricted links are absent while section tabs remain', () => {
+  function render(props) { return renderToStaticMarkup(h(MemoryRouter, null, h(AdminLayout, props))); }
+  const user = { name: 'Operator', email: 'operator@example.test', adminTabs: ['catalog', 'inventory'] };
+  const props = { user, sections: [{ id: 'catalog', label: 'Catalog' }, { id: 'inventory', label: 'Inventory' }], links: [{ label: 'Roles & access', to: '/admin/access', tab: 'access' }] };
+  const compact = render(props);
+  assert.match(compact, /aria-label="Tilcayo home" href="\/"/);
+  assert.ok(!compact.includes('tl-admin-nav-heading'));
+  assert.ok(!compact.includes('href="/admin/users"'));
+  assert.ok(!compact.includes('href="/admin/access"'));
+  assert.ok(compact.includes('href="/admin/products"'));
+  assert.ok(compact.includes('aria-label="Page sections"'));
+  assert.match(render({ ...props, showGroupHeadings: true }), /tl-admin-nav-heading/);
+});
+
+
+test('pending shell keeps navigation while protected outlets stay unmounted', () => {
+  function PrivatePage() { throw new Error('Protected content mounted during verification'); }
+  const markup = renderToStaticMarkup(h(MemoryRouter, { initialEntries: ['/admin/products'] }, h(Routes, null,
+    h(Route, { path: '/admin', element: h(AdminLayout, { pending: true }) }, h(Route, { path: 'products', element: h(PrivatePage) }))
+  )));
+  for (const text of ['Admin navigation', 'href="/admin/products"', 'Tilcayo home', 'Checking your session']) assert.ok(markup.includes(text), text);
+  assert.ok(!markup.includes('Open account menu'));
 });
