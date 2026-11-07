@@ -16,7 +16,8 @@
     "react-dom": "^19.2.8",
     "react-router": "^8.4.0",
     "@reduxjs/toolkit": "^2.13.0",
-    "react-redux": "^9.3.0"
+    "react-redux": "^9.3.0",
+    "@tilcayo/ui": "file:../packages/ui"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",

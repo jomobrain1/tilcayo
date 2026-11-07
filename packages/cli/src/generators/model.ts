@@ -18,12 +18,12 @@ function schemaFields(input: string): string {
   }).join("\n");
 }
 
-export const modelTemplate = ({ model, singular }: ResourceNames, fields?: string, mongo = false): string => {
+export const modelTemplate = ({ model, singular }: ResourceNames, fields?: string, mongo = false, tenantScoped = false): string => {
   const schema = fields === undefined ? "{}" : `{\n${schemaFields(fields)}\n}`;
   return `import mongoose from "mongoose";
 ${mongo ? 'import { mongoModel } from "@tilcayo/core";\n' : ""}
 const ${singular}Schema = new mongoose.Schema(${schema}, { timestamps: true });
 
-export const ${model} = ${mongo ? "mongoModel" : "mongoose.model"}("${model}", ${singular}Schema);
+export const ${model} = ${mongo ? "mongoModel" : "mongoose.model"}("${model}", ${singular}Schema${tenantScoped ? ", { tenantScoped: true }" : ""});
 `;
 };

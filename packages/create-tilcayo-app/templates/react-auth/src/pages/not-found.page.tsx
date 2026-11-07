@@ -1,10 +1,5 @@
-import { Link } from 'react-router'
+import { ErrorPage } from '../components/error-page'
 
 export function NotFoundPage() {
-  return (
-    <section className="tl-stack">
-      <h1 className="tl-heading-1">404 - Page not found</h1>
-      <div><Link className="tl-btn tl-btn-primary" to="/">Back to home</Link></div>
-    </section>
-  )
+  return <ErrorPage code="404" title="Page not found" description="We couldn't find the page you're looking for. It may have moved, or the address might be incorrect." primary={{ to: '/', label: 'Back to home' }} secondary={{ to: '/elements', label: 'Explore elements' }} note="Check the address, or use the navigation to find your way." />
 }

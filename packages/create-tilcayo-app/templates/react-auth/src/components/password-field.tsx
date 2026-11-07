@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AuthInputIcon } from './auth-input-icon'
 
 type PasswordFieldProps = {
   name: string
@@ -13,7 +14,8 @@ export function PasswordField({ name, label, autoComplete, placeholder }: Passwo
   return (
     <div className="tl-form-group">
       <label className="tl-label" htmlFor={name}>{label}</label>
-      <div className="auth-password">
+      <div className="auth-password auth-input-wrap">
+        <AuthInputIcon kind="lock" />
         <input className="tl-input" id={name} name={name} type={visible ? 'text' : 'password'} autoComplete={autoComplete} placeholder={placeholder} required minLength={8} maxLength={72} />
         <button className="auth-password-toggle" type="button" aria-label={`${visible ? 'Hide' : 'Show'} ${label.toLowerCase()}`} aria-controls={name} onClick={() => setVisible(!visible)}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

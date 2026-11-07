@@ -24,11 +24,10 @@ export function templates(options: StarterOptions, localPackages: Record<string,
       delete files['src/lib/api.ts'];
     }
     if (options.admin) {
-      files['src/components/navigation.tsx'] = files['src/components/navigation.tsx']
-        .replace('const { isAuthenticated,', 'const { user, isAuthenticated,')
-        .replace('>Dashboard</NavLink>', ">Dashboard</NavLink>\n          {user?.roles?.includes('admin') && <NavLink to=\"/admin\" onClick={() => setIsOpen(false)}>Admin</NavLink>}");
+      files['src/components/navigation.tsx'] = files['src/components/navigation.tsx'].replace('const adminEnabled = false', 'const adminEnabled = true');
       manifest.dependencies['@tilcayo/admin'] = localPackages.admin ?? '^0.0.2';
       for (const file of adminFiles()) files[`src/${file.folder}/${file.name}`] = file.source;
+      { const source = files['src/components/session-skeleton.tsx']; files['src/components/session-skeleton.tsx'] = "import { AdminSessionShell } from '../features/admin/session-shell';\n" + source.replace("  const { pathname } = useLocation()", "  const { pathname } = useLocation()\n  if (/^\\/admin(?:\\/|$)/.test(pathname)) return <AdminSessionShell />"); }
       files['src/routes.tsx'] = "import { adminRoutes } from './features/admin/admin.routes';\n" + files['src/routes.tsx'].replace('export const routes: RouteObject[] = [', 'export const routes: RouteObject[] = [\n  ...adminRoutes,');
       files['README.md'] += '\nAdmin overview and user directory are at /admin and /admin/users. On a separate API, register app.routes(auth.adminRoutes) to enable /api/admin/users. Assign the admin role through trusted server code; registration does not grant admin rights. Authorize backend resource routes with auth.middleware and auth.requireRole("admin").\n';
       files['package.json'] = JSON.stringify(manifest, null, 2) + '\n';
@@ -45,13 +44,13 @@ export function templates(options: StarterOptions, localPackages: Record<string,
       engines: { node: ">=22.9.0" },
       tilcayo: { database: mongo ? "mongo" : "none", type: options.type, packageManager: options.packageManager },
       scripts: { dev: "tilcayo dev", build: "tilcayo build", start: "tilcayo start", routes: "tilcayo routes:list", ...(options.admin ? { 'seed:demo': 'node --env-file-if-exists=.env dist/scripts/seed-admin-demo.js' } : {}) },
-      dependencies: { "@tilcayo/core": localPackages.core ?? "^0.0.2", ...(options.auth ? { "@tilcayo/auth": localPackages.auth ?? "^0.0.2" } : {}), ...(mongo ? { mongoose: localPackages.mongoose ?? "^9.10.2" } : {}), zod: localPackages.zod ?? "^4.0.0" },
+      dependencies: { "@tilcayo/core": localPackages.core ?? "^0.0.2", ...(options.auth ? { "@tilcayo/auth": localPackages.auth ?? "^0.0.2", "@tilcayo/cloudinary": localPackages.cloudinary ?? "^0.0.2" } : {}), ...(mongo ? { mongoose: localPackages.mongoose ?? "^9.10.2" } : {}), zod: localPackages.zod ?? "^4.0.0" },
       devDependencies: { "@tilcayo/cli": localPackages.cli ?? "^0.0.2", "@types/node": "^26.6.3", typescript: "^7.0.2", nodemon: "^3.1.14" },
     }),
     "tsconfig.json": json({ compilerOptions: { target: "ES2022", module: "NodeNext", moduleResolution: "NodeNext", strict: true, esModuleInterop: true, skipLibCheck: true, forceConsistentCasingInFileNames: true, rootDir: "src", outDir: "dist", types: ["node"] }, include: ["src/**/*.ts"] }),
     ".gitignore": "node_modules/\ndist/\n.env\n.env.*\n!.env.example\n*.log\n.DS_Store\n",
-    ".env.example": env + (options.auth ? "\n# Authentication - use private values from .env\nAUTH_ACCESS_SECRET=\nAUTH_REFRESH_SECRET=\n\n# Password recovery (backend only)\nMAIL_USER=\nMAIL_PASS=\nMAIL_HOST=smtp.gmail.com\nMAIL_PORT=465\n" : ""),
-    ".env": env + (options.auth ? `\n# Authentication - keep these secrets private\nAUTH_ACCESS_SECRET=${randomBytes(32).toString("hex")}\nAUTH_REFRESH_SECRET=${randomBytes(32).toString("hex")}\n` : ""),
+    ".env.example": env + (options.auth ? "\n# Authentication - use private values from .env\nAUTH_ACCESS_SECRET=\nAUTH_REFRESH_SECRET=\n\n# Cloudinary (backend only)\nCLOUDINARY_CLOUD_NAME=\nCLOUDINARY_API_KEY=\nCLOUDINARY_API_SECRET_KEY=\n\n# Password recovery (backend only)\nMAIL_USER=\nMAIL_PASS=\nMAIL_HOST=smtp.gmail.com\nMAIL_PORT=465\n" : ""),
+    ".env": env + (options.auth ? `\n# Authentication - keep these secrets private\nAUTH_ACCESS_SECRET=${randomBytes(32).toString("hex")}\nAUTH_REFRESH_SECRET=${randomBytes(32).toString("hex")}\n\n# Cloudinary (backend only)\nCLOUDINARY_CLOUD_NAME=\nCLOUDINARY_API_KEY=\nCLOUDINARY_API_SECRET_KEY=\n` : ""),
     ...(options.packageManager === "yarn" ? { ".yarnrc.yml": "nodeLinker: node-modules\n" } : {}),
     "src/config.ts": `const port = Number(process.env.PORT ?? 9149);
 if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("PORT must be an integer between 0 and 65535.");

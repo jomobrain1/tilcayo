@@ -1,9 +1,9 @@
 import type { GeneratedSource } from "./frontend.js";
 
 export function adminProductFiles(): GeneratedSource[] {
-  const file = (name: string, source: string): GeneratedSource => ({ folder: 'features/admin', name, source });
+  const file = (name: string, source: string): GeneratedSource => ({ folder: "features/admin", name, source });
   return [
-    file('products.api.ts', `import type { TilcayoResponse } from '@tilcayo/react';
+    file("products.api.ts", `import type { TilcayoResponse } from '@tilcayo/react';
 import { tilcayoApi } from '../../app/api';
 
 export interface ProductInput {
@@ -12,7 +12,7 @@ export interface ProductInput {
   currency: 'KES' | 'USD'; stock: number; status: 'draft' | 'active' | 'archived';
 }
 export interface Product extends ProductInput { _id: string; demoBatch?: string; createdAt?: string }
-export interface ProductsQuery { page: number; search: string; status: 'all' | ProductInput['status']; stock: 'all' | 'low' | 'out'; category?: string }
+export interface ProductsQuery { page: number; deleted?: 'active' | 'trash'; search: string; status: 'all' | ProductInput['status']; stock: 'all' | 'low' | 'out'; category?: string }
 export interface ProductsResponse {
   items: Product[];
   pagination: { total: number; lastPage: number; hasNextPage: boolean; hasPreviousPage: boolean };
@@ -20,6 +20,8 @@ export interface ProductsResponse {
 }
 export const productsApi = tilcayoApi.enhanceEndpoints({ addTagTypes: ['AdminProducts'] }).injectEndpoints({
   endpoints: builder => ({
+    deleteAdminProduct: builder.mutation<unknown, string>({ query: id => ({ url: '/admin/products/' + encodeURIComponent(id), method: 'DELETE' }), invalidatesTags: ['AdminProducts'] }),
+    restoreAdminProduct: builder.mutation<unknown, string>({ query: id => ({ url: '/admin/products/' + encodeURIComponent(id) + '/restore', method: 'POST', body: {} }), invalidatesTags: ['AdminProducts'] }),
     getAdminCategories: builder.query<TilcayoResponse<{ name: string; totalProducts: number; activeProducts: number; stock: number }[]>, void>({
       query: () => ({ url: '/admin/products/categories' }), providesTags: ['AdminProducts'],
     }),
@@ -33,14 +35,15 @@ export const productsApi = tilcayoApi.enhanceEndpoints({ addTagTypes: ['AdminPro
     }),
   }),
 });
-export const { useGetAdminProductsQuery, useSaveAdminProductMutation, useGetAdminCategoriesQuery } = productsApi;
+export const { useDeleteAdminProductMutation, useRestoreAdminProductMutation, useGetAdminProductsQuery, useSaveAdminProductMutation, useGetAdminCategoriesQuery } = productsApi;
 `),
-    file('product-form.tsx', `import { useState, type FormEvent } from 'react';
+    file("product-form.tsx", `import { useState, type FormEvent } from 'react';
 import { Alert, Button, FormField, Input, Select } from '@tilcayo/ui';
 import type { Product, ProductInput } from './products.api';
 
-export function ProductForm({ product, busy, onSave }: { product?: Product; busy: boolean; onSave: (input: ProductInput) => Promise<unknown> }) {
+export function ProductForm({ product, busy, onSave, onCancel }: { product?: Product; busy: boolean; onSave: (input: ProductInput) => Promise<unknown>; onCancel?: () => void }) {
   const [error, setError] = useState('');
+  const [status, setStatus] = useState<ProductInput['status']>(product?.status ?? 'draft');
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -54,26 +57,45 @@ export function ProductForm({ product, busy, onSave }: { product?: Product; busy
     try { await onSave(input); }
     catch (error) { setError(error && typeof error === 'object' && 'message' in error && typeof error.message === 'string' ? error.message : 'Unable to save this product. Please try again.'); }
   }
-  return <form onSubmit={submit} className="tl-stack">
+  return <form onSubmit={submit} className="tl-admin-product-form">
+    <p className="tl-admin-form-intro">Manage the details, pricing, and availability of your product.</p>
     {error && <Alert variant="danger">{error}</Alert>}
-    <div className="tl-admin-product-fields">
-      <FormField label="Product name" id="product-name">{props => <Input {...props} name="name" required maxLength={120} defaultValue={product?.name} />}</FormField>
-      <FormField label="SKU" id="product-sku">{props => <Input {...props} name="sku" required maxLength={60} defaultValue={product?.sku} />}</FormField>
-      <FormField label="Category" id="product-category">{props => <Input {...props} name="category" maxLength={80} defaultValue={product?.category} />}</FormField>
-      <FormField label="Image URL" id="product-image" hint="An HTTPS image URL or a local path such as /products/watch.jpg.">{props => <Input {...props} name="imageUrl" maxLength={2000} defaultValue={product?.imageUrl ?? ''} placeholder="https://..." />}</FormField>
-      <FormField label="Price" id="product-price">{props => <Input {...props} name="price" type="number" required min={0} max={1000000000} step="0.01" defaultValue={product?.price ?? 0} />}</FormField>
-      <FormField label="Currency" id="product-currency">{props => <Select {...props} name="currency" defaultValue={product?.currency ?? 'KES'}><option value="KES">KES</option><option value="USD">USD</option></Select>}</FormField>
-      <FormField label="Stock quantity" id="product-stock">{props => <Input {...props} name="stock" type="number" required min={0} max={1000000000} step={1} defaultValue={product?.stock ?? 0} />}</FormField>
-      <FormField label="Status" id="product-status">{props => <Select {...props} name="status" defaultValue={product?.status ?? 'draft'}><option value="draft">Draft</option><option value="active">Active</option><option value="archived">Archived</option></Select>}</FormField>
-    </div>
-    <Button type="submit" disabled={busy}>{busy ? 'Saving...' : 'Save product'}</Button>
+    <fieldset className="tl-admin-form-section" disabled={busy}>
+      <legend>Product details</legend>
+      <div className="tl-admin-product-fields">
+        <div className="tl-admin-field-wide"><FormField label="Product name" id="product-name">{props => <Input {...props} name="name" autoFocus required maxLength={120} defaultValue={product?.name} placeholder="e.g. Classic leather watch" />}</FormField></div>
+        <FormField label="SKU" id="product-sku">{props => <Input {...props} name="sku" required maxLength={60} defaultValue={product?.sku} placeholder="e.g. WATCH-001" />}</FormField>
+        <FormField label="Category" id="product-category">{props => <Input {...props} name="category" maxLength={80} defaultValue={product?.category} placeholder="e.g. Accessories" />}</FormField>
+        <div className="tl-admin-field-wide"><FormField label="Product image" id="product-image" hint="Paste an image URL or a local image path.">{props => <Input {...props} name="imageUrl" maxLength={2000} defaultValue={product?.imageUrl ?? ''} placeholder="https://example.com/product.jpg" />}</FormField></div>
+      </div>
+    </fieldset>
+    <fieldset className="tl-admin-form-section" disabled={busy}>
+      <legend>Pricing &amp; inventory</legend>
+      <div className="tl-admin-product-pricing">
+        <FormField label="Price" id="product-price">{props => <Input {...props} name="price" type="number" required min={0} max={1000000000} step="0.01" defaultValue={product?.price ?? 0} />}</FormField>
+        <FormField label="Currency" id="product-currency">{props => <Select {...props} name="currency" defaultValue={product?.currency ?? 'KES'}><option value="KES">KES</option><option value="USD">USD</option></Select>}</FormField>
+        <FormField label="Stock quantity" id="product-stock">{props => <Input {...props} name="stock" type="number" required min={0} max={1000000000} step={1} defaultValue={product?.stock ?? 0} />}</FormField>
+      </div>
+    </fieldset>
+    <fieldset className="tl-admin-form-section tl-admin-product-publishing" disabled={busy}>
+      <legend>Publishing</legend>
+      <FormField label="Status" id="product-status">{props => <Select {...props} className={'tl-admin-status-select tl-admin-status-' + status} name="status" value={status} onChange={event => setStatus(event.target.value as ProductInput['status'])}><option value="draft">Draft</option><option value="active">Active</option><option value="archived">Archived</option></Select>}</FormField>
+      <p className="tl-help-text">{status === 'draft' ? 'Keep this product as a draft until it is ready.' : status === 'active' ? 'This product is available in your active catalog.' : 'This product stays in the catalog as an archived record.'}</p>
+    </fieldset>
+    <footer className="tl-admin-product-form-actions">
+      {onCancel && <Button variant="outline" disabled={busy} onClick={onCancel}>Cancel</Button>}
+      <Button type="submit" disabled={busy}>{busy ? 'Saving...' : 'Save product'}</Button>
+    </footer>
   </form>;
 }
 `),
-    file('products.page.tsx', `import { useState, type FormEvent } from 'react';
+    file("products.page.tsx", `import { useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { AdminMetricCard, ResourceLayout } from '@tilcayo/admin';
-import { Alert, Badge, Button, Card, Input, Modal, Select, Spinner, Table } from '@tilcayo/ui';
+import { Alert, Badge, Button, Card, Input, Modal, Select, Table, TableSkeleton, ListSkeleton } from '@tilcayo/ui';
+import { DeleteButton } from './delete-button';
+import { useAdminAccess } from './permissions';
+import { useDeleteAdminProductMutation } from './products.api';
 import { ProductForm } from './product-form';
 import { ProductGrid, ProductImage } from './product-grid';
 import { CategoriesSection } from './categories.section';
@@ -89,7 +111,10 @@ export function ProductsPage({ inventoryOnly = false }: { inventoryOnly?: boolea
 }
 
 function CatalogSection({ inventoryOnly }: { inventoryOnly: boolean }) {
-  const [view, setView] = useState<'cards' | 'table'>('cards');
+  const [view, setView] = useState<'cards' | 'table'>('table');
+  const { can } = useAdminAccess();
+  const canEdit = can('catalog');
+  const [remove] = useDeleteAdminProductMutation();
   const [params, setParams] = useSearchParams();
   const category = params.get('category') ?? undefined;
   const [search, setSearch] = useState('');
@@ -102,16 +127,16 @@ function CatalogSection({ inventoryOnly }: { inventoryOnly: boolean }) {
     event.preventDefault();
     setQuery({ ...query, search: search.trim(), page: 1 });
   }
-  return <ResourceLayout title={inventoryOnly ? 'Inventory' : 'Products'} description={inventoryOnly ? 'Monitor active products, stock levels, and availability.' : 'Your catalog, availability, and stock at a glance.'} actions={<Button onClick={() => setEditing('new')}>Add product</Button>}>
+  return <ResourceLayout title={inventoryOnly ? 'Inventory' : 'Products'} description={inventoryOnly ? 'Monitor active products, stock levels, and availability.' : 'Your catalog, availability, and stock at a glance.'} actions={canEdit ? <Button onClick={() => setEditing('new')}>Add product</Button> : undefined}>
     <div className="tl-admin-stats tl-admin-product-stats">
       {[
         { icon: 'box' as const, tone: 'green' as const, label: 'Total products', value: data?.stats.totalProducts, note: 'Across your catalog' },
         { icon: 'check' as const, tone: 'blue' as const, label: 'Active products', value: data?.stats.activeProducts, note: 'Available in your catalog' },
         { icon: 'alert' as const, tone: 'amber' as const, label: 'Low stock', value: data?.stats.lowStock, note: 'Active products with 1-5 units' },
         { icon: 'close' as const, tone: 'red' as const, label: 'Out of stock', value: data?.stats.outOfStock, note: 'Active products with no units' },
-      ].map(stat => <AdminMetricCard key={stat.label} {...stat} />)}
+      ].map(stat => <AdminMetricCard loading={!data && !isError} key={stat.label} {...stat} />)}
     </div>
-    <InventoryPanels />
+    {inventoryOnly && <InventoryPanels />}
     <section className="tl-admin-directory" aria-label="Product catalog" aria-busy={isFetching}>
       {!inventoryOnly && <header className="tl-admin-directory-heading"><div><h2>Product catalog</h2><p>Browse your products or switch to a compact table.</p></div><div className="tl-admin-view-toggle" role="group" aria-label="Product display"><Button variant="ghost" aria-pressed={view === 'cards'} onClick={() => setView('cards')}>Cards</Button><Button variant="ghost" aria-pressed={view === 'table'} onClick={() => setView('table')}>Table</Button></div></header>}
       {category !== undefined && <div className="tl-admin-directory-heading"><span>Category: {category || 'Uncategorized'}</span><Button variant="ghost" onClick={() => { setQuery({ ...query, page: 1 }); setParams({ section: 'catalog' }); }}>Clear category</Button></div>}
@@ -123,14 +148,14 @@ function CatalogSection({ inventoryOnly }: { inventoryOnly: boolean }) {
         <Select aria-label="Filter product stock" value={query.stock} onChange={event => setQuery({ ...query, stock: event.target.value as ProductsQuery['stock'], page: 1 })}><option value="all">All stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></Select>
         <Button type="submit">Search</Button><Button variant="outline" disabled={isFetching} onClick={() => void refetch()}>Refresh</Button>
       </form>
-      {isError ? <div className="tl-admin-empty"><Alert variant="danger">Unable to load products. Try Refresh.</Alert></div> : !data ? <div className="tl-admin-empty"><Spinner label="Loading products" /></div> : <>
-        {!inventoryOnly && view === 'cards' ? <ProductGrid products={data.items} onEdit={setEditing} /> : <Table><caption className="tl-sr-only">Product catalog and inventory</caption>
+      {isError ? <div className="tl-admin-empty"><Alert variant="danger">Unable to load products. Try Refresh.</Alert></div> : !data ? <TableSkeleton label="Loading products" columns={6} /> : <>
+        {!inventoryOnly && view === 'cards' ? <ProductGrid products={data.items} onEdit={canEdit ? setEditing : undefined} onDelete={canEdit ? product => remove(product._id).unwrap() : undefined} /> : <Table><caption className="tl-sr-only">Product catalog and inventory</caption>
           <thead><tr><th scope="col">Product</th><th scope="col">Category</th><th scope="col">Price</th><th scope="col">Stock</th>{inventoryOnly && <th scope="col">Stock health</th>}<th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
           <tbody>{data.items.map(product => <tr key={product._id}>
             <td><div className="tl-admin-product-cell"><div className="tl-admin-product-thumb"><ProductImage key={product.imageUrl} product={product} /></div><div><strong>{product.name}</strong><small className="tl-admin-product-sku">{product.sku}</small></div></div></td><td>{product.category || '—'}</td>
             <td className="tl-admin-product-price">{new Intl.NumberFormat('en', { style: 'currency', currency: product.currency }).format(product.price)}</td>
-            <td>{product.stock.toLocaleString()}</td>{inventoryOnly && <td><Badge variant={product.stock === 0 ? 'danger' : product.stock <= 5 ? 'warning' : 'success'}>{product.stock === 0 ? 'Out of stock' : product.stock <= 5 ? 'Low stock' : 'In stock'}</Badge></td>}<td><Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status}</Badge></td>
-            <td><Button variant="ghost" aria-label={'Edit ' + product.name} onClick={() => setEditing(product)}>Edit</Button></td>
+            <td>{product.stock.toLocaleString()}</td>{inventoryOnly && <td><Badge variant={product.stock === 0 ? 'danger' : product.stock <= 5 ? 'warning' : 'success'}>{product.stock === 0 ? 'Out of stock' : product.stock <= 5 ? 'Low stock' : 'In stock'}</Badge></td>}<td><Badge className={'tl-admin-status tl-admin-status-' + product.status} variant={product.status === 'active' ? 'success' : product.status === 'draft' ? 'warning' : 'neutral'}>{product.status}</Badge></td>
+            <td>{canEdit && <div className="tl-admin-row-actions"><Button variant="ghost" aria-label={'Edit ' + product.name} onClick={() => setEditing(product)}>Edit</Button><DeleteButton iconOnly name={product.name} onDelete={() => remove(product._id).unwrap()} /></div>}</td>
           </tr>)}{!data.items.length && <tr><td colSpan={inventoryOnly ? 7 : 6}><div className="tl-admin-empty"><strong>No products found</strong><p>Add your first product or adjust your filters.</p></div></td></tr>}</tbody>
         </Table>}
         <footer className="tl-admin-directory-footer"><span>{data.pagination.total} matching products · Page {query.page} of {data.pagination.lastPage}</span>
@@ -138,8 +163,8 @@ function CatalogSection({ inventoryOnly }: { inventoryOnly: boolean }) {
         </footer>
       </>}
     </section>
-    <Modal open={editing !== null} title={editing === 'new' ? 'Add product' : 'Edit product'} onClose={() => { if (!saving) setEditing(null); }}>
-      {editing !== null && <ProductForm key={editing === 'new' ? 'new' : editing._id} product={editing === 'new' ? undefined : editing} busy={saving} onSave={async input => {
+    <Modal className="tl-admin-product-modal" open={editing !== null} title={editing === 'new' ? 'Add product' : 'Edit product'} onClose={() => { if (!saving) setEditing(null); }}>
+      {editing !== null && <ProductForm key={editing === 'new' ? 'new' : editing._id} product={editing === 'new' ? undefined : editing} busy={saving} onCancel={() => setEditing(null)} onSave={async input => {
         await save({ id: editing === 'new' ? undefined : editing._id, input }).unwrap();
         setEditing(null);
       }} />}
@@ -157,20 +182,21 @@ function InventoryPanels() {
   ];
   return <div className="tl-admin-inventory-panels">
     <Card className="tl-admin-detail-panel"><header><div><h2>Low stock alerts</h2><p>Active products with 1-5 units remaining.</p></div></header>
-      {low.isError ? <Alert variant="danger">Unable to load stock alerts.</Alert> : !low.data ? <Spinner label="Loading stock alerts" /> : <>
+      {low.isError ? <Alert variant="danger">Unable to load stock alerts.</Alert> : !low.data ? <ListSkeleton label="Loading stock alerts" rows={3} /> : <>
         {low.data.data.items.slice(0, 3).map(product => <div className="tl-admin-stock-row" key={product._id}><div className="tl-admin-product-thumb"><ProductImage key={product.imageUrl} product={product} /></div><div><strong>{product.name}</strong><small>{product.sku}</small></div><Badge variant="warning">{product.stock} left</Badge></div>)}
         {!low.data.data.items.length && <p className="tl-admin-panel-note">No low stock alerts. Your active inventory is healthy.</p>}
         {low.data.data.pagination.total > 3 && <small className="tl-admin-panel-note">Showing 3 of {low.data.data.pagination.total} alerts. Use the Low stock filter below to see all.</small>}
       </>}
     </Card>
     <Card className="tl-admin-detail-panel"><header><div><h2>Inventory health</h2><p>Availability across active products.</p></div></header>
-      {low.isError ? <Alert variant="danger">Unable to load inventory health.</Alert> : !stats ? <Spinner label="Loading inventory health" /> : levels.map(level => <div className="tl-admin-health-row" key={level.label}><span>{level.label}</span><meter className={'tl-admin-tone-' + level.tone} aria-label={level.label} min={0} max={Math.max(stats.activeProducts, 1)} value={level.value} /><strong>{level.value}</strong></div>)}
+      {low.isError ? <Alert variant="danger">Unable to load inventory health.</Alert> : !stats ? <ListSkeleton label="Loading inventory health" rows={3} /> : levels.map(level => <div className="tl-admin-health-row" key={level.label}><span>{level.label}</span><meter className={'tl-admin-tone-' + level.tone} aria-label={level.label} min={0} max={Math.max(stats.activeProducts, 1)} value={level.value} /><strong>{level.value}</strong></div>)}
     </Card>
   </div>;
 }
 `),
-    file('product-grid.tsx', `import { useState } from 'react';
+    file("product-grid.tsx", `import { useState } from 'react';
 import { Badge, Button } from '@tilcayo/ui';
+import { DeleteButton } from './delete-button';
 import type { Product } from './products.api';
 
 export function ProductImage({ product }: { product: Product }) {
@@ -180,17 +206,17 @@ export function ProductImage({ product }: { product: Product }) {
     : <div className="tl-admin-product-placeholder" aria-label={'No image for ' + product.name}><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden="true"><path d="m12 3 9 5v8l-9 5-9-5V8Zm0 10v8M3 8l9 5 9-5M7.5 5.5l9 5" /></svg></div>;
 }
 
-export function ProductGrid({ products, onEdit }: { products: Product[]; onEdit: (product: Product) => void }) {
+export function ProductGrid({ products, onEdit, onDelete }: { products: Product[]; onEdit?: (product: Product) => void; onDelete?: (product: Product) => Promise<unknown> }) {
   if (!products.length) return <div className="tl-admin-empty"><strong>No products found</strong><p>Add your first product or adjust your filters.</p></div>;
   return <div className="tl-admin-product-grid">{products.map(product => <article className="tl-admin-product-card" key={product._id}>
     <div className="tl-admin-product-media">
       <ProductImage key={product.imageUrl} product={product} />
-      <div className="tl-admin-product-labels"><Badge variant={product.status === 'active' ? 'success' : 'neutral'}>{product.status}</Badge>{product.demoBatch && <Badge>Demo</Badge>}</div>
+      <div className="tl-admin-product-labels"><Badge className={'tl-admin-status tl-admin-status-' + product.status} variant={product.status === 'active' ? 'success' : product.status === 'draft' ? 'warning' : 'neutral'}>{product.status}</Badge>{product.demoBatch && <Badge>Demo</Badge>}</div>
     </div>
     <div className="tl-admin-product-card-body">
       <small>{product.category || 'Uncategorized'}</small><h3>{product.name}</h3><span className="tl-admin-product-sku">{product.sku}</span>
       <strong className="tl-admin-product-card-price">{new Intl.NumberFormat('en', { style: 'currency', currency: product.currency }).format(product.price)}</strong>
-      <footer><span>{product.stock === 0 ? 'Out of stock' : product.stock + ' in stock'}{product.stock > 0 && product.stock <= 5 ? ' · Low stock' : ''}</span><Button variant="outline" aria-label={'Edit ' + product.name} onClick={() => onEdit(product)}>Edit</Button></footer>
+      <footer><span>{product.stock === 0 ? 'Out of stock' : product.stock + ' in stock'}{product.stock > 0 && product.stock <= 5 ? ' · Low stock' : ''}</span><div className="tl-admin-row-actions">{onEdit && <Button variant="outline" aria-label={'Edit ' + product.name} onClick={() => onEdit(product)}>Edit</Button>}{onDelete && <DeleteButton iconOnly name={product.name} onDelete={() => onDelete(product)} />}</div></footer>
     </div>
   </article>)}</div>;
 }

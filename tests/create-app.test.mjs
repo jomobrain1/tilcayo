@@ -77,7 +77,7 @@ test("starter generates every API/auth variant that compiles and lists its regis
       const listed = run(cli, ["routes:list", "--json"], target);
       assert.equal(listed.status, 0, listed.stderr);
       const routes = JSON.parse(listed.stdout);
-      assert.equal(routes.length, 1 + (type === "api" ? 5 : 0) + (auth ? 8 : 0));
+      assert.equal(routes.length, 1 + (type === "api" ? 5 : 0) + (auth ? 9 : 0));
       assert.ok(routes.some((route) => route.path === "/health"));
       assert.equal(routes.some((route) => route.path === "/api/auth/me"), auth);
       if (type === "minimal" && !auth) {
@@ -156,6 +156,8 @@ test("React starter includes the client, local styles, and no backend secrets", 
     assert.match(await readFile(path.join(target, 'src/app/hooks.ts'), 'utf8'), /withTypes/);
     assert.match(await readFile(path.join(target, 'src/app/store.ts'), 'utf8'), /createTilcayoStore/);
     assert.ok(!(await readdir(target)).includes('.env'));
+    assert.deepEqual(await readFile(path.join(target, 'public/tilcayo-architecture.webp')), await readFile(path.join(repo, 'client/public/tilcayo-architecture.webp')));
+    assert.deepEqual(await readFile(path.join(target, 'public/tilcayo-auth-architecture.webp')), await readFile(path.join(repo, 'client/public/tilcayo-auth-architecture.webp')));
     for (const file of ['src/App.tsx', 'src/App.css', 'src/routes.tsx', 'src/layouts/app-layout.tsx', 'src/components/navigation.tsx', 'src/pages/not-found.page.tsx', 'src/pages/home.page.tsx', 'src/pages/elements.page.tsx', 'src/pages/about.page.tsx']) {
       assert.equal(await readFile(path.join(target, file), 'utf8'), await readFile(path.join(repo, 'client', file), 'utf8'));
     }

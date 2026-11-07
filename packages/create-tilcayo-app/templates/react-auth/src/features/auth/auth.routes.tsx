@@ -5,6 +5,7 @@ import { LoginPage } from '../../pages/login.page'
 import { RegisterPage } from '../../pages/register.page'
 import { ForgotPasswordPage } from '../../pages/forgot-password.page'
 import { DashboardPage } from '../../pages/dashboard.page'
+import { ProfilePage } from '../../pages/profile.page'
 import { ForbiddenPage } from '../../pages/forbidden.page'
 
 export const authRoutes: RouteObject[] = [
@@ -15,7 +16,7 @@ export const authRoutes: RouteObject[] = [
   ] }] },
   { element: <RequireAuth />, children: [
     { path: '/dashboard', element: <DashboardPage /> },
-    { path: '/profile', element: <DashboardPage /> },
+    { path: '/profile', element: <ProfilePage /> },
   ] },
   { path: '/forbidden', element: <ForbiddenPage /> },
 ]

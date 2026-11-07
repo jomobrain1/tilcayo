@@ -4,6 +4,7 @@ export interface StarterOptions {
   type: "api" | "minimal" | "react" | "fullstack";
   auth: boolean;
   admin?: boolean;
+  tenancy?: boolean;
   install: boolean;
 }
 
@@ -14,6 +15,7 @@ export const help = `Usage: create-tilcayo-app [project-name] [options]
   --api / --fullstack     Shortcuts for application type
   --auth / --no-auth      Include backend auth or React auth pages and route guards
   --admin                Add an admin shell (requires --auth and React/fullstack)
+  --tenancy              Subdomain workspaces (requires --fullstack --auth --admin)
   --no-install           Generate files without installing dependencies
   --yes                  Use defaults for unanswered choices
   --help                 Show this help
@@ -30,6 +32,8 @@ export function validateOptions(options: StarterOptions): void {
   if (!["api", "minimal", "react", "fullstack"].includes(options.type)) throw new Error("Application type must be api, minimal, react, or fullstack.");
   if (options.admin !== undefined && typeof options.admin !== "boolean") throw new Error("Admin choice must be a boolean.");
   if (options.admin && (!options.auth || !["react", "fullstack"].includes(options.type))) throw new Error("Admin requires --auth and a React or fullstack application.");
+  if (options.tenancy !== undefined && typeof options.tenancy !== "boolean") throw new Error("Tenancy choice must be a boolean.");
+  if (options.tenancy && (options.type !== "fullstack" || !options.auth || !options.admin)) throw new Error("Tenancy requires --fullstack --auth --admin.");
   if (typeof options.auth !== "boolean" || typeof options.install !== "boolean") throw new Error("Authentication and install choices must be booleans.");
 }
 
@@ -51,6 +55,7 @@ export function parseOptions(args: string[]): { options: StarterOptions; missing
     seen.add(key);
     if (arg === "--yes" || arg === "-y") { yes = true; continue; }
     if (arg === "--no-install") { options.install = false; continue; }
+    if (arg === "--tenancy") { options.tenancy = true; continue; }
     if (arg === "--admin") { options.admin = true; continue; }
     if (arg === "--api" || arg === "--fullstack") {
       options.type = arg === "--api" ? "api" : "fullstack";

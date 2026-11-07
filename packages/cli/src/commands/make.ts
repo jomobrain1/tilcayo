@@ -95,7 +95,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
     for (const file of files) messages.push(`Created ${await writeSource(root, file.folder, file.name, file.source)}`);
     await writeAuthEnv();
     return [...messages,
-      "Ensure @tilcayo/auth and @tilcayo/core are installed in this application.",
+      "Ensure @tilcayo/auth, @tilcayo/cloudinary and @tilcayo/core are installed in this application.",
       "Configured AUTH_ACCESS_SECRET and AUTH_REFRESH_SECRET in .env; existing nonempty values were preserved.",
       "Added auth placeholders to .env.example and environment exclusions to .gitignore.",
       "Set MONGODB_URI in .env and load it when starting the application.",
@@ -153,6 +153,8 @@ export async function make(args: string[], root = process.cwd()): Promise<string
     if (await readSource(frontendRoot, "app", "api.ts") === undefined) throw new Error("Full-stack generation requires client/src/app/api.ts and api/package.json. Run from the full-stack app root.");
   }
   const database = await databaseFor(backendRoot);
+  const tenantScoped = JSON.parse(await readFile(path.join(backendRoot, "package.json"), "utf8")).tilcayo?.tenancy === true;
+  if (tenantScoped && fields && parseFields(fields, true).some(field => field.name === "tenantId")) throw new Error("tenantId is managed automatically for tenant-scoped models.");
   const crud = kind === "controller" && (resource || flags.has("--crud") || flags.has("--mongo"));
   if ((kind === "resource" || kind === "model" || crud) && !flags.has("--mongo") && database !== "mongo") {
     throw new Error(`Unsupported database: ${database}. Only mongo is implemented.`);
@@ -182,7 +184,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
   if (kind === "resource") {
     const references = fields !== undefined && parseFields(fields, true).some((field) => field.kind === "reference");
     const files = [
-      { folder: "models", name: `${names.model}.ts`, source: modelTemplate(names, fields, true) },
+      { folder: "models", name: `${names.model}.ts`, source: modelTemplate(names, fields, true, tenantScoped) },
       { folder: "controllers", name: `${filename}.controller.ts`, source: controllerTemplate(names, true, true, fields, references || fullstack) },
       { folder: "validators", name: `${filename}.validator.ts`, source: validatorTemplate(names, fields) },
       { folder: "routes", name: `${filename}.routes.ts`, source: routeTemplate(names, true, true, true, fullstack ? "/api" : "") },
@@ -200,7 +202,7 @@ export async function make(args: string[], root = process.cwd()): Promise<string
   }
 
   let source: string;
-  if (kind === "model") source = modelTemplate(names, fields, true);
+  if (kind === "model") source = modelTemplate(names, fields, true, tenantScoped);
   else if (kind === "controller") {
     if (crud) {
       const model = await readSource(root, "models", `${names.model}.ts`);

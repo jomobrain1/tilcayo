@@ -1,0 +1,82 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import {once} from 'node:events';
+import {request as httpRequest} from 'node:http';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {createRequire} from 'node:module';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import path from 'node:path';
+import {generateApp} from '../packages/create-tilcayo-app/dist/index.js';
+import {createApp,runInTenantScope} from '../packages/core/dist/index.js';
+import {User} from '../packages/auth/dist/models/User.js';
+import {Tenant} from '../packages/auth/dist/models/Tenant.js';
+import {Membership} from '../packages/auth/dist/models/Membership.js';
+import {resolveConfig} from '../packages/auth/dist/types.js';
+import {createAccessToken} from '../packages/auth/dist/tokens.js';
+
+function hostFetch(url, options) {
+ return new Promise((resolve,reject)=>{const request=httpRequest(url,options,response=>{const chunks=[];response.on('data',chunk=>chunks.push(chunk));response.on('end',()=>resolve(new Response(response.statusCode===204?null:Buffer.concat(chunks),{status:response.statusCode})));});request.on('error',reject);if(options.body)request.write(options.body);request.end();});
+}
+
+test('Super Admin catalog and orders use separate platform collections while tenant catalog access remains scoped', async t=>{
+ const repo=fileURLToPath(new URL('../',import.meta.url));
+ const parent=await mkdtemp(path.join(repo,'.platform-catalog-test-'));
+ t.after(async()=>{assert.equal(path.dirname(parent),path.resolve(repo));assert.ok(path.basename(parent).startsWith('.platform-catalog-test-'));await rm(parent,{recursive:true,force:true});});
+ const root=await generateApp({name:'platform-catalog',type:'fullstack',auth:true,admin:true,tenancy:true,install:false,packageManager:'npm'},parent);
+ const compiler=path.join(path.dirname(createRequire(import.meta.url).resolve('typescript/package.json')),'bin/tsc');
+ execFileSync(process.execPath,[compiler,'-p',path.join(root,'api')],{encoding:'utf8'});
+ const previous=[process.env.AUTH_ACCESS_SECRET,process.env.AUTH_REFRESH_SECRET];
+ process.env.AUTH_ACCESS_SECRET='c'.repeat(64);process.env.AUTH_REFRESH_SECRET='d'.repeat(64);
+ t.after(()=>{for(const [i,name] of ['AUTH_ACCESS_SECRET','AUTH_REFRESH_SECRET'].entries()){if(previous[i]===undefined)delete process.env[name];else process.env[name]=previous[i];}});
+ const load=name=>import(pathToFileURL(path.join(root,'api/dist',name)).href);
+ const {auth}=await load('auth.js');
+ const {Product,PlatformProduct}=await load('models/Product.js');
+ const {Order,PlatformOrder}=await load('models/Order.js');
+ const {default:products}=await load('routes/admin-products.routes.js');
+ const {default:orders}=await load('routes/admin-orders.routes.js');
+ assert.equal(PlatformProduct.raw.collection.name,'tilcayo_platform_products');
+ assert.equal(PlatformOrder.raw.collection.name,'tilcayo_platform_orders');
+ assert.notEqual(Product.raw.collection.name,PlatformProduct.raw.collection.name);
+ assert.equal(PlatformProduct.raw.schema.path('tenantId'),undefined);
+ assert.ok(Product.raw.schema.path('tenantId'));
+ assert.equal(PlatformOrder.raw.schema.path('productId').options.ref,'PlatformProduct');
+ const tenantId='507f1f77bcf86cd799439011',userId='507f1f77bcf86cd799439013';
+ const user=new User.raw({_id:userId,name:'Platform Admin',email:'platform@example.test',roles:['superadmin'],sessionVersion:0});
+ t.mock.method(User,'find',async()=>user);
+ const tenant={_id:tenantId,name:'Sunrise',slug:'sunrise',status:'active'};
+ t.mock.method(Tenant,'first',async()=>tenant);t.mock.method(Tenant,'find',async()=>tenant);
+ t.mock.method(Membership,'first',async()=>({roles:['admin'],sessionVersion:0}));
+ const input={name:'Platform lamp',sku:'SAME-SKU',category:'Lighting',price:100,currency:'KES',stock:4,status:'active'};
+ const platformRecord=new PlatformProduct.raw({_id:'507f1f77bcf86cd799439014',...input});
+ const tenantRecord=new Product.raw({_id:'507f1f77bcf86cd799439015',...input,name:'Tenant lamp',tenantId});
+ await runInTenantScope({enabled:true},()=>platformRecord.validate());
+ await assert.rejects(runInTenantScope({enabled:true},()=>new Product.raw(input).validate()),/tenant workspace/i);
+ await runInTenantScope({enabled:true,tenantId},()=>tenantRecord.validate());
+ const writes=[];
+ for(const [model,record,scope]of [[PlatformProduct,platformRecord,'platform'],[Product,tenantRecord,'tenant']]){
+  t.mock.method(model,'paginate',async()=>({items:[record],pagination:{page:1,total:1,lastPage:1}}));
+  t.mock.method(model,'count',async()=>1);
+  t.mock.method(model,'firstOrFail',async()=>record);
+  t.mock.method(model,'create',async data=>{writes.push({scope,data});return record;});
+ }
+ for(const [model,scope]of [[PlatformOrder,'platform'],[Order,'tenant']])t.mock.method(model,'create',async data=>{writes.push({scope,order:data});return data;});
+ const server=createApp({middleware:[auth.tenantMiddleware]}).routes(products).routes(orders).listen(0);
+ await once(server,'listening');t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const config=resolveConfig({accessTokenSecret:process.env.AUTH_ACCESS_SECRET,refreshTokenSecret:process.env.AUTH_REFRESH_SECRET,tenancy:{baseDomain:'localhost'}});
+ const platformToken=await createAccessToken(userId,config);
+ const tenantToken=await runInTenantScope({enabled:true,tenantId,membershipVersion:0},()=>createAccessToken(userId,config));
+ const request=(endpoint,host,token,body)=>hostFetch(`http://127.0.0.1:${server.address().port}/api/admin/${endpoint}`,{method:body?'POST':'GET',headers:{Host:host,Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+ assert.equal((await(await request('products','localhost',platformToken)).json()).data.items[0].name,'Platform lamp');
+ assert.equal((await(await request('products','sunrise.localhost',tenantToken)).json()).data.items[0].name,'Tenant lamp');
+ assert.equal((await request('products','localhost',platformToken,input)).status,200);
+ assert.equal((await request('products','sunrise.localhost',tenantToken,input)).status,200);
+ for(const [host,token]of [['localhost',platformToken],['sunrise.localhost',tenantToken]])assert.equal((await request('orders',host,token,{productSku:input.sku,customerEmail:'customer@example.test',quantity:2})).status,200);
+ assert.deepEqual(writes.map(item=>item.scope),['platform','tenant','platform','tenant']);
+ assert.equal(String(writes[2].order.productId),String(platformRecord._id));
+ assert.equal(String(writes[3].order.productId),String(tenantRecord._id));
+ assert.equal((await request('products','sunrise.localhost',platformToken)).status,401);
+ user.roles=[];
+ assert.equal((await request('products','localhost',platformToken,input)).status,403);
+ assert.equal(writes.length,4);
+});

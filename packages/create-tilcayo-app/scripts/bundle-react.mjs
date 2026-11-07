@@ -17,6 +17,10 @@ async function collect(directory) {
   }
 }
 await collect('src/');
+// Snapshots are JSON text; decode this asset when the creator writes the app.
+for (const name of ['tilcayo-architecture.webp', 'tilcayo-auth-architecture.webp']) {
+  files['public/' + name] = '__TILCAYO_BASE64__:' + (await readFile(new URL('public/' + name, client))).toString('base64');
+}
 files['README.md'] = '# Tilcayo React starter\n\nReact, TypeScript, Vite, React Router, and Tilcayo styles. Includes Home, Elements, About, and responsive navigation.\n\nUse Node.js 22.12+ (or 24+).\n\n```sh\nnpm install\nnpm run dev\n```\n\nRun `npm run build` for production, `npm run preview` to preview the build, and `npm run lint` to check source files. Deploy `dist/` with all application URLs falling back to `index.html` for client-side routing.\n\nAdd routes in `src/routes.tsx` and pages in `src/pages/`. Shared layout and navigation live in `src/layouts/app-layout.tsx` and `src/components/navigation.tsx`; edit `src/App.css` for styles. This is a frontend starter; connect your own API. Local checkout generation links the checkout styles package, so keep the checkout available.\n';
 files['README.md'] += '\n## API client\n\n`src/lib/api.ts` uses @tilcayo/react with public VITE_API_URL or /api. It sends no requests on startup. Never put secrets in VITE_* variables. Local generation links both styles and API client packages from the checkout; future published generation uses npm versions.\n';
 files['README.md'] += '\nThe Redux Provider uses src/app/store.ts. Inject server endpoints into src/app/api.ts and use typed client-state hooks from src/app/hooks.ts. No backend is needed to render the starter.\n';

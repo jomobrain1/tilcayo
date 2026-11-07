@@ -7,6 +7,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
 import { generateApp } from '../packages/create-tilcayo-app/dist/index.js';
+import { AdminRole } from '../packages/auth/dist/models/AdminRole.js';
 import { User } from '../packages/auth/dist/models/User.js';
 import { createAccessToken } from '../packages/auth/dist/tokens.js';
 import { resolveConfig } from '../packages/auth/dist/types.js';
@@ -41,7 +42,7 @@ test('generated catalog and orders protect reads/writes, filter categories and v
   t.mock.method(Product, 'count', async () => 1);
   const create = t.mock.method(Product, 'create', async data => new Product.raw({ _id: id, ...data }));
   t.mock.method(Product, 'findOrFail', async () => record);
-  t.mock.method(Product, 'firstOrFail', async filter => { assert.equal(filter.sku, input.sku); return record; });
+  t.mock.method(Product, 'firstOrFail', async filter => { assert.equal(filter.deletedAt, null); if (filter.sku) assert.equal(filter.sku, input.sku); return record; });
   t.mock.method(Product.raw, 'aggregate', async () => [{ name: 'Lighting', totalProducts: 1, activeProducts: 1, stock: 3 }]);
   t.mock.method(Product, 'update', async (_id, data) => new Product.raw({ _id: id, ...data }));
   const orderRecord = { _id: id, productName: input.name, sku: input.sku, customerEmail: 'customer@example.test', quantity: 2, currency: 'KES', total: 5000, status: 'pending' };
@@ -49,6 +50,7 @@ test('generated catalog and orders protect reads/writes, filter categories and v
   t.mock.method(Order, 'count', async () => 1);
   t.mock.method(Order, 'create', async fields => ({ _id: id, ...fields }));
   t.mock.method(Order, 'findOrFail', async () => orderRecord);
+  t.mock.method(Order, 'firstOrFail', async filter => { assert.equal(filter.deletedAt, null); return orderRecord; });
   t.mock.method(Order, 'update', async (_id, fields) => ({ ...orderRecord, ...fields }));
   const server = createApp().routes(routes).routes(ordersRoutes).listen(0);
   await once(server, 'listening');
@@ -86,6 +88,18 @@ test('generated catalog and orders protect reads/writes, filter categories and v
   const updated = await fetch(base + '/' + id, { headers, method: 'PUT', body: JSON.stringify({ ...input, status: 'archived', stock: 0 }) });
   assert.equal(updated.status, 200);
   assert.equal((await updated.json()).data.status, 'archived');
+  let grantedTabs = ['inventory', 'trash'];
+  t.mock.method(AdminRole.raw, 'find', () => ({ lean: async () => [{ key: 'operator', tabs: grantedTabs }] }));
+  administrator.roles = ['operator'];
+  assert.equal((await fetch(base, { headers })).status, 200);
+  assert.equal((await fetch(base + '/categories', { headers })).status, 403);
+  assert.equal((await fetch(base, { headers, method: 'POST', body: JSON.stringify(input) })).status, 403);
+  assert.equal((await fetch(base + '?deleted=trash', { headers })).status, 403);
+  assert.equal((await fetch(ordersBase, { headers })).status, 403);
+  grantedTabs = ['orders'];
+  assert.equal((await fetch(ordersBase, { headers })).status, 200);
+  assert.equal((await fetch(base, { headers })).status, 403);
+  administrator.roles = ['admin'];
   const orderInput = { productSku: input.sku, customerEmail: 'customer@example.test', quantity: 3 };
   const newOrder = await fetch(ordersBase, { headers, method: 'POST', body: JSON.stringify(orderInput) });
   assert.equal(newOrder.status, 200);
@@ -100,6 +114,20 @@ test('generated catalog and orders protect reads/writes, filter categories and v
   const fulfilled = await fetch(ordersBase + '/' + id, { headers, method: 'PUT', body: JSON.stringify({ status: 'fulfilled' }) });
   assert.equal(fulfilled.status, 200);
   assert.equal((await fulfilled.json()).data.status, 'fulfilled');
+  const productDelete = t.mock.method(Product.raw, 'updateOne', async () => ({ modifiedCount: 1 }));
+  const orderDelete = t.mock.method(Order.raw, 'updateOne', async () => ({ modifiedCount: 1 }));
+  assert.equal((await fetch(base + '/' + id, { headers, method: 'DELETE' })).status, 204);
+  assert.ok(productDelete.mock.calls[0].arguments[1].$set.deletedAt instanceof Date);
+  assert.equal((await fetch(base + '?deleted=trash', { headers })).status, 200);
+  assert.deepEqual(list.mock.calls.at(-1).arguments[1].filter.deletedAt, { $ne: null });
+  assert.equal((await fetch(base + '/' + id + '/restore', { headers, method: 'POST' })).status, 204);
+  assert.equal(productDelete.mock.calls.at(-1).arguments[1].$set.deletedAt, null);
+  assert.equal((await fetch(ordersBase + '/' + id, { headers, method: 'DELETE' })).status, 204);
+  assert.ok(orderDelete.mock.calls[0].arguments[1].$set.deletedAt instanceof Date);
+  assert.equal((await fetch(ordersBase + '/' + id + '/restore', { headers, method: 'POST' })).status, 204);
+  assert.equal(orderDelete.mock.calls.at(-1).arguments[1].$set.deletedAt, null);
+  await fetch(base, { headers });
+  assert.equal(list.mock.calls.at(-1).arguments[1].filter.deletedAt, null);
   for (const change of [{ quantity: 0 }, { quantity: 1.5 }, { customerEmail: 'invalid' }, { total: 1 }, { status: 'fulfilled' }]) {
     assert.equal((await fetch(ordersBase, { headers, method: 'POST', body: JSON.stringify({ ...orderInput, ...change }) })).status, 422);
   }

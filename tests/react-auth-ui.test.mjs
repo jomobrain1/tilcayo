@@ -4,7 +4,9 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
-const ts = createRequire(new URL('../examples/react-starter/package.json', import.meta.url))('typescript');
+import { execFileSync } from 'node:child_process';
+const require = createRequire(new URL('../examples/react-starter/package.json', import.meta.url));
+const compiler = path.join(path.dirname(require.resolve('typescript/package.json')), 'bin/tsc');
 import { createElement as h } from 'react';
 import { renderToString } from 'react-dom/server';
 import { Provider } from 'react-redux';
@@ -22,15 +24,24 @@ test('generated auth forms, guards and safe return paths render against the real
   });
   await writeFile(path.join(root, 'package.json'), '{"type":"module"}');
   const files = templates({ name: 'auth-test', type: 'react', auth: true, admin: true, install: false, packageManager: 'npm' });
+  const inputs = [];
   for (const [filename, source] of Object.entries(files)) {
     if (!filename.startsWith('src/') || !/\.tsx?$/.test(filename)) continue;
-    const destination = path.join(root, filename.replace(/\.tsx?$/, '.js'));
+    const destination = path.join(root, 'input', filename);
+    inputs.push(destination);
     const prepared = source.replaceAll('import.meta.env.VITE_API_URL', 'undefined')
+      .replace(/import (\w+) from ['"]([^'"]+\?raw)['"]/g, (_match, name, specifier) => {
+        const rawPath = path.posix.normalize(path.posix.join(path.posix.dirname(filename), specifier.slice(0, -4)));
+        assert.ok(Object.hasOwn(files, rawPath), rawPath);
+        return `const ${name} = ${JSON.stringify(files[rawPath])}`;
+      })
       .replace(/from (['"])(\.[^'"]+)\1/g, (_match, quote, specifier) => `from ${quote}${specifier.replace(/\.tsx?$/, '')}.js${quote}`)
       .replace(/^import ['"].*\.css['"]\s*;?$/gm, '');
-    const output = ts.transpileModule(prepared, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-    await mkdir(path.dirname(destination), { recursive: true }); await writeFile(destination, output);
+    await mkdir(path.dirname(destination), { recursive: true }); await writeFile(destination, prepared);
   }
+  // Use the compiler CLI: TypeScript 7 does not expose transpileModule.
+  await writeFile(path.join(root, 'tsconfig.json'), JSON.stringify({ compilerOptions: { noCheck: true, target: 'ES2022', module: 'ESNext', moduleResolution: 'bundler', jsx: 'react-jsx', rootDir: './input', outDir: '.', ignoreDeprecations: '6.0' }, files: inputs }));
+  execFileSync(process.execPath, [compiler, '-p', path.join(root, 'tsconfig.json')], { encoding: 'utf8' });
   const load = filename => import(pathToFileURL(path.join(root, 'src', filename)).href);
   const { auth } = await load('app/auth.js');
   const { RequireAuth, GuestOnly } = await load('middleware/auth.js');
@@ -50,16 +61,19 @@ test('generated auth forms, guards and safe return paths render against the real
   assert.match(render(h(AppRoutes), guest, '/register'), /Create your account/);
   assert.match(render(h(AppRoutes), guest, '/login'), /href="\/forgot-password"/);
   assert.match(render(h(AppRoutes), guest, '/forgot-password'), /Send reset code/);
-  assert.ok(!render(h(AppRoutes), guest, '/dashboard').includes('Your account'));
-  assert.match(render(h(AppRoutes), member, '/dashboard'), /Your account/);
-  assert.match(render(h(AppRoutes), member, '/profile'), /Your account/);
+  assert.ok(!render(h(AppRoutes), guest, '/dashboard').includes('Your workspace'));
+  assert.match(render(h(AppRoutes), member, '/dashboard'), /Your workspace/);
+  assert.ok(!render(h(AppRoutes), member, '/dashboard').includes('Edit profile'));
+  assert.match(render(h(AppRoutes), member, '/profile'), /Profile &amp; settings/);
+  assert.match(render(h(AppRoutes), member, '/profile'), /Edit profile/);
   assert.ok(!render(h(AppRoutes), member, '/admin').includes('Manage your application resources'));
   const admin = { ...member, user: { ...member.user, roles: ['admin'] } };
   assert.ok(!render(h(AppRoutes), member, '/about').includes('href="/admin"'));
-  assert.match(render(h(AppRoutes), admin, '/about'), /href="\/admin"/);
-  assert.match(render(h(AppRoutes), admin, '/admin'), /Manage your application resources/);
+  assert.ok(!render(h(AppRoutes), admin, '/about').includes('href="/admin"'));
+  assert.match(render(h(AppRoutes), admin, '/about'), /Open account menu/);
+  assert.match(render(h(AppRoutes), admin, '/admin'), /A quick look at your application/);
   const overview = render(h(AppRoutes), admin, '/admin');
-  for (const text of ['Total users', 'Administrators', 'New this week', 'Active products', 'Recent users', 'Recent activity', 'Loading recent activity']) assert.ok(overview.includes(text), text);
+  for (const text of ['Users', 'Products', 'Orders', 'Low stock', 'Recent users', 'Recent activity', 'Loading activity']) assert.ok(overview.includes(text), text);
   assert.equal((overview.match(/class="[^"]*\btl-admin-metric\b[^"]*"/g) ?? []).length, 4);
   const { recentActivity, activityTime } = await load('features/admin/overview-activity.js');
   const activities = recentActivity(
@@ -72,8 +86,11 @@ test('generated auth forms, guards and safe return paths render against the real
   assert.match(activities[0].description, /2 units/);
   assert.equal(activityTime('2026-10-10T11:00:00Z', Date.parse('2026-10-10T12:00:00Z')), '1 hour ago');
   assert.equal(activityTime('2026-10-10T12:00:00Z', Date.parse('2026-10-10T12:00:30Z')), 'Just now');
+  assert.ok(!overview.includes('Quick actions'));
+  assert.ok(!overview.includes('tl-admin-nav-heading'));
   const directoryPage = render(h(AppRoutes), admin, '/admin/users');
-  for (const text of ['User directory', 'Search users by name or email', 'Filter users by role', 'Loading users', 'Members', 'Featured profiles', 'Recent joins', 'Agnes Njeri', 'James Mwangi', 'Caroline Mesago', 'Joined 2 hours ago', 'View all']) assert.ok(directoryPage.includes(text), text);
+  for (const text of ['User directory', 'Search users by name or email', 'Filter users by role', 'Loading users', 'Members']) assert.ok(directoryPage.includes(text), text);
+  assert.ok(!directoryPage.includes('Featured profiles'));
   assert.equal((directoryPage.match(/class="[^"]*\btl-admin-metric\b[^"]*"/g) ?? []).length, 4);
   assert.ok(!render(h(AppRoutes), member, '/admin/users').includes('User directory'));
   const catalog = render(h(AppRoutes), admin, '/admin/products');
@@ -98,6 +115,21 @@ test('generated auth forms, guards and safe return paths render against the real
   assert.ok(orders.includes('Loading orders'));
   assert.match(orders, /aria-pressed="true">Orders/);
   assert.ok(!render(h(AppRoutes), member, '/admin/products?section=orders').includes('Product orders'));
+  const operator = { ...member, user: { ...member.user, roles: ['operator'], adminTabs: ['catalog', 'trash'] } };
+  const restrictedCatalog = render(h(AppRoutes), operator, '/admin/products');
+  assert.ok(restrictedCatalog.includes('Product catalog'));
+  assert.ok(!restrictedCatalog.includes('href="/admin/users"'));
+  assert.ok(!restrictedCatalog.includes('href="/admin/access"'));
+  assert.ok(!restrictedCatalog.includes('>Orders</button>'));
+  assert.ok(!render(h(AppRoutes), operator, '/admin/products?section=orders').includes('Product orders'));
+  assert.ok(!render(h(AppRoutes), operator, '/admin/users').includes('User directory'));
+  assert.ok(render(h(AppRoutes), operator, '/admin/settings?section=trash').includes('Deleted record type'));
+  assert.ok(render(h(AppRoutes), admin, '/admin/settings?section=access').includes('Roles &amp; access'));
+  const settings = render(h(AppRoutes), admin, '/admin/settings?section=access');
+  assert.match(settings, /href="\/admin\/settings"/);
+  assert.ok(!settings.includes('tl-admin-nav-heading'));
+  assert.ok(!settings.includes('Sidebar headings'));
+  assert.ok(!render(h(AppRoutes), operator, '/admin/settings?section=access').includes('Add role'));
   const { adminApi } = await load('features/admin/admin.api.js');
   let requested;
   t.mock.method(globalThis, 'fetch', async url => {
@@ -116,7 +148,7 @@ test('generated auth forms, guards and safe return paths render against the real
   } finally { directoryStore.dispatch(auth.api.util.resetApiState()); }
   assert.match(render(h(AppRoutes), admin, '/admin/profile'), /Profile/);
   assert.match(render(h(AppRoutes), member, '/forbidden'), /Access denied/);
-  assert.match(render(h(AppRoutes), guest, '/missing'), /404 - Page not found/);
+  assert.match(render(h(AppRoutes), guest, '/missing'), /Page not found/);
   const protectedRoute = h(Routes, null, h(Route, { element: h(RequireAuth) }, h(Route, { path: '/', element: h('p', null, 'Private content') })));
   assert.ok(!render(protectedRoute, guest).includes('Private content'));
   assert.match(render(protectedRoute, member), /Private content/);
@@ -127,6 +159,18 @@ test('generated auth forms, guards and safe return paths render against the real
   const registration = render(h(RegisterPage), guest);
   for (const text of ['Create your account', 'Confirm password', 'type="email"', 'autoComplete="new-password"']) assert.ok(registration.includes(text), text);
   assert.equal(returnPath({ from: '/dashboard?tab=profile#details' }), '/dashboard?tab=profile#details');
+  for (const from of ['/admin', '/admin/products', '/admin/settings?section=users', '/ADMIN/products', '/%61dmin/products', '/forbidden']) assert.equal(returnPath({ from }, member.user), '/dashboard');
+  assert.equal(returnPath({ from: '/profile#account-security' }, member.user), '/profile#account-security');
+  assert.equal(returnPath({ from: '/admin/products?section=inventory' }, admin.user), '/admin/products?section=inventory');
+  const inventoryStaff = { roles: ['stock'], adminTabs: ['inventory'] };
+  assert.equal(returnPath({ from: '/admin/products?section=inventory' }, inventoryStaff), '/admin/products?section=inventory');
+  assert.equal(returnPath({ from: '/admin/products?section=catalog' }, inventoryStaff), '/dashboard');
+  const platformAdmin = { roles: ['superadmin'], platformRole: 'superadmin', adminTabs: ['tenants', 'users', 'catalog', 'inventory', 'categories', 'orders', 'trash'] };
+  assert.equal(returnPath({ from: '/admin/workspaces' }, platformAdmin), '/admin/workspaces');
+  assert.equal(returnPath({ from: '/admin/products' }, platformAdmin), '/admin/products');
+  assert.equal(returnPath({ from: '/admin/workspaces' }, admin.user), '/dashboard');
+  assert.equal(returnPath({ from: '/\t/evil.test' }, member.user), '/dashboard');
+
   for (const from of ['https://evil.test', '//evil.test', '/\\evil.test', '/login', '/register?next=x', null]) assert.equal(returnPath({ from }), '/dashboard');
   assert.match(authErrorMessage({ kind: 'network' }), /Unable to reach/);
   assert.equal(authErrorMessage({ message: 'Email already registered' }), 'Email already registered');

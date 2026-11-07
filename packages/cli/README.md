@@ -145,5 +145,5 @@ replaces only recognized, unchanged starter integration files and preserves othe
 pages/routes. It refuses customized integration files. `add:admin` requires auth
 and registers `/admin` routes. Run your package manager's install and build after
 either command. Assign roles through trusted server code and protect resource
-endpoints with server middleware. See [milestone details](../../FRONTEND-MILESTONES.md).
+endpoints with server middleware. See [milestone details](../../FRONTEND-MILESTONES.docx).
 

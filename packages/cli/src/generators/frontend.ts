@@ -109,14 +109,15 @@ ${fields.map(formField).join('\n')}
   return 'Unable to complete the request. Please try again.';
 }
 `),
-    file('pages', `${slug}.page.tsx`, `import { Link } from 'react-router';
+    file('pages', `${slug}.page.tsx`, `import { TableSkeleton } from '@tilcayo/ui';
+import { Link } from 'react-router';
 import { Table } from '@tilcayo/ui';
 import { useGet${plural}Query } from '../${slug}.api';
 import { errorMessage } from '../${slug}.feedback';
 
 export function ${plural}Page({ basePath = '/${slug}' }: { basePath?: string }) {
   const { data, isLoading, error, refetch } = useGet${plural}Query();
-  if (isLoading) return <p role="status">Loading ${slug}...</p>;
+  if (isLoading) return <TableSkeleton label="Loading ${slug}" />;
   if (error) return <section><p role="alert">{errorMessage(error)}</p><button className="tl-btn" onClick={() => void refetch()}>Retry</button></section>;
   return <section className="tl-stack">
     <h1>${plural}</h1>
@@ -129,7 +130,8 @@ export function ${plural}Page({ basePath = '/${slug}' }: { basePath?: string }) 
   </section>;
 }
 `),
-    file('pages', `${singular}.page.tsx`, `import { useState } from 'react';
+    file('pages', `${singular}.page.tsx`, `import { PageSkeleton } from '@tilcayo/ui';
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useGet${entity}Query, useDelete${entity}Mutation } from '../${slug}.api';
 import { errorMessage } from '../${slug}.feedback';
@@ -145,7 +147,7 @@ export function ${entity}Page({ basePath = '/${slug}' }: { basePath?: string }) 
     try { await remove(id).unwrap(); navigate(basePath); }
     catch (cause) { setDeleteError(errorMessage(cause)); }
   }
-  if (isLoading) return <p role="status">Loading ${singular}...</p>;
+  if (isLoading) return <PageSkeleton variant="content" label="Loading ${singular}" />;
   if (error) return <p role="alert">{errorMessage(error)}</p>;
   if (!data) return <p>${entity} not found.</p>;
   const item = data.data;
@@ -174,7 +176,8 @@ export function Create${entity}Page({ basePath = '/${slug}' }: { basePath?: stri
   </section>;
 }
 `),
-    file('pages', `edit-${singular}.page.tsx`, `import { useNavigate, useParams } from 'react-router';
+    file('pages', `edit-${singular}.page.tsx`, `import { FormSkeleton } from '@tilcayo/ui';
+import { useNavigate, useParams } from 'react-router';
 import { useGet${entity}Query, useUpdate${entity}Mutation } from '../${slug}.api';
 import { ${entity}Form } from '../components/${singular}-form';
 import { errorMessage } from '../${slug}.feedback';
@@ -184,7 +187,7 @@ export function Edit${entity}Page({ basePath = '/${slug}' }: { basePath?: string
   const navigate = useNavigate();
   const { data, isLoading, error } = useGet${entity}Query(id, { skip: !id });
   const [update, { isLoading: saving }] = useUpdate${entity}Mutation();
-  if (isLoading) return <p role="status">Loading ${singular}...</p>;
+  if (isLoading) return <FormSkeleton label="Loading ${singular}" />;
   if (error) return <p role="alert">{errorMessage(error)}</p>;
   if (!data) return <p>${entity} not found.</p>;
   return <section className="tl-stack"><h1>Edit ${singular}</h1>

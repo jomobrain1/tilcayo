@@ -249,3 +249,42 @@ hosts serve `client/dist` with SPA fallback and proxy `/api` to the Node API.
 The updated frontend packages and creator must be published before these flags
 work through `npm create tilcayo-app@latest`. Verify packed artifacts externally
 with `node tests/fullstack-starter-consumer.mjs` before release.
+
+
+## Tenant workspaces
+
+Create a local full-stack auth/admin app with `--tenancy`:
+
+```sh
+node packages/create-tilcayo-app/dist/bin.js my-saas --fullstack --auth --admin --tenancy --yes
+```
+
+From the generated application, set `TENANCY_SUPERADMIN_EMAIL` and
+`TENANCY_SUPERADMIN_PASSWORD` for the setup process, then run `npm run tenancy:setup`.
+This explicit command provisions only a Super Admin. It does not create a default
+tenant, assign memberships or migrate existing records. Re-running it updates
+the designated account password and revokes its existing sessions. No bootstrap
+password is generated into source files or run automatically on startup.
+
+Run the app and use `http://localhost:5173/admin/workspaces` for
+platform management. Create tenants and assign their administrators in Tenant administration. Open `<tenant-slug>.localhost` with the port printed by Vite.
+Users can register on the main site or at a tenant address. Tenant signup creates a normal membership in that tenant. An existing account can join another tenant using its existing password; signup never grants an admin role. There is no default tenant or Main app workspace switcher. The main site supports ordinary users and public registration; tenant administrators manage their own users, roles and product catalog.
+Each hostname has its own HttpOnly session cookie; sign in once per workspace.
+
+Super Admin manages tenants and global accounts. Tenant roles belong to Memberships,
+not global Users. A Super Admin must be explicitly added to enter a workspace.
+Tenant administrators manage their own members, custom roles, products, orders and
+Trash. Suspending a membership affects only that workspace; global user suspension
+affects all workspaces. Suspended or archived tenants retain data but reject access.
+
+`TENANCY_BASE_DOMAIN` defaults to `localhost`. Production needs wildcard DNS and
+HTTPS for that domain, with a same-origin `/api` proxy preserving Host. Subdomains
+are resolved from Host; forwarded tenant headers are not trusted.
+
+Tenant-owned models use `mongoModel(name, schema, { tenantScoped: true })`.
+The generator applies this to existing models and future `make:model` and
+`make:resource` output. Queries, writes, counts, distinct, population and supported
+aggregations use the request's tenant context. Platform requests cannot read these
+records. Native `raw.collection` operations bypass Mongoose and are reserved for
+explicit setup/migration code. Bulk writes, replacement updates and cross-collection
+aggregate stages are rejected unless implemented with their own isolation checks.

@@ -1,3 +1,4 @@
+import { SessionSkeleton } from './components/session-skeleton'
 import { BrowserRouter, useRoutes } from 'react-router'
 import { routes } from './routes'
 import { AuthBootstrap } from './app/auth'
@@ -10,7 +11,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthBootstrap fallback={<p className="tl-container starter-main" role="status">Checking your session...</p>}>
+      <AuthBootstrap fallback={<SessionSkeleton />}>
         <AppRoutes />
       </AuthBootstrap>
     </BrowserRouter>

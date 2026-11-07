@@ -1,3 +1,4 @@
+import { installTenancy } from "./installTenancy.js";
 import { mkdir, writeFile, readFile, access } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -16,7 +17,7 @@ async function localDependencies(target: string, options: StarterOptions): Promi
   catch { return {}; }
   if (manifest.name !== "tilcayo" || manifest.private !== true || !Array.isArray(manifest.workspaces) || !manifest.workspaces.includes("packages/*")) return {};
   const dependencies: Record<string, string> = {};
-  for (const name of options.type === "react" ? ["styles", "ui", "react", ...(options.admin ? ["admin"] : [])] : ["core", "cli", ...(options.auth ? ["auth"] : [])]) {
+  for (const name of options.type === "react" ? ["styles", "ui", "react", ...(options.admin ? ["admin"] : [])] : ["core", "cli", ...(options.auth ? ["auth", "cloudinary"] : [])]) {
     const directory = path.join(checkout, "packages", name);
     const pkg = JSON.parse(await readFile(path.join(directory, "package.json"), "utf8"));
     if (pkg.name !== `@tilcayo/${name}`) throw new Error(`Invalid local Tilcayo package: ${directory}`);
@@ -58,14 +59,25 @@ export async function generateApp(options: StarterOptions, root = process.cwd())
   for (const [filename, source] of Object.entries(sources)) {
     const destination = path.join(target, filename);
     await mkdir(path.dirname(destination), { recursive: true });
-    await writeFile(destination, source, { flag: "wx", ...(filename === ".env" ? { mode: 0o600 } : {}) });
+    const content = source.startsWith("__TILCAYO_BASE64__:") ? Buffer.from(source.slice("__TILCAYO_BASE64__:".length), "base64") : source;
+    await writeFile(destination, content, { flag: "wx", ...(filename === ".env" ? { mode: 0o600 } : {}) });
   }
   if (options.type === "api") await make(["make:resource", "Note", "title:string", "content?:string"], target);
   if (options.type === "fullstack") {
     await make(["make:resource", "Note", "title:string", "content?:string", "--fullstack"], target);
-    if (options.auth) await make(["make:auth"], path.join(target, "api"));
+    if (options.auth) {
+      await make(["make:auth"], path.join(target, "api"));
+      const authFile = path.join(target, "api/src/auth.ts");
+      const source = await readFile(authFile, "utf8");
+      await writeFile(authFile, source.replace('cookieSession: process.env.AUTH_COOKIE_SESSION === "true"', "cookieSession: true"));
+    }
   }
   if (options.auth && options.type !== "react" && options.type !== "fullstack") await make(["make:auth"], target);
+  if (options.tenancy) {
+    await installTenancy(target);
+    const readme = path.join(target, "README.md");
+    await writeFile(readme, await readFile(readme, "utf8") + "\nTenancy enabled: set TENANCY_SUPERADMIN_EMAIL and TENANCY_SUPERADMIN_PASSWORD for npm run tenancy:setup. Setup provisions only the Super Admin. Create tenants and assign their administrators in Tenant administration on the main domain; no default tenant or automatic record migration is created. Use the Vite port in the URL. Configure TENANCY_BASE_DOMAIN, wildcard DNS, HTTPS and a same-origin Host-preserving API proxy for production. Workspace sessions are host-only. Platform admins manage tenants; tenant roles belong to memberships.\n");
+  }
   return target;
 }
 

@@ -11,9 +11,14 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
   resolve: { dedupe: ['react', 'react-dom', 'react-redux', '@reduxjs/toolkit', 'react-router'] },
-  server: { proxy: { '/api': { target: process.env.API_PROXY_TARGET || 'http://127.0.0.1:9149', changeOrigin: true } } },
+  server: { proxy: { '/api': { target: process.env.API_PROXY_TARGET || 'http://127.0.0.1:9149', changeOrigin: false } } },
 });
 `;
+  if (options.auth) {
+    api[".env"] += "\nAUTH_COOKIE_SESSION=true\n";
+    api[".env.example"] += "\nAUTH_COOKIE_SESSION=true\n";
+    client["src/app/auth.ts"] = client["src/app/auth.ts"].replace("createTilcayoAuth({", "createTilcayoAuth({ cookieSession: true,");
+  }
   client[".env.example"] = "# Public frontend API base URL\nVITE_API_URL=/api\n";
   client["src/routes.tsx"] = "import { notesRoutes } from './features/notes/notes.routes';\n" + client["src/routes.tsx"].replace("children: [", "children: [\n      ...notesRoutes,");
   const files: Record<string, string> = {};
@@ -53,8 +58,8 @@ ${options.packageManager} run dev
 
 The client runs on Vite's printed URL and proxies /api to port 9149. If you change
 the API port, set API_PROXY_TARGET for the client dev process or edit
-client/vite.config.ts. Visit /notes for sample CRUD${options.auth ? ", /login to sign in, /register to create an account and /profile for your account" : ""}${options.admin ? ", and /admin for management" : ""}.
-${options.auth ? "Tokens are kept in memory; reloading signs out. Configure backend SMTP settings for password recovery.\n" : ""}${options.admin ? "Provision the admin role through trusted server code; registration never grants it.\n" : ""}
+client/vite.config.ts. Visit /notes for sample CRUD${options.auth ? ", /login to sign in, /register to create an account, /dashboard for your overview and /profile for profile and settings" : ""}${options.admin ? ", and /admin for management" : ""}.
+${options.auth ? "Access tokens stay in memory; an HttpOnly refresh cookie restores the session on reload. Production requires HTTPS and a same-origin API proxy. Configure backend SMTP settings for password recovery.\n" : ""}${options.admin ? "Provision the admin role through trusted server code; registration never grants it.\n" : ""}
 ${options.admin ? "Admin users and role filters are at /admin/users. The catalog at /admin/products includes inventory cards and add/edit forms. Product data starts empty; add products in the UI. Protected catalog routes and the Product model are generated in api/src.\n" : ""}
 Generate both halves from this directory:
 
@@ -66,8 +71,7 @@ npx tilcayo make:resource Book title:string author:ref:Author year:number? --ful
 Register backend routes in api/src/app.ts and spread frontend route arrays into
 client/src/routes.tsx layout children. For admin resources, add their links in
 client/src/features/admin/admin-layout.tsx and nest createBooksRoutes('books',
-'/admin/books') in the admin route module. Resource routes are public until you
-add backend auth.middleware (and auth.requireRole('admin') where appropriate).
+'/admin/books') in the admin route module. ${options.tenancy ? "Tenant resource routes require membership and use tenant-scoped models. Add role guards for privileged actions." : "Resource routes are public until you add backend auth.middleware (and auth.requireRole('admin') where appropriate)."}
 
 Run ${options.packageManager} run build to build both halves. Production uses
 api/dist/index.js and client/dist; serve the client with SPA fallback and proxy

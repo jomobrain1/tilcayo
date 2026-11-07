@@ -1,8 +1,7 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { existsSync } from "node:fs";
+import { existsSync, watch } from "node:fs";
 
 export async function runApp(args: string[], root = process.cwd()): Promise<string[]> {
   const [command, ...extra] = args;
@@ -38,19 +37,59 @@ export async function runApp(args: string[], root = process.cwd()): Promise<stri
     return [];
   }
   if (command === "dev") {
-    let nodemon;
-    try { nodemon = require("nodemon"); }
-    catch { throw new Error("Nodemon is missing. Install application dependencies first."); }
-    nodemon({
-      script: fileURLToPath(new URL("../bin.js", import.meta.url)),
-      args: ["dev:serve"],
-      exec: "node",
-      cwd: root,
-      watch: ["src", "tsconfig.json", ".env"],
-      ext: "ts,json,env",
-      ignore: ["dist/**", "node_modules/**"],
-      delay: 300,
-    }).on("log", (event: { message: string }) => console.log(`[tilcayo] ${event.message}`));
+    const compiler = path.join(path.dirname(require.resolve("typescript/package.json")), "bin/tsc");
+    // Own the API process directly. An intermediate dev:serve process prevented
+    // Windows watchers from reliably finishing a restart and releasing the port.
+    await new Promise<void>((resolve, reject) => {
+      let api: ChildProcess | undefined, compiling: ChildProcess | undefined;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let revision = 0, busy = false, closed = false;
+      const launch = (nodeArgs: string[]) => spawn(process.execPath, nodeArgs, { cwd: root, stdio: "inherit", windowsHide: true });
+      const stop = (child?: ChildProcess) => new Promise<void>(done => {
+        if (!child || child.exitCode !== null || child.signalCode !== null) return done();
+        child.once("exit", () => done()); child.kill("SIGTERM");
+      });
+      const restart = async () => {
+        if (busy || closed) return;
+        busy = true;
+        try {
+          let built: number;
+          do {
+            built = revision;
+            await stop(api); api = undefined;
+            if (closed) break;
+            compiling = launch([compiler, "-p", "tsconfig.json"]);
+            const code = await new Promise<number | null>((done, fail) => { compiling!.once("error", fail); compiling!.once("exit", done); });
+            compiling = undefined;
+            if (closed) break;
+            if (built !== revision) continue;
+            if (code === 0) {
+              api = launch(["--env-file-if-exists=.env", "dist/index.js"]);
+              api.once("error", error => console.error(error.message));
+            } else console.error("[tilcayo] Build failed. Waiting for changes.");
+          } while (built !== revision && !closed);
+        } catch (error) { console.error(error instanceof Error ? error.message : "Unable to restart API"); }
+        finally { busy = false; }
+      };
+      const changed = () => {
+        if (closed) return;
+        revision++;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => { console.log("[tilcayo] Rebuilding changed files..."); void restart(); }, 300);
+      };
+      const sourceWatcher = watch(path.join(root, "src"), { recursive: true }, (_event, filename) => { if (filename && /\.(ts|json)$/.test(String(filename))) changed(); });
+      const configWatcher = watch(root, (_event, filename) => { if (filename && [".env", "tsconfig.json"].includes(String(filename))) changed(); });
+      const close = () => {
+        if (closed) return; closed = true;
+        sourceWatcher.close(); configWatcher.close(); if (timer) clearTimeout(timer);
+        process.off("SIGINT", close); process.off("SIGTERM", close);
+        void Promise.all([stop(api), stop(compiling)]).then(() => resolve(), reject);
+      };
+      sourceWatcher.once("error", error => { close(); reject(error); });
+      configWatcher.once("error", error => { close(); reject(error); });
+      process.on("SIGINT", close); process.on("SIGTERM", close);
+      void restart();
+    });
     return [];
   }
   throw new Error(`Unknown application command: ${command}`);

@@ -63,9 +63,20 @@ async function planFrontendAuth(root: string, manifest: Manifest, changes: Chang
     changes.push({ target: path.join(root, filename), source, create: false });
   }
   const files = Object.entries(snapshot.auth).filter(([name]) =>
-    name.startsWith("src/") && !Object.hasOwn(snapshot.starter, name) &&
-    !["src/routes.tsx", "src/components/navigation.tsx", "src/layouts/app-layout.tsx", "src/layouts/admin-layout.tsx", "src/pages/not-found.page.tsx", "src/pages/about.page.tsx", "src/App.css"].includes(name),
+    name.startsWith("src/") && !name.startsWith("src/components/elements/") && !Object.hasOwn(snapshot.starter, name) &&
+    !["src/routes.tsx", "src/components/navigation.tsx", "src/components/error-page.tsx", "src/components/starter-visuals.tsx", "src/components/code-preview.tsx", "src/components/site-header.tsx", "src/lib/starter-images.ts", "src/layouts/app-layout.tsx", "src/layouts/admin-layout.tsx", "src/pages/not-found.page.tsx", "src/pages/about.page.tsx", "src/pages/home.page.tsx", "src/pages/elements.page.tsx", "src/App.css"].includes(name),
   ).map(([name, source]) => ({ folder: path.dirname(name.slice(4)), name: path.basename(name), source }));
+  // Older plain starters may not yet contain these public UI helpers.
+  for (const filename of ['src/components/error-page.tsx', 'src/components/starter-visuals.tsx', 'src/components/code-preview.tsx', 'src/components/site-header.tsx', 'src/lib/starter-images.ts']) {
+    const folder = path.dirname(filename.slice(4));
+    const name = path.basename(filename);
+    if (await readSource(root, folder, name) === undefined) files.push({ folder, name, source: snapshot.auth[filename] });
+  }
+  for (const [filename, source] of Object.entries(snapshot.auth)) {
+    if (!filename.startsWith('src/components/elements/')) continue;
+    const folder = path.dirname(filename.slice(4)), name = path.basename(filename);
+    if (await readSource(root, folder, name) === undefined) files.push({ folder, name, source });
+  }
   await planFiles(root, files, changes);
   const routes = await readSource(root, "", "routes.tsx");
   if (!routes) throw new Error("Missing src/routes.tsx");
@@ -83,7 +94,7 @@ async function planBackendAuth(root: string, manifest: Manifest, changes: Change
   const source = await readSource(root, "", "app.ts");
   if (!source?.includes("export default app;")) throw new Error("Backend src/app.ts must export default app for route integration.");
   changes.push({ target: path.join(root, "src/app.ts"), source: 'import authRoutes from "./routes/auth.routes.js";\n' + source.replace("export default app;", "app.routes(authRoutes);\n\nexport default app;"), create: false });
-  await addDependencies(manifest, root, ["auth", "core"]);
+  await addDependencies(manifest, root, ["auth", "core", "cloudinary"]);
   manifest.tilcayo = { ...manifest.tilcayo, auth: true };
   return prepareAuthEnv(root);
 }
@@ -113,6 +124,11 @@ export async function add(args: string[], root = process.cwd()): Promise<string[
     if (!frontend) throw new Error("Admin requires a React or full-stack app.");
     if (!frontendManifest.tilcayo?.auth || await readSource(frontendRoot, "app", "auth.ts") === undefined) throw new Error("Admin requires authentication. Run tilcayo add:auth first.");
     await planFiles(frontendRoot, adminFiles(), changes);
+    const sessionShell = await readSource(frontendRoot, "components", "session-skeleton.tsx");
+    if (sessionShell && !sessionShell.includes("AdminSessionShell")) {
+      const source = sessionShell;
+      changes.push({ target: path.join(frontendRoot, "src/components/session-skeleton.tsx"), source: "import { AdminSessionShell } from '../features/admin/session-shell';\n" + source.replace("  const { pathname } = useLocation()", "  const { pathname } = useLocation()\n  if (/^\\/admin(?:\\/|$)/.test(pathname)) return <AdminSessionShell />"), create: false });
+    }
     const routes = await readSource(frontendRoot, "", "routes.tsx");
     if (!routes) throw new Error("Missing src/routes.tsx");
     if (/path:\s*['"]\/admin['"]/.test(routes)) throw new Error("An /admin route already exists. Remove the placeholder or integrate @tilcayo/admin into it explicitly.");
