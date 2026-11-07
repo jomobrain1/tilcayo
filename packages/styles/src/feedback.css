@@ -57,7 +57,7 @@
   align-items: center;
   padding: var(--tl-space-1) var(--tl-space-2);
   border: 1px solid currentColor;
-  border-radius: var(--tl-radius-full);
+  border-radius: var(--tl-radius-sm);
   font-size: var(--tl-text-xs);
   font-weight: 600;
   background: var(--tl-surface);

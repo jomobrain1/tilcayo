@@ -49,8 +49,8 @@ export function FormField({ label, id, hint, error, children }: FormFieldProps) 
   </div>;
 }
 
-interface ModalProps { open: boolean; title: string; onClose: () => void; children: ReactNode }
-export function Modal({ open, title, onClose, children }: ModalProps) {
+interface ModalProps { className?: string; open: boolean; title: string; onClose: () => void; children: ReactNode }
+export function Modal({ open, title, onClose, children, className }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -61,7 +61,7 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
     return () => { if (dialog.open) dialog.close(); };
   }, [open]);
   // Native dialog provides focus containment, Escape handling and focus restoration.
-  return <dialog ref={ref} className="tl-modal" aria-labelledby={titleId} onCancel={event => { event.preventDefault(); onClose(); }}>
+  return <dialog ref={ref} className={classes("tl-modal", className)} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); onClose(); }}>
     <div className="tl-stack">
       <header className="tl-modal-header">
         <h2 id={titleId}>{title}</h2>
@@ -85,3 +85,10 @@ export function Pagination({ page, totalPages, onChange }: { page: number; total
     <Button variant="outline" disabled={page === last} onClick={() => onChange(page + 1)}>Next</Button>
   </nav>;
 }
+
+export { IconButton, LoadingButton, PasswordInput, Checkbox, RadioGroup, Switch, EmptyState, StatCard, Divider, Tabs, Breadcrumbs, DropdownMenu, ConfirmDialog, ToastProvider, useToast } from './library.js';
+
+export { Skeleton, SkeletonGroup, CardsSkeleton, TableSkeleton, ListSkeleton, FormSkeleton, PageSkeleton } from './skeletons.js';
+
+export { FileUpload } from './file-upload.js';
+export type { FileUploadProps } from './file-upload.js';
