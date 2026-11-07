@@ -27,5 +27,6 @@ export interface TilcayoContext<Body = unknown> {
   path: string;
   ip?: string;
   requestId?: string;
+  header(name: string, value: string): void;
   response: TilcayoResponse;
 }

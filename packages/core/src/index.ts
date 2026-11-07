@@ -41,3 +41,5 @@ export { validateContext } from "./validation/validateContext.js";
 export type { RouteValidation, ValidationDetails, ValidationIssue } from "./validation/types.js";
 
 export const tilcayoVersion = "0.0.2";
+
+export { currentTenantScope, runInTenantScope, requireTenantId } from "./database/tenantScope.js";

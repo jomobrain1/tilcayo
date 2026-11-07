@@ -1,3 +1,4 @@
+import { hasTenantScope, tenantScopedSchema } from "./tenantScope.js";
 import mongoose, { Types, type Model, type Schema, type PipelineStage, type QueryFilter, type SortOrder } from "mongoose";
 import { badRequest, notFound } from "../errors/httpErrors.js";
 import { paginationParams, positiveInteger, type Page } from "./pagination.js";
@@ -44,9 +45,11 @@ function nonemptyFilter<T>(filter: QueryFilter<T>): QueryFilter<T> {
   return filter;
 }
 
-export function mongoModel<S extends Schema>(name: string, schema: S) {
+export function mongoModel<S extends Schema>(name: string, schema: S, options: { tenantScoped?: boolean } = {}) {
   // Reuse registered schemas so reloading a model does not compile it twice.
   const registeredSchema = mongoose.models[name]?.schema as S | undefined;
+  if (registeredSchema && hasTenantScope(registeredSchema) !== !!options.tenantScoped) throw new Error(`Model ${name} has a different tenant scope; restart with consistent model options`);
+  if (!registeredSchema && options.tenantScoped) tenantScopedSchema(schema);
   return modelMethods(mongoose.model<S>(name, registeredSchema ?? schema));
 }
 

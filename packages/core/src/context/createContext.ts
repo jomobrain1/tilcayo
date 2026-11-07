@@ -19,6 +19,7 @@ export function createContext(
     method: req.method,
     path: req.path,
     ip: req.ip,
+    header(name, value) { res.setHeader(name, value); },
     response: {
       success(data, message = "Success") {
         return { success: true, message, data };
