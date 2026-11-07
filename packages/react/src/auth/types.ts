@@ -1,10 +1,15 @@
 import type { ApiClientConfig } from "../api/types.js";
 
 export interface AuthUser {
+  avatarUrl?: string;
   id: string;
   name: string;
   email: string;
   roles?: string[];
+  adminTabs?: string[];
+  platformRole?: 'superadmin';
+  tenancyEnabled?: boolean;
+  tenant?: { id: string; name: string; slug: string };
   createdAt?: string;
   updatedAt?: string;
 }
@@ -18,6 +23,8 @@ export interface FrontendAuthConfig extends ApiClientConfig {
   tagTypes?: string[];
   /** Optional in-memory bootstrap credentials; never persisted by this package. */
   initialTokens?: AuthTokens;
+  /** Restore through the API's HttpOnly refresh cookie on page reload. */
+  cookieSession?: boolean;
 }
 
 export interface ForgotPasswordInput { email: string }

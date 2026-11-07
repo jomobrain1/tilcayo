@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { mongoModel } from "@tilcayo/core";
 
 const refreshTokenSchema = new mongoose.Schema({
+  tenantId: { type: mongoose.Schema.Types.ObjectId, default: null, index: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "TilcayoUser", required: true, index: true },
   tokenHash: { type: String, required: true, unique: true },
   expiresAt: { type: Date, required: true, expires: 0 },

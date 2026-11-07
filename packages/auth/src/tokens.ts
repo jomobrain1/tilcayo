@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
-import { unauthorized } from "@tilcayo/core";
+import { currentTenantScope, unauthorized } from "@tilcayo/core";
 import type { ResolvedAuthConfig, AuthTokenPayload } from "./types.js";
 
 type Config = ResolvedAuthConfig;
@@ -9,7 +9,7 @@ async function sign(sub: string, type: AuthTokenPayload["type"], config: Config,
   const now = Math.floor(Date.now() / 1000);
   const secret = type === "access" ? config.accessTokenSecret : config.refreshTokenSecret;
   const ttl = type === "access" ? config.accessTokenTtlSeconds : config.refreshTokenTtlSeconds;
-  return new SignJWT({ type, sessionVersion }).setProtectedHeader({ alg: "HS256", typ: "JWT" })
+  return new SignJWT({ type, sessionVersion, ...(config.tenancy && currentTenantScope()?.tenantId ? { tenantId: currentTenantScope()!.tenantId, membershipVersion: currentTenantScope()?.membershipVersion ?? 0 } : {}) }).setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(sub).setJti(randomUUID()).setIssuedAt(now).setExpirationTime(now + ttl)
     .setIssuer(config.issuer).setAudience(config.audience).sign(new TextEncoder().encode(secret));
 }
@@ -25,7 +25,9 @@ async function verify(token: string, type: AuthTokenPayload["type"], config: Con
       || typeof payload.jti !== "string" || !payload.jti || typeof payload.iat !== "number" || typeof payload.exp !== "number"
       || payload.iat > Math.floor(Date.now() / 1000) || payload.exp <= payload.iat) throw new Error("Invalid claims");
     if (payload.sessionVersion !== undefined && (!Number.isSafeInteger(payload.sessionVersion) || (payload.sessionVersion as number) < 0)) throw new Error("Invalid session version");
-    return { sessionVersion: (payload.sessionVersion as number | undefined) ?? 0, sub: payload.sub, jti: payload.jti, type, iat: payload.iat, exp: payload.exp };
+    if (payload.tenantId !== undefined && (typeof payload.tenantId !== "string" || !/^[a-f\d]{24}$/i.test(payload.tenantId))) throw new Error("Invalid tenant");
+    if (payload.membershipVersion !== undefined && (!Number.isSafeInteger(payload.membershipVersion) || (payload.membershipVersion as number) < 0)) throw new Error("Invalid membership version");
+    return { ...(payload.membershipVersion !== undefined ? { membershipVersion: payload.membershipVersion as number } : {}), ...(payload.tenantId ? { tenantId: payload.tenantId as string } : {}), sessionVersion: (payload.sessionVersion as number | undefined) ?? 0, sub: payload.sub, jti: payload.jti, type, iat: payload.iat, exp: payload.exp };
   } catch {
     throw unauthorized("Invalid or expired token");
   }

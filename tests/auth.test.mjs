@@ -80,7 +80,7 @@ test("admin directory protects users, validates filters and returns public field
   assert.equal(query.perPage, 10);
   assert.equal(options.filter.roles, 'admin');
   assert.equal(options.filter.$or[0].name.$regex, 'Reader\\+');
-  assert.deepEqual(options.select, ['name', 'email', 'roles', 'createdAt', 'updatedAt']);
+  assert.deepEqual(options.select, ['name', 'email', 'roles', 'createdAt', 'updatedAt', 'deletedAt', 'suspendedAt']);
   await request('/api/admin/users?role=member', { headers });
   assert.deepEqual(paginate.mock.calls[1].arguments[1].filter.roles, { $ne: 'admin' });
   for (const query of ['page=0', 'page=1.5', 'perPage=101', 'role=owner', 'search=' + 'a'.repeat(101), 'search[x]=value']) {
@@ -243,4 +243,28 @@ test("auth models reuse registered schemas on reload", async () => {
   const original = await import("../packages/auth/dist/models/RefreshToken.js");
   const refreshed = await import("../packages/auth/dist/models/RefreshToken.js?reload");
   assert.equal(refreshed.RefreshToken.raw, original.RefreshToken.raw);
+});
+
+
+test('profile editing requires authentication and only changes the current user display name', async t => {
+  const c = config(); const auth = createAuth(c);
+  const user = new User.raw({ _id: id, name: 'Jane', email: 'jane@example.test', roles: [], passwordHash: 'hidden' });
+  t.mock.method(User, 'find', async () => user);
+  let writes = 0;
+  t.mock.method(User.raw, 'findOneAndUpdate', async (filter, update) => {
+    writes++;
+    assert.deepEqual(filter, { _id: id, deletedAt: null });
+    assert.deepEqual(update, { $set: { name: 'Jane updated' } });
+    user.name = update.$set.name; return user;
+  });
+  const request = await serve(t, createApp().routes(auth.routes));
+  const patch = (body, token) => request('/api/auth/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+  assert.equal((await patch({ name: 'Jane updated' })).status, 401);
+  const token = await createAccessToken(id, c);
+  assert.equal((await patch({ name: 'A' }, token)).status, 422);
+  assert.equal((await patch({ name: 'Jane updated', roles: ['admin'] }, token)).status, 422);
+  const saved = await patch({ name: '  Jane updated  ' }, token);
+  assert.equal(saved.status, 200); assert.equal(saved.body.data.name, 'Jane updated');
+  assert.equal(saved.body.data.email, user.email); assert.equal(saved.body.data.passwordHash, undefined);
+  assert.equal(writes, 1);
 });

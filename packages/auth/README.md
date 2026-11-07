@@ -50,6 +50,7 @@ The default base URL is `http://localhost:9149/api/auth`.
 | `POST /login` | JSON `email`, `password` |
 | `POST /refresh` | JSON `refreshToken` |
 | `POST /logout` | JSON `refreshToken` |
+| `PATCH /profile` | Bearer access token and JSON `name`; updates only your display name |
 | `GET /me` | `Authorization: Bearer <accessToken>` |
 
 Register with `Content-Type: application/json`:
@@ -79,7 +80,7 @@ export default defineRoutes((router) => {
 
 Register the module with `app.routes()`. Use `middleware: [auth.middleware]`
 in a `router.resource()` call's options to protect all its operations.
-Implement resource ownership and roles in application code when needed.
+Use auth.requireRole("admin") or auth.requireAdminTab("catalog") after auth.middleware. Resource ownership remains application-specific.
 
 ## Direct configuration
 
@@ -101,7 +102,7 @@ Register only one set of auth endpoints.
 
 Defaults: access tokens last 15 minutes and refresh tokens 7 days. Logout revokes
 the supplied refresh token; issued access tokens remain usable until expiry.
-Email verification and roles/permissions are not implemented.
+Roles and admin tab permissions are supported. Email verification is not implemented.
 
 ## More guides
 
@@ -163,3 +164,40 @@ const sendPasswordResetCode = createSmtpPasswordResetSender({
 
 Port 465 uses TLS immediately; other ports require STARTTLS. Connections retain
 certificate validation. Keep mail credentials private and out of source control.
+
+
+## Persistent sessions and admin access
+
+Enable `cookieSession: true` in `createAuth()` and `createTilcayoAuth()` for a
+same-origin API. Full-stack starters enable this automatically through
+`AUTH_COOKIE_SESSION=true` in `api/.env`. Access tokens stay in memory; a rotating
+HttpOnly, SameSite=Strict refresh cookie restores the session after a reload.
+The cookie expires after the configured refresh-token lifetime (7 days by default).
+Production (`NODE_ENV=production`) adds Secure; serve over HTTPS and preserve the
+original Host through the same-origin reverse proxy. Cross-origin cookie session
+requests are rejected. Body-token authentication remains the default for API clients.
+
+Mount `app.routes(auth.adminRoutes)` to expose Roles & access, user role assignment,
+and user soft delete/restore. The built-in `admin` role always has full access and
+is provisioned through trusted server code. Administrators create other roles at
+`/admin/access`, selecting tabs, then assign them from Users -> Roles. Multiple
+roles combine their tabs. Only the built-in admin can manage roles; custom roles
+cannot grant access management. Permissions are loaded from MongoDB on each
+protected request and returned as `adminTabs` in the public session user.
+
+Deleted users cannot sign in, refresh, or use an existing access token. Deleting
+an account increments its session version and revokes refresh tokens; restoring
+it requires a new login. Users cannot delete or demote themselves. Custom roles
+with Users access cannot delete or restore full administrators.
+
+Admin user management: `POST /api/admin/users` creates a user with `name`, `email`, `password`, and optional `roles`. `PUT /api/admin/users/:id/status` accepts `{ suspended: boolean }`. Both require the built-in admin role. Suspension revokes refresh sessions and invalidates access tokens; reactivation requires a fresh login. Administrators cannot suspend their own account.
+
+Tenant mode accepts `createAuth({ tenancy: { baseDomain: "localhost" }, ... })`. Register `auth.tenantMiddleware` and `auth.tenantAccessMiddleware` globally, and mount `auth.tenancyRoutes`. Host-bound tokens and current membership checks prevent cross-workspace sessions. Tenant roles use a compound `(tenantId, key)` index; membership changes invalidate that workspace session. Platform tenant and membership changes are recorded in `tilcayo_tenant_audit`.
+
+Public registration works on the main domain and tenant subdomains. Main-site
+signup creates an ordinary account without a tenant. Tenant signup creates an
+ordinary membership for that hostname. An existing account can join another
+tenant by registering there with its existing password; this never replaces its
+credentials or changes existing roles. Suspended or deleted memberships remain
+inactive. Super Admin assigns tenant administrators through tenant membership
+management. Setup creates no default tenant.

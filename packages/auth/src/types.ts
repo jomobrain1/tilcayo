@@ -1,6 +1,9 @@
 import type { TilcayoContext } from "@tilcayo/core";
 
+import type { AvatarStorage } from './avatar.js';
+
 export interface AuthConfig {
+  avatarStorage?: AvatarStorage;
   accessTokenSecret: string;
   refreshTokenSecret: string;
   accessTokenTtlSeconds?: number;
@@ -9,15 +12,25 @@ export interface AuthConfig {
   audience?: string;
   passwordRounds?: number;
   prefix?: string;
+  /** Persist refresh sessions in an HttpOnly, SameSite=Strict cookie. */
+  cookieSession?: boolean;
+  tenancy?: false | { baseDomain: string };
   /** Required to enable email password recovery. Never log or return the code. */
   sendPasswordResetCode?: (input: { email: string; code: string; expiresAt: Date }) => Promise<void>;
 }
 
 export interface AuthUser {
+  avatarUrl?: string;
   id: string;
   name: string;
   email: string;
   roles?: string[];
+  adminTabs?: string[];
+  platformRole?: 'superadmin';
+  tenancyEnabled?: boolean;
+  tenant?: { id: string; name: string; slug: string };
+  deletedAt?: Date | null;
+  suspendedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -29,6 +42,8 @@ export interface AuthTokenPayload {
   iat: number;
   exp: number;
   sessionVersion: number;
+  tenantId?: string;
+  membershipVersion?: number;
 }
 
 export interface AuthenticatedContext<Body = unknown> extends TilcayoContext<Body> {
@@ -37,9 +52,10 @@ export interface AuthenticatedContext<Body = unknown> extends TilcayoContext<Bod
 
 export type AuthenticatedRouteHandler<Body = unknown> = (ctx: AuthenticatedContext<Body>) => unknown | Promise<unknown>;
 
-export type ResolvedAuthConfig = Readonly<Required<Omit<AuthConfig, "sendPasswordResetCode">> & Pick<AuthConfig, "sendPasswordResetCode">>;
+export type ResolvedAuthConfig = Readonly<Required<Omit<AuthConfig, "sendPasswordResetCode" | "avatarStorage">> & Pick<AuthConfig, "sendPasswordResetCode" | "avatarStorage">>;
 
 export function resolveConfig(config: AuthConfig): ResolvedAuthConfig {
+  if (config.cookieSession !== undefined && typeof config.cookieSession !== "boolean") throw new Error("cookieSession must be a boolean");
   if (config.sendPasswordResetCode !== undefined && typeof config.sendPasswordResetCode !== "function") throw new Error("sendPasswordResetCode must be a function");
   for (const secret of [config.accessTokenSecret, config.refreshTokenSecret]) {
     if (typeof secret !== "string" || Buffer.byteLength(secret.trim()) < 32) throw new Error("Auth secrets must each contain at least 32 bytes");
@@ -49,6 +65,7 @@ export function resolveConfig(config: AuthConfig): ResolvedAuthConfig {
     sendPasswordResetCode: undefined,
     accessTokenTtlSeconds: 900, refreshTokenTtlSeconds: 604800,
     issuer: "tilcayo", audience: "tilcayo-app", passwordRounds: 12, prefix: "/api/auth",
+    cookieSession: false, tenancy: false as const,
     ...config,
   };
   for (const seconds of [resolved.accessTokenTtlSeconds, resolved.refreshTokenTtlSeconds]) {

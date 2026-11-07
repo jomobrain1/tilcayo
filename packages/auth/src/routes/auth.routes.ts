@@ -1,7 +1,9 @@
+import { z } from 'zod';
+import { avatarControllers } from '../avatar.js';
 import { defineRoutes, createHttpError, isTilcayoHttpError, bodyLimit, rateLimit, type Middleware } from "@tilcayo/core";
 import { createAuthControllers } from "../controllers/auth.controller.js";
 import { createGuard } from "../guard.js";
-import { registerSchema, loginSchema, refreshSchema, logoutSchema, forgotPasswordSchema, verifyResetCodeSchema, resetPasswordSchema } from "../validators/auth.validator.js";
+import { registerSchema, profileSchema, loginSchema, sessionSchemas, forgotPasswordSchema, verifyResetCodeSchema, resetPasswordSchema } from "../validators/auth.validator.js";
 import type { ResolvedAuthConfig } from "../types.js";
 
 export function authRequestMiddleware(): Middleware[] {
@@ -25,17 +27,23 @@ export function createAuthRoutes(
   controller: ReturnType<typeof createAuthControllers>,
   requestMiddleware: Middleware[],
 ) {
+  const avatar = avatarControllers(config.avatarStorage, auth.user);
   const attempts = rateLimit({ windowMs: 15 * 60_000, max: 20 });
   const recoveryAttempts = rateLimit({ windowMs: 15 * 60_000, max: 20 });
   return defineRoutes((router) => {
     router.group({ prefix: config.prefix, middleware: requestMiddleware }, () => {
       router.post("/register", controller.register, { middleware: [attempts], validate: { body: registerSchema } });
       router.post("/login", controller.login, { middleware: [attempts], validate: { body: loginSchema } });
-      router.post("/refresh", controller.refresh, { validate: { body: refreshSchema } });
-      router.post("/logout", controller.logout, { validate: { body: logoutSchema } });
+      const session = sessionSchemas(config.cookieSession);
+      router.post("/refresh", controller.refresh, { validate: { body: session.refresh } });
+      router.post("/logout", controller.logout, { validate: { body: session.logout } });
       router.post("/forgot-password", controller.forgotPassword, { middleware: [recoveryAttempts], validate: { body: forgotPasswordSchema } });
       router.post("/verify-reset-code", controller.verifyResetCode, { middleware: [recoveryAttempts], validate: { body: verifyResetCodeSchema } });
       router.post("/reset-password", controller.resetPassword, { middleware: [recoveryAttempts], validate: { body: resetPasswordSchema } });
+      router.post('/avatar/authorize', avatar.authorize, { middleware: [auth.middleware, avatar.attempts], validate: { body: z.strictObject({ filename: z.string().min(1).max(255), bytes: z.number().int().positive().max(2 * 1024 * 1024) }) } });
+      router.post('/avatar/complete', avatar.complete, { middleware: [auth.middleware, avatar.attempts], validate: { body: z.strictObject({ ticket: z.uuid() }) } });
+      router.delete('/avatar', avatar.remove, { middleware: [auth.middleware, avatar.attempts] });
+      router.patch("/profile", controller.profile, { middleware: [auth.middleware], validate: { body: profileSchema } });
       router.get("/me", (ctx) => ctx.response.success(auth.user(ctx), "Authenticated user retrieved"), { middleware: [auth.middleware] });
     });
   });

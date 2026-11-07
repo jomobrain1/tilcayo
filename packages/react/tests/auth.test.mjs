@@ -165,11 +165,11 @@ test('auth endpoints track actual backend route registration', () => {
   const router = createRouter();
   const handler = () => {};
   createAuthRoutes({ prefix: '/api/auth' }, { middleware: handler, user: () => user },
-    { login: handler, register: handler, refresh: handler, logout: handler, forgotPassword: handler, verifyResetCode: handler, resetPassword: handler }, [])(router);
+    { login: handler, register: handler, refresh: handler, logout: handler, forgotPassword: handler, verifyResetCode: handler, resetPassword: handler, profile: handler }, [])(router);
   assert.deepEqual(router.all().map(route => [route.method, route.path]), [
     ['POST', '/api/auth/register'], ['POST', '/api/auth/login'], ['POST', '/api/auth/refresh'],
     ['POST', '/api/auth/logout'], ['POST', '/api/auth/forgot-password'],
-    ['POST', '/api/auth/verify-reset-code'], ['POST', '/api/auth/reset-password'], ['GET', '/api/auth/me'],
+    ['POST', '/api/auth/verify-reset-code'], ['POST', '/api/auth/reset-password'], ['POST', '/api/auth/avatar/authorize'], ['POST', '/api/auth/avatar/complete'], ['DELETE', '/api/auth/avatar'], ['PATCH', '/api/auth/profile'], ['GET', '/api/auth/me'],
   ]);
 });
 
@@ -276,4 +276,101 @@ test('password recovery sends the expected inputs without starting a session or 
   const result = await failed.run('verifyResetCode', { email: user.email, code: '999999' });
   assert.equal(result.error.statusCode, 401);
   assert.deepEqual(failedCalls, ['/api/auth/verify-reset-code']);
+});
+
+
+test('cookie bootstrap restores a fresh store without persisted JavaScript tokens', async t => {
+  const calls = [];
+  const app = setup(t, async (url, init) => {
+    calls.push(url);
+    if (url.endsWith('/refresh')) { assert.deepEqual(JSON.parse(init.body), {}); return success({ tokens: rotated }); }
+    assert.equal(url, '/api/auth/me');
+    assert.equal(init.headers.get('authorization'), 'Bearer access-new');
+    return success({ ...user, roles: ['operator'], adminTabs: ['catalog'] });
+  }, { cookieSession: true });
+  await app.run('me');
+  assert.deepEqual(calls, ['/api/auth/refresh', '/api/auth/me']);
+  assert.equal(app.store.getState().auth.isAuthenticated, true);
+  assert.deepEqual(app.store.getState().auth.user.adminTabs, ['catalog']);
+  assert.ok(!JSON.stringify(app.store.getState()).includes('refresh-new'));
+  calls.length = 0;
+  await app.run('logout');
+  assert.deepEqual(calls, ['/api/auth/logout']);
+  assert.equal(app.store.getState().auth.isAuthenticated, false);
+});
+
+test('missing cookie bootstraps anonymously while transient refresh errors retain a retryable session', async t => {
+  const guest = setup(t, async () => failure(), { cookieSession: true });
+  await guest.run('me');
+  assert.equal(guest.store.getState().auth.initialized, true);
+  assert.equal(guest.store.getState().auth.isAuthenticated, false);
+  let unavailable = true;
+  const app = setup(t, async url => {
+    if (url.endsWith('/refresh')) return unavailable ? failure(503) : success({ tokens: rotated });
+    return success(user);
+  }, { cookieSession: true, initialTokens: tokens });
+  await app.run('me');
+  assert.equal(app.store.getState().auth.isAuthenticated, true);
+  const failed = await app.run('refresh');
+  assert.equal(failed.error.statusCode, 503);
+  assert.equal(app.store.getState().auth.isAuthenticated, true);
+  unavailable = false;
+  assert.equal((await app.run('refresh')).data, null);
+});
+
+
+test('profile updates synchronize the user and me cache without retaining private fields', async t => {
+  const app = setup(t, async (url, init) => {
+    if (url.endsWith('/me')) return success(user);
+    assert.equal(url, '/api/auth/profile'); assert.equal(init.method, 'PATCH');
+    assert.deepEqual(JSON.parse(init.body), { name: 'Updated reader' });
+    assert.equal(init.headers.get('authorization'), 'Bearer access-old');
+    return success({ ...user, name: 'Updated reader', passwordHash: 'private' });
+  }, { initialTokens: tokens });
+  await app.run('me');
+  const result = await app.run('updateProfile', { name: 'Updated reader' });
+  assert.equal(result.data.data.name, 'Updated reader');
+  assert.equal(app.store.getState().auth.user.name, 'Updated reader');
+  assert.equal(app.api.endpoints.me.select()(app.store.getState()).data.data.name, 'Updated reader');
+  assert.ok(!JSON.stringify(app.store.getState()).includes('private'));
+});
+
+test('cookie bootstrap restores from the verified refresh user in one request without retaining credentials', async t => {
+  const calls = [];
+  const verified = { ...user, roles: ['operator'], adminTabs: ['inventory'], passwordHash: 'must-not-be-cached' };
+  const app = setup(t, async url => { calls.push(url); assert.equal(url, '/api/auth/refresh'); return success({ tokens: rotated, user: verified }); }, { cookieSession: true });
+  const result = await app.run('me');
+  assert.deepEqual(calls, ['/api/auth/refresh']);
+  assert.deepEqual(result.data.data.adminTabs, ['inventory']);
+  assert.equal(app.store.getState().auth.initialized, true);
+  assert.equal(app.store.getState().auth.isAuthenticated, true);
+  const state = JSON.stringify(app.store.getState());
+  for (const secret of ['access-new', 'refresh-new', 'must-not-be-cached']) assert.ok(!state.includes(secret));
+});
+
+test('malformed refresh users do not hydrate permissions and a retry can restore safely', async t => {
+  let malformed = true;
+  const app = setup(t, async url => { assert.equal(url, '/api/auth/refresh'); return success({ tokens: rotated, user: malformed ? { id: user.id, roles: ['admin'] } : user }); }, { cookieSession: true });
+  const result = await app.run('me');
+  assert.ok(result.error);
+  assert.equal(app.store.getState().auth.isAuthenticated, false);
+  assert.equal(app.store.getState().auth.user, null);
+  malformed = false;
+  await app.run('me');
+  assert.equal(app.store.getState().auth.isAuthenticated, true);
+});
+
+test('logout during single-request restoration leaves no restored user or private cache', async t => {
+  let release, entered;
+  const started = new Promise(resolve => { entered = resolve; });
+  const app = setup(t, async url => {
+    if (url.endsWith('/refresh')) { entered(); return new Promise(resolve => { release = () => resolve(success({ tokens: rotated, user })); }); }
+    assert.equal(url, '/api/auth/logout'); return success(null);
+  }, { cookieSession: true });
+  const pending = app.run('me'); await started;
+  const logout = app.run('logout'); release();
+  await Promise.all([pending, logout]);
+  assert.equal(app.store.getState().auth.isAuthenticated, false);
+  assert.equal(app.store.getState().auth.user, null);
+  assert.ok(!JSON.stringify(app.store.getState()).includes(user.email));
 });

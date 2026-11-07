@@ -261,11 +261,12 @@ each app or SSR request; never share sessions across users on the server.
 
 ```ts
 const { user, isAuthenticated, initialized, loading, error,
-  login, register, logout, restoreSession, loginStatus } = useAuth();
+  login, register, logout, restoreSession, updateProfile, loginStatus } = useAuth();
 await login({ email, password });
 await register({ name, email, password });
 await logout();
 await restoreSession();
+await updateProfile({ name: 'Ada Lovelace' });
 // loginStatus.isLoading / isSuccess / isError / error are normal RTK values.
 ```
 
@@ -282,18 +283,22 @@ are id, name, email, optional ISO createdAt/updatedAt. No password hashes are ex
 Login inputs still pass through normal RTK mutation actions, so avoid persisting
 Redux actions or recording credentials with production DevTools/logging middleware.
 
-A reload starts anonymous unless initialTokens is explicitly supplied by the
-application. No durable session is promised: the current backend has no HttpOnly
-refresh cookie. With credentials in memory, bootstrap requests /auth/me, refreshing
-once if necessary; without credentials it initializes anonymously without a request.
-A normal invalid session clears user/cache. A temporary /me network failure exposes
-an error and preserves an already known user rather than contradicting cached data.
+By default a reload starts anonymous unless initialTokens is explicitly supplied.
+For a same-origin API, enable `cookieSession: true` on both createTilcayoAuth and
+createAuth. AuthBootstrap then exchanges the HttpOnly refresh cookie for fresh
+in-memory access credentials before loading /auth/me. Full-stack starters enable
+this mode automatically. The backend checks request origins; use a same-origin
+proxy preserving Host, and HTTPS with NODE_ENV=production in deployment.
+Standalone React/API users can opt into cookie mode once that proxy is configured.
+Normal invalid sessions clear user/cache; temporary network or server errors
+preserve existing credentials so refresh can be retried. No tokens are written
+to localStorage, sessionStorage or Redux. Session users include roles and adminTabs.
 All VITE_* values must remain public configuration, never tokens or server secrets.
 
 Authorization is injected centrally. Cookies/credentials: include are not enabled
 by default; explicit transport credentials settings are honored. A protected 401
 shares one refresh promise with concurrent requests and retries at most once.
-Login/register/logout/refresh failures never recursively refresh. Refresh failure
+Login/register/logout/refresh failures never recursively refresh. An unauthorized refresh
 or a second 401 clears the session and cache. Aborting one waiter does not cancel
 a shared rotation needed by others. Logout waits for an active rotation, revokes
 the replacement refresh token, clears local user/cache even on revocation failure,
@@ -327,3 +332,10 @@ current user's `roles` array. A denied role navigates to `/forbidden`.
 Backend guards enforce authorization with
 `[auth.middleware, auth.requireRole('admin')]` using current database roles.
 Assign roles through trusted server code; registration never grants them.
+
+
+Cookie-session bootstrap accepts a verified `user` alongside `tokens` in the
+refresh response. It validates and sanitizes that user and completes restoration
+without another `/me` request. Older token-only refresh responses still fall back
+to `/me`. No auth credentials or permission snapshots are persisted in browser
+storage. Supply a reusable skeleton to `AuthBootstrap` through its `fallback` prop.
