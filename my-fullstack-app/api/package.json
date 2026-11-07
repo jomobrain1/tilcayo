@@ -1,0 +1,36 @@
+{
+  "name": "my-fullstack-app-api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "tilcayo": {
+    "database": "mongo",
+    "type": "api",
+    "packageManager": "npm",
+    "tenancy": true
+  },
+  "scripts": {
+    "dev": "tilcayo dev",
+    "build": "tilcayo build",
+    "start": "tilcayo start",
+    "routes": "tilcayo routes:list",
+    "seed:demo": "node --env-file-if-exists=.env dist/scripts/seed-admin-demo.js",
+    "tenancy:setup": "node --env-file-if-exists=.env dist/scripts/setup-tenancy.js"
+  },
+  "dependencies": {
+    "@tilcayo/core": "file:../../packages/core",
+    "@tilcayo/auth": "file:../../packages/auth",
+    "mongoose": "file:../../node_modules/mongoose",
+    "zod": "file:../../node_modules/zod",
+    "@tilcayo/cloudinary": "file:../../packages/cloudinary"
+  },
+  "devDependencies": {
+    "@tilcayo/cli": "file:../../packages/cli",
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2",
+    "nodemon": "^3.1.14"
+  }
+}

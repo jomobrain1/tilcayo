@@ -1,0 +1,24 @@
+import { notesRoutes } from './features/notes/notes.routes';
+import { adminRoutes } from './features/admin/admin.routes';
+import type { RouteObject } from 'react-router'
+import { AppLayout } from './layouts/app-layout'
+import { HomePage } from './pages/home.page'
+import { ElementsPage } from './pages/elements.page'
+import { AboutPage } from './pages/about.page'
+import { NotFoundPage } from './pages/not-found.page'
+import { authRoutes } from './features/auth/auth.routes'
+
+export const routes: RouteObject[] = [
+  ...adminRoutes,
+  {
+    element: <AppLayout />,
+    children: [
+      ...notesRoutes,
+      { path: '/', element: <HomePage /> },
+      { path: '/elements', element: <ElementsPage /> },
+      { path: '/about', element: <AboutPage /> },
+      ...authRoutes,
+      { path: '*', element: <NotFoundPage /> },
+    ],
+  },
+]
