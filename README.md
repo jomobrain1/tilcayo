@@ -1,433 +1,518 @@
-﻿# Tilcayo
+# Tilcayo
 
-A TypeScript API framework built on Node.js, Express, Mongoose, and Zod.
+A TypeScript toolkit for building APIs and full-stack applications with Node.js, Express, MongoDB, Zod and React.
 
-**Keep it simple stupid:** plain functions, typed controllers, explicit routes, and short generator commands.
+Tilcayo uses plain functions, explicit routes and editable generated code. It includes authentication, tenant workspaces, admin screens, a reusable component library and Cloudinary uploads. MongoDB is the supported database adapter.
 
-Includes MongoDB CRUD and references, request validation, JWT authentication,
-middleware, pagination, and application scaffolding. A React starter is available
-in this checkout; user roles, admin tab permissions, and optional subdomain tenant workspaces are supported. SQL adapters are not implemented yet. The four backend/tooling packages are
-available on npm. The CSS foundation, `@tilcayo/styles`, is available in this
-checkout and has not been published yet.
+## Contents
 
-| Package | Guide |
-| --- | --- |
-| [create-tilcayo-app](https://www.npmjs.com/package/create-tilcayo-app) | [Create and start a project](packages/create-tilcayo-app/README.md) |
-| [@tilcayo/core](https://www.npmjs.com/package/@tilcayo/core) | [Runtime, validation, and MongoDB](packages/core/README.md) |
-| [@tilcayo/auth](https://www.npmjs.com/package/@tilcayo/auth) | [Authentication](packages/auth/README.md) |
-| [@tilcayo/cli](https://www.npmjs.com/package/@tilcayo/cli) | [Commands and generators](packages/cli/README.md) |
-| @tilcayo/react (unpublished) | [API/resource clients, Redux, RTK Query, and opt-in auth](packages/react/README.md) |
-| @tilcayo/styles (unpublished) | [CSS foundation and preview](packages/styles/README.md) |
-| @tilcayo/ui (unpublished) | [Accessible React primitives](packages/ui/README.md) |
-| @tilcayo/admin (unpublished) | [Protected management shell](packages/admin/README.md) |
+- [Quick start](#quick-start)
+- [Create an application](#create-an-application)
+- [Project structure](#project-structure)
+- [Development commands](#development-commands)
+- [Generators](#generators)
+- [Routes and validation](#routes-and-validation)
+- [Authentication and administration](#authentication-and-administration)
+- [Tenant workspaces](#tenant-workspaces)
+- [Environment configuration](#environment-configuration)
+- [Uploads](#uploads)
+- [Troubleshooting](#troubleshooting)
+- [Package guides](#package-guides)
 
-## Why the name?
+## Quick start
 
-Tilcayo takes its name from *Leopardus tilcayo*, a small wild cat from Bolivia's
-Yungas region. The cat's name comes from local communities.
-Its small size and distinct identity inspired the framework's focus on simplicity.
-[Read about the species](https://portal.pucrs.br/es/noticias/buscar/Nueva-especie-de-felino-Leopardus-tilcayo/).
+Use Node.js **22.12+ or 24+**, npm and an accessible MongoDB database. Install from npm; no framework checkout or separate package setup is required.
+
+Commands use `npm` and `npx`. If Windows PowerShell blocks them, use `npm.cmd` and `npx.cmd` instead.
+
+```powershell
+# Create the complete app: API, React, auth, admin and tenants
+npm create tilcayo-app@latest my-app -- --full-app
+
+# Enter your app
+cd my-app
+```
+
+`--full-app` installs dependencies and builds the app without requiring `--yes`. It includes dashboards, profile settings, Elements and upload support.
+
+Edit **`api/.env` inside your newly generated app**. The installer includes blank Super Admin fields; fill them before setup. Editing the framework repository's `.env`, another example app, or `.env.example` will not configure this app. Replace these placeholders:
+
+```dotenv
+MONGODB_URI=your_mongodb_connection_string
+TENANCY_BASE_DOMAIN=localhost
+TENANCY_SUPERADMIN_EMAIL=your_email
+TENANCY_SUPERADMIN_PASSWORD=your_chosen_strong_password
+```
+
+Keep the generated `AUTH_ACCESS_SECRET` and `AUTH_REFRESH_SECRET` values.
+
+```powershell
+# Create your initial Super Admin
+npm run tenancy:setup
+
+# Start the API and frontend together
+npm run dev
+```
+
+Open the frontend URL printed by Vite. Sign in with your Super Admin account, open **Tenant administration** from the profile menu, then create tenants and assign their administrators. No default tenant is created.
+
+The API defaults to port `9149`; the frontend proxies `/api` to it. Configure Cloudinary when you want real uploads and SMTP when you want password recovery emails.
 
 ## Create an application
 
-### Full-stack starter (local checkout)
+Choose one preset. Each command creates a separate app; existing directories are never overwritten.
 
-```sh
-npm run build
-node packages/create-tilcayo-app/dist/bin.js bookstore --fullstack --auth --admin --yes
-cd bookstore
-npm run dev
+```powershell
+# API only
+npm create tilcayo-app@latest my-api -- --api --yes
+
+# API with authentication
+npm create tilcayo-app@latest secure-api -- --api --auth --yes
+
+# Minimal server without MongoDB
+npm create tilcayo-app@latest tiny-server -- --type minimal --no-auth --yes
+
+# React frontend only
+npm create tilcayo-app@latest my-web -- --type react --yes
+
+# Fullstack with auth and admin, without tenancy
+npm create tilcayo-app@latest managed-app -- --fullstack --auth --admin --yes
 ```
 
-Configure MongoDB in `api/.env` first. The starter includes an API, a React/Vite
-client, a shared dev command, an `/api` proxy, and Notes CRUD at `/notes`. Omit
-`--admin` or both `--auth --admin` for smaller presets. Roles are provisioned
-through trusted server code; registration does not assign admin rights.
+Additional presets:
 
-Generate both halves from the app root:
+```powershell
+# React frontend with authentication pages; connect a compatible API
+npm create tilcayo-app@latest auth-web -- --type react --auth --yes
 
-```sh
-npx tilcayo make:resource Author name:string --fullstack
-npx tilcayo make:resource Book title:string author:ref:Author year:number? --fullstack
+# React frontend with auth and admin screens; connect a compatible API
+npm create tilcayo-app@latest admin-web -- --type react --auth --admin --yes
+
+# Fullstack without authentication or admin
+npm create tilcayo-app@latest basic-app -- --fullstack --yes
+
+# Complete app using the individual options
+npm create tilcayo-app@latest tenant-app -- --fullstack --auth --admin --tenancy --yes
 ```
 
-The commands print backend/frontend route registration steps. Existing apps can
-use `tilcayo add:auth` and `tilcayo add:admin`; installers refuse collisions and
-customized integration files. See [frontend milestones](FRONTEND-MILESTONES.docx).
-Build and publish the updated packages before using these options through the
-registry creator. This command currently uses the local checkout.
+### Creator options
 
-### React starter (local checkout)
-
-The local creator supports `--type react`. It generates the client with React,
-TypeScript, Vite, Home/Elements/About pages, Tilcayo styles, and responsive
-navigation. Use Node.js 22.12+ or 24+. From this repository:
-
-```sh
-npm run build
-cd examples
-node ../packages/create-tilcayo-app/dist/bin.js my-react-app --type react --yes
-cd my-react-app
-npm run dev
-```
-
-The checked-in `examples/react-starter` is a generated example. Run
-`npm run dev -w react-starter` from the repository root to start it after installing
-dependencies. Local generation links `@tilcayo/styles` from this checkout.
-The creator build bundles the current `client` source into its distributable.
-Publish `@tilcayo/styles`, `@tilcayo/react`, and the updated creator before using this option through
-`npm create tilcayo-app@latest`. Add `--auth` to scaffold login/register pages, a protected dashboard, route guards,
-and session bootstrap. Connect a separate Tilcayo auth API; the generated README
-explains setup. Tokens are in memory, so reloading signs out. On PowerShell, use `npm.cmd` if script execution is blocked.
-
-### Backend API
-
-Use Node.js 22.9+ and npm. Open a terminal where you keep your projects, outside
-this framework repository:
-
-```sh
-npm create tilcayo-app@latest
-```
-
-Follow the prompts to choose your project name, package manager, application type,
-and whether to include authentication. For example, name your project `my-api`,
-then enter its directory:
-
-```sh
-cd my-api
-```
-
-The creator installs dependencies, builds the app, and creates a private `.env`.
-If you enable authentication, it also generates distinct random auth secrets.
-For a MongoDB API or any app with authentication, configure the new app's `.env`:
-
-```dotenv
-PORT=9149
-MONGODB_URI=mongodb://127.0.0.1:27017/my_api
-```
-
-Start MongoDB locally or use your Atlas connection string. Keep the generated
-auth secrets if authentication is enabled. A minimal app without authentication
-does not need MongoDB. Start your app:
-
-```sh
-npm run dev
-```
-
-Open `http://localhost:9149/health` in your browser. The API returns:
-
-```json
-{
-  "success": true,
-  "message": "Success",
-  "data": {
-    "status": "ok"
-  }
-}
-```
-
-This is a backend API. Connect your own frontend or test requests using Postman
-or Thunder Client.
-
-### Create without prompts
-
-To create a MongoDB API with authentication without choosing options interactively:
-
-```sh
-npm create tilcayo-app@latest my-api -- --type api --auth --yes
-```
-
-Then enter `my-api`, configure `.env`, and run `npm run dev` as above.
-Use `--no-auth` to omit authentication, `--type minimal --no-auth` for a
-database-free starter, `--package-manager npm|pnpm|yarn` to choose the installer,
-or `--no-install` to generate files without installing dependencies.
-
-### Application commands
-
-| App command | Purpose |
+| Option | Purpose |
 | --- | --- |
-| `npx tilcayo dev` | Build, watch, and restart |
-| `npx tilcayo build` | Compile the application |
-| `npx tilcayo start` | Run the compiled app with `.env` |
-| `npx tilcayo routes:list` | List registered routes from `dist/app.js` |
+| `--full-app` | Fullstack, auth, admin and tenancy; npm by default, no prompts |
+| `--type api|minimal|react|fullstack` | Choose the app type; default is `api` |
+| `--api`, `--fullstack` | Shortcuts for the corresponding app type |
+| `--auth`, `--no-auth` | Include or exclude authentication |
+| `--admin` | Include admin screens; requires auth and React/fullstack |
+| `--tenancy` | Include tenant workspaces; requires fullstack, auth and admin |
+| `--package-manager npm|pnpm|yarn` | Choose a package manager |
+| `--no-install` | Generate files without installation or automatic build |
+| `--yes`, `-y` | Use defaults for unanswered choices |
+| `--help` | Show creator help |
 
-Route listing supports `--method GET`, `--path /api`, `--json`, `--entry`, and
-`--env-file`.
+`--full-app` accepts package-manager and installation options. It rejects incompatible choices such as `--no-auth` or `--type react`.
 
-Generated apps also provide `npm run dev`, `npm run build`, `npm start`, and
-`npm run routes`. Build before listing routes so compiled output is current.
+```powershell
+# Use pnpm for the complete app
+npm create tilcayo-app@latest team-app -- --full-app --package-manager pnpm
 
-## Continue building your app
+# Generate the complete app, but install and build later
+npm create tilcayo-app@latest draft-app -- --full-app --no-install
+cd draft-app
+npm install
+npm run build
 
-| Location | Purpose |
-| --- | --- |
-| `src/app.ts` | Register routes and middleware |
-| `src/index.ts` | Database connection and server startup/shutdown |
-| `src/config.ts` | Configuration |
-| `src/models/` | Database schemas |
-| `src/controllers/` | Request handlers and responses |
-| `src/validators/` | Zod request validation |
-| `src/services/` | Business logic |
-| `src/routes/` | URLs and route middleware |
-| `.env` | Private configuration; keep out of Git |
-
-Generate a resource, register its routes, customize the files, and test the HTTP
-endpoints. Dev rebuilds and restarts when source changes. Application changes do
-not need npm publishing: build and run your API as a Node.js service.
-
-## Generate resources
-
-Run inside the application directory:
-
-```sh
-npx tilcayo make:resource Product name:string price:number active:boolean
+# Show all creator options
+npm create tilcayo-app@latest -- --help
 ```
 
-This creates a model, CRUD controller, Zod validator, and route module:
+## Project structure
+
+A complete generated app contains:
 
 ```text
-src/models/Product.ts
-src/controllers/products.controller.ts
-src/validators/products.validator.ts
-src/routes/products.routes.ts
+my-app/
+  api/
+    src/app.ts          # Register API routes and middleware
+    src/index.ts        # Database connection and server lifecycle
+    src/auth.ts         # Authentication configuration
+    src/storage.ts      # Cloudinary upload profiles
+    src/models/
+    src/controllers/
+    src/routes/
+    src/validators/
+    src/services/
+    .env                # Private backend configuration
+  client/
+    src/app/            # API, auth and Redux setup
+    src/components/
+    src/features/
+    src/pages/
+    src/routes.tsx      # Frontend routes
+  scripts/dev.mjs       # Start both halves
+  package.json
 ```
 
-Register the generated routes in `src/app.ts`:
+Edit your generated application's source. Its npm dependencies supply the reusable framework; you do not run the nine packages separately.
 
-```ts
-import productRoutes from "./routes/products.routes.js";
+## Development commands
 
-app.routes(productRoutes);
+### Full-stack app root
+
+Run inside `my-app/`. The separate dev commands are alternatives to the combined command.
+
+```powershell
+# Start API and frontend together
+npm run dev
+
+# Start only the API
+npm run dev:api
+
+# Start only the frontend in a separate terminal
+npm run dev:client
+
+# Build both API and frontend
+npm run build
+
+# Start the built API
+npm start
+
+# List registered backend routes after building
+npm run routes
+
+# Lint frontend code
+npm run lint --workspace client
 ```
 
-The routes provide `GET /products`, `POST /products`, and
-`GET`, `PUT`, and `DELETE /products/:id`. Controllers use standalone
-`index`, `store`, `show`, `update`, and `destroy` functions.
-All target files are checked for collisions before generation.
+`npm start` runs the API only. Host `client/dist` separately with SPA fallback and an `/api` proxy for production.
 
-Test `POST http://localhost:9149/products` with `Content-Type: application/json`:
+### API directory
 
-```json
-{
-  "name": "Notebook",
-  "price": 250,
-  "active": true
-}
+Run inside `my-app/api/`, or the root of a standalone API app.
+
+```powershell
+# Compile, start, watch and restart the API
+npx tilcayo dev
+
+# Compile the API to dist/
+npx tilcayo build
+
+# Start the compiled API with .env
+npx tilcayo start
+
+# Build once and start without watching
+npx tilcayo dev:serve
+
+# Show CLI commands
+npx tilcayo --help
 ```
 
-Use the returned `data._id` in `/products/:id`. Generated CRUD routes are public
-until you attach authentication middleware, even when auth was selected at setup.
+Stop an existing API before starting another on the same port.
 
-| Field syntax | Meaning |
+### Frontend directory
+
+Run inside `my-app/client/`, or the root of a standalone React app.
+
+```powershell
+# Start the frontend dev server
+npm run dev
+
+# Build the frontend to dist/
+npm run build
+
+# Check frontend code
+npm run lint
+
+# Preview an existing production build locally
+npm run preview
+```
+
+### Inspect API routes
+
+Run inside the API directory after building.
+
+```powershell
+# List all routes
+npx tilcayo routes:list
+
+# Filter by HTTP method
+npx tilcayo routes:list --method GET
+
+# Filter by URL path
+npx tilcayo routes:list --path /api/auth
+
+# Output JSON
+npx tilcayo routes:list --json
+
+# Choose the compiled app and environment file explicitly
+npx tilcayo routes:list --entry dist/app.js --env-file .env
+```
+
+`--entry` defaults to `dist/app.js`. That module must export the app without connecting MongoDB or starting a listener.
+
+## Generators
+
+Generators create editable source and print registration steps. They refuse existing target files.
+
+### Generate both API and frontend
+
+Run from the full-stack app root.
+
+```powershell
+# Generate a complete Project CRUD feature
+npx tilcayo make:resource Project title:string active:boolean --fullstack
+```
+
+Register the generated API route in `api/src/app.ts` and the frontend route array in `client/src/routes.tsx`, following the printed instructions.
+
+### Generate backend resources
+
+Run inside the API directory. Choose resources that do not already exist; the admin preset already includes a product catalog.
+
+```powershell
+# Generate a model, controller, validator and routes
+npx tilcayo make:resource Article title:string published:boolean
+
+# Generate related resources
+npx tilcayo make:resource Author name:string
+npx tilcayo make:resource Book title:string author:ref:Author "year:number?"
+
+# Explicitly select MongoDB
+npx tilcayo make:resource InventoryItem name:string quantity:number --mongodb
+```
+
+### Generate individual backend files
+
+These commands are an alternative to generating the same feature with `make:resource`.
+
+```powershell
+# Generate a model
+npx tilcayo make:model Customer name:string email:string
+
+# Generate a working CRUD controller for that model
+npx tilcayo make:controller customers --resource name:string email:string
+
+# Generate request validation
+npx tilcayo make:validator customers name:string email:string
+
+# Generate a resource route module
+npx tilcayo make:route customers --resource
+
+# Generate a service
+npx tilcayo make:service reports
+
+# Generate a plain controller with placeholder handlers
+npx tilcayo make:controller reports
+```
+
+### Generate frontend files
+
+Run inside a React app. These examples are alternatives when they target the same files.
+
+```powershell
+# Generate resource types only
+npx tilcayo make:types Book title:string "year:number?" author:ref:Author
+
+# Generate types, API integration, forms and CRUD pages
+npx tilcayo make:frontend Book title:string "year:number?" author:ref:Author
+```
+
+Register frontend routes and connect the matching backend API.
+
+### Field syntax
+
+| Syntax | Meaning |
 | --- | --- |
 | `name:string` | Required nonempty string |
-| `price:number` | Required JSON number |
-| `active:boolean` | Required JSON boolean |
-| `publishedAt:date` | ISO timestamp with timezone, converted to a Date |
-| `"year:number?"` | Optional field; `"year?:number"` also works |
-| `author:ref:Author` | One Author ObjectId |
-| `tags:refs:Tag` | Array of Tag ObjectIds |
-| `"author:ref:Author?"` / `"tags:refs:Tag?"` | Optional relationships |
+| `price:number` | JSON number |
+| `active:boolean` | JSON boolean |
+| `publishedAt:date` | ISO timestamp with timezone |
+| `"year:number?"` or `"year?:number"` | Optional field |
+| `author:ref:Author` | One MongoDB ObjectId reference |
+| `tags:refs:Tag` | Array of ObjectId references |
+| `"author:ref:Author?"` | Optional reference |
 
-Updates make every field optional. MongoDB is the default database;
-`--mongodb` selects it explicitly. Individual generators are also available:
-`make:model`, `make:controller`, `make:validator`, `make:route`, and `make:service`.
-Use `make:controller books --resource` for CRUD after creating the model.
+Quote optional fields containing `?`. Referenced models use PascalCase. References validate ID shape; they do not enforce target existence or cascade deletion.
 
-## Relationships
-
-```sh
-npx tilcayo make:resource Author name:string
-npx tilcayo make:resource Book title:string author:ref:Author
+```powershell
+# Use comma-separated fields instead of positional fields
+npx tilcayo make:model Customer --fields "name:string,email:string"
 ```
 
-Relationship resources also generate a typed service. Population is explicit:
+Do not combine `--fields` with positional fields. `--resource` applies to controllers/routes; `--fullstack` applies to resource generation. Legacy `--mongo` and `--crud` aliases remain supported.
+
+## Routes and validation
+
+Register a generated backend route module in `src/app.ts`:
 
 ```ts
-import { getBooks, getBookById } from "./services/books.service.js";
+import articlesRoutes from './routes/articles.routes.js';
 
-await getBooks(); // Returns author IDs
-await getBooks({ populate: ["author"] });
-await getBookById(id, { populate: ["author"] });
+app.routes(articlesRoutes);
 ```
 
-Register the referenced models before populating them, for example by registering
-their generated routes. Validators reject malformed IDs with HTTP 422. References
-do not enforce document existence or cascade deletes. HTTP query strings do not
-control population. See [MongoDB relationships](MONGODB-RELATIONSHIPS.docx).
+Backend resources provide `GET /articles`, `POST /articles`, and `GET`, `PUT`, `DELETE /articles/:id`. Full-stack generation prefixes API routes with `/api`.
 
-## Authentication
+Generated resource routes need server middleware for authentication and authorization. In tenant-enabled apps, tenant middleware also enforces workspace access and model scope.
 
-For an application without auth scaffolding:
-
-```sh
-npx tilcayo make:auth
-```
-
-The app needs `@tilcayo/core` and `@tilcayo/auth`. The command creates auth config,
-controllers, validators, and routes. It also:
-
-- Generates missing or empty auth secrets in `.env`, preserving nonempty values.
-- Adds blank auth placeholders to `.env.example` and environment rules to `.gitignore`.
-- Reuses an existing `createAuth()` config and refuses other source collisions.
-
-Environment files use concise groups:
-
-```dotenv
-# Database
-MONGODB_URI=mongodb://127.0.0.1:27017/my_api
-
-# Authentication - private values belong in .env
-AUTH_ACCESS_SECRET=
-AUTH_REFRESH_SECRET=
-```
-
-Register the generated routes in `src/app.ts`:
+Example custom route with Zod validation:
 
 ```ts
-import authRoutes from "./routes/auth.routes.js";
+import { defineRoutes } from '@tilcayo/core';
+import { z } from 'zod';
 
-app.routes(authRoutes);
-```
-
-The generator updates environment files but does not edit application startup.
-Load `.env` and connect MongoDB before listening. Register one set of auth routes.
-
-| Endpoint | Purpose |
-| --- | --- |
-| `POST /api/auth/register` | Create a user with name, email, and password |
-| `POST /api/auth/login` | Exchange email and password for tokens |
-| `POST /api/auth/refresh` | Rotate a refresh token |
-| `POST /api/auth/logout` | Revoke a refresh token |
-| `GET /api/auth/me` | Read the user with a Bearer access token |
-
-Protect routes with `middleware: [auth.middleware]` and read the user with
-`auth.user(ctx)`. Access tokens last 15 minutes; refresh tokens last 7 days.
-Logout revokes the refresh token; issued access tokens remain valid until expiry.
-Use HTTPS and keep `.env` private.
-
-## Middleware
-
-Middleware runs before or around a route handler. Configure it for the whole app,
-a route group, or an individual route. For example, in `src/app.ts`:
-
-```ts
-import { createApp, requestId, securityHeaders, rateLimit } from "@tilcayo/core";
-
-const app = createApp({
-  middleware: [
-    requestId(),
-    securityHeaders(),
-    rateLimit({ windowMs: 60_000, max: 100 }),
-  ],
+export default defineRoutes(router => {
+  router.post<{ name: string }>('/greet', ctx => ctx.response.success({
+    greeting: `Hello, ${ctx.body.name}`,
+  }), {
+    validate: { body: z.object({ name: z.string().min(1) }) },
+  });
 });
 ```
 
-| Middleware | Purpose |
-| --- | --- |
-| `requestId()` | Add a request ID and `X-Request-Id` header |
-| `requestLogger()` | Log method, path, status, and duration |
-| `securityHeaders()` | Set basic HTTP security headers |
-| `cors({ origin })` | Allow requests from configured browser origins |
-| `rateLimit({ windowMs, max })` | Limit requests per client IP |
-| `bodyLimit(bytes)` | Limit request body size |
-| `cache({ maxAge })` | Set cache headers for public GET responses |
+See the [core guide](packages/core/README.md) for middleware, errors, pagination and MongoDB helpers.
 
-For a single route, pass `{ middleware: [...] }` as its options. Middleware runs
-in registration order. Rate limits are process-local and do not trust proxy
-forwarding headers; `cache` sets HTTP headers rather than storing responses.
+## Authentication and administration
 
-## Core APIs
+The complete app already includes auth and admin. For smaller generated apps, add them explicitly:
 
-- **Routing:** `createApp()`, `defineRoutes()`, `app.routes()`, route groups, and `router.resource()`.
-- **Validation:** Zod schemas on route `body`, `query`, and `params`; invalid requests return 422.
-- **Responses:** `ctx.response.success()`, `.created()`, and `.noContent()`; typed `TilcayoContext` without Express objects.
-- **Database:** `mongoModel()` exposes CRUD, filtering, sorting, bulk operations, pagination, and `.raw` for Mongoose queries.
-
-Pagination is opt-in: `Product.paginate(ctx.query)` or `Product.cursorPaginate()`.
-Keep filters and bulk operations in application code. The Mongo connection helper currently
-configures public DNS servers before connecting.
-
-## Develop and test
-
-These commands are for framework contributors working in this repository:
-
-```sh
+```powershell
+# Add authentication to a recognized API, React or full-stack starter
+npx tilcayo add:auth
 npm install
 npm run build
-node --test tests/*.test.mjs
+
+# Add admin screens to an auth-enabled React or full-stack starter
+npx tilcayo add:admin
+npm install
+npm run build
 ```
 
-To test the local creator after building:
+Installers refuse collisions and customized integration files. Run them from the relevant generated app root.
 
-```sh
-node packages/create-tilcayo-app/dist/bin.js local-api --type api --auth --yes
+For low-level backend auth scaffolding instead of `add:auth`:
+
+```powershell
+# Install backend auth and storage dependencies in your API app
+npm install @tilcayo/auth @tilcayo/cloudinary
+
+# Generate auth configuration, controllers, validators and routes
+npx tilcayo make:auth
 ```
 
-Local generation links packages from this checkout; keep it available and rebuild
-after framework changes. The published creator uses npm dependencies instead.
+Register the generated routes as printed. Do not also register `auth.routes`. Missing auth secrets are generated; existing nonempty values are preserved.
 
-For live MongoDB tests, configure a root `.env` and run:
+Registration creates ordinary users. Administrator roles must be assigned through trusted server code or authorized management screens. Permission checks belong on the API as well as the frontend.
 
-```sh
-node --env-file=.env --test tests/books-mongo.test.mjs tests/auth-mongo.test.mjs tests/relationships.test.mjs
-```
-
-Live tests create and remove isolated test databases. Without `MONGODB_URI`, they
-are skipped. To run the existing example, copy `.env.example` to `.env`, configure
-MongoDB and two distinct auth secrets of at least 32 bytes each, then run `npm run dev`.
-The example listens on port 9149; its auth source files already exist.
-
-| Directory | Contents |
-| --- | --- |
-| `packages/core` | Runtime, routing, validation, middleware, Mongo helpers |
-| `packages/react` | API/resource clients, Redux/RTK Query, and opt-in frontend auth |
-| `packages/styles` | CSS tokens, components, responsive layouts, and utilities |
-| `packages/auth` | Authentication and token management |
-| `packages/cli` | Generators and application commands |
-| `packages/create-tilcayo-app` | Application setup wizard |
-| `examples/basic-api` | Working API example |
-| `tests` | Runtime, generator, and compilation tests |
-
-See the [creator guide](packages/create-tilcayo-app/README.md),
-[relationship guide](MONGODB-RELATIONSHIPS.docx), and
-[testing and release guide](TESTING-AND-RELEASE.docx) for detailed workflows.
-
+Full-stack starters restore sessions using an HttpOnly refresh cookie; access tokens stay in memory. Standalone API/frontend combinations need matching cookie-session settings and a suitable same-origin proxy.
 
 ## Tenant workspaces
 
-Create a local full-stack auth/admin app with `--tenancy`:
+The `--full-app` preset includes tenancy. There is no separate `add:tenancy` command.
 
-```sh
-node packages/create-tilcayo-app/dist/bin.js my-saas --fullstack --auth --admin --tenancy --yes
+After setting the setup credentials in `api/.env`, run from the app root:
+
+```powershell
+# Provision the initial Super Admin
+npm run tenancy:setup
 ```
 
-From the generated application, set `TENANCY_SUPERADMIN_EMAIL` and
-`TENANCY_SUPERADMIN_PASSWORD` for the setup process, then run `npm run tenancy:setup`.
-This explicit command provisions only a Super Admin. It does not create a default
-tenant, assign memberships or migrate existing records. Re-running it updates
-the designated account password and revokes its existing sessions. No bootstrap
-password is generated into source files or run automatically on startup.
+Re-running setup resets that account's password and revokes its existing sessions. It does not create a default tenant or migrate records. Remove the bootstrap password from persistent configuration after setup.
 
-Run the app and use `http://localhost:5173/admin/workspaces` for
-platform management. Create tenants and assign their administrators in Tenant administration. Open `<tenant-slug>.localhost` with the port printed by Vite.
-Users can register on the main site or at a tenant address. Tenant signup creates a normal membership in that tenant. An existing account can join another tenant using its existing password; signup never grants an admin role. There is no default tenant or Main app workspace switcher. The main site supports ordinary users and public registration; tenant administrators manage their own users, roles and product catalog.
-Each hostname has its own HttpOnly session cookie; sign in once per workspace.
+1. Sign in on the main frontend address printed by Vite.
+2. Open **Tenant administration** from the profile menu at `/admin/workspaces`.
+3. Create a tenant and assign its administrator.
+4. Open its address, such as `http://sunrise.localhost:5173`, using Vite's actual port.
 
-Super Admin manages tenants and global accounts. Tenant roles belong to Memberships,
-not global Users. A Super Admin must be explicitly added to enter a workspace.
-Tenant administrators manage their own members, custom roles, products, orders and
-Trash. Suspending a membership affects only that workspace; global user suspension
-affects all workspaces. Suspended or archived tenants retain data but reject access.
+Users can register on the main site or a tenant site. Tenant registration grants ordinary membership; existing accounts join using their existing password. Membership roles are separate for each tenant. A Super Admin needs assigned membership to enter a tenant workspace.
 
-`TENANCY_BASE_DOMAIN` defaults to `localhost`. Production needs wildcard DNS and
-HTTPS for that domain, with a same-origin `/api` proxy preserving Host. Subdomains
-are resolved from Host; forwarded tenant headers are not trusted.
+Tenant administrators manage their own users, roles, products, orders and Trash. Suspending a membership affects that workspace; suspending a global account affects all workspaces. Soft deletion retains records for restoration.
 
-Tenant-owned models use `mongoModel(name, schema, { tenantScoped: true })`.
-The generator applies this to existing models and future `make:model` and
-`make:resource` output. Queries, writes, counts, distinct, population and supported
-aggregations use the request's tenant context. Platform requests cannot read these
-records. Native `raw.collection` operations bypass Mongoose and are reserved for
-explicit setup/migration code. Bulk writes, replacement updates and cross-collection
-aggregate stages are rejected unless implemented with their own isolation checks.
+Optional demo data commands, from the app root:
+
+```powershell
+# Select an existing tenant for demo data
+$env:TENANCY_SEED_SLUG = "sunrise"
+
+# Add demo records
+npm run seed:demo
+
+# Remove demo records
+npm run seed:demo:remove
+```
+
+For production, configure wildcard DNS, HTTPS and a Host-preserving same-origin `/api` proxy. Each workspace hostname has its own session cookie.
+
+## Environment configuration
+
+Backend settings belong in `api/.env` for full-stack apps or `.env` for standalone APIs. Commit safe placeholders in `.env.example`, not actual credentials.
+
+| Variable | Purpose |
+| --- | --- |
+| `PORT` | API port; default `9149` |
+| `MONGODB_URI` | MongoDB connection string |
+| `AUTH_ACCESS_SECRET` | Generated access-token signing secret |
+| `AUTH_REFRESH_SECRET` | Different generated refresh-token signing secret |
+| `AUTH_COOKIE_SESSION` | Cookie-session setting in standalone generated auth APIs |
+| `MAIL_USER`, `MAIL_PASS` | Password recovery email credentials |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_SECURE`, `MAIL_FROM` | SMTP settings |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary environment name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET_KEY` | Cloudinary secret; storage config also accepts `CLOUDINARY_API_SECRET` |
+| `TENANCY_BASE_DOMAIN` | Workspace base domain; local default `localhost` |
+| `TENANCY_SUPERADMIN_EMAIL`, `TENANCY_SUPERADMIN_PASSWORD` | Initial Super Admin setup credentials |
+| `TENANCY_SEED_SLUG` | Existing tenant for optional demo data |
+
+`VITE_API_URL` is public frontend configuration, normally `/api`. `API_PROXY_TARGET` changes the dev proxy's backend target from `http://127.0.0.1:9149`. Keep signing, mail and Cloudinary secrets out of `VITE_*` variables.
+
+## Uploads
+
+Set these backend values to enable Cloudinary uploads:
+
+```dotenv
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET_KEY=your_api_secret
+```
+
+Restart the API after changing configuration. Upload profiles live in `api/src/storage.ts` in a full-stack app.
+
+| Default profile | Usage |
+| --- | --- |
+| `avatar` | Public JPG/PNG/WebP profile photos, up to 2 MB |
+| `productImage` | Public product images, up to 5 MB |
+| `document` | Authenticated PDF/DOCX/XLSX/ZIP documents, up to 20 MB |
+
+Profile-photo uploads are connected to Profile & settings and admin profiles. The other profiles are available for your own features. Elements includes local upload demos with copyable code; demo files stay in the browser.
+
+The backend package exposes `validateFile`, `authorizeUpload`, `completeUpload`, `upload`, `getDownloadUrl` and `delete`. See the [Cloudinary guide](packages/cloudinary/README.md) and [UI guide](packages/ui/README.md).
+
+## Troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| PowerShell blocks npm | Use `npm.cmd` / `npx.cmd` |
+| Creator does not recognize `--full-app` | Use `create-tilcayo-app@latest`; the shortcut requires version `0.0.4` or newer |
+| Tenancy setup reports missing settings | Fill the named variables in this generated app's `api/.env`, then rerun setup |
+| MongoDB connection fails | Check the connection string, database availability and network access |
+| API port is occupied | Stop the previous API or change `PORT` and `API_PROXY_TARGET` |
+| A generated route returns 404 | Register the backend/frontend routes and rebuild |
+| Generator reports an existing file | Edit that feature or choose another name |
+| Existing app still has older UI | Creating an app does not upgrade an existing app's source files |
+| Refresh returns to login | Check cookie-session settings and the same-origin proxy |
+| Upload reports storage is not configured | Set backend Cloudinary variables and restart the API |
+| Tenant page is forbidden | Check hostname, tenant status, membership and permissions |
+
+## Package guides
+
+| Package | Guide |
+| --- | --- |
+| `@tilcayo/core` | [API runtime and MongoDB](packages/core/README.md) |
+| `@tilcayo/auth` | [Authentication and tenancy](packages/auth/README.md) |
+| `@tilcayo/cloudinary` | [Cloudinary storage](packages/cloudinary/README.md) |
+| `@tilcayo/react` | [React API and auth integration](packages/react/README.md) |
+| `@tilcayo/ui` | [Reusable React components](packages/ui/README.md) |
+| `@tilcayo/styles` | [Shared CSS](packages/styles/README.md) |
+| `@tilcayo/admin` | [Admin components](packages/admin/README.md) |
+| `@tilcayo/cli` | [Commands and generators](packages/cli/README.md) |
+| `create-tilcayo-app` | [App creator](packages/create-tilcayo-app/README.md) |

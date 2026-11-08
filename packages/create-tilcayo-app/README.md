@@ -223,9 +223,9 @@ Open `/register` or `/login`. The generated README explains creating a separate
 auth backend and connecting MongoDB. Frontend files live in `src/app/auth.ts`,
 `src/middleware/auth.tsx`, `src/components/auth-form.tsx`, and `src/pages/`.
 The creator ships the auth overlay in `dist/react-auth.json`. Tokens remain in
-memory: a reload signs out. No backend secrets are generated in the frontend.
+memory. A standalone React app needs a compatible cookie-session backend and matching frontend configuration to restore login on reload; full-stack auth starters configure this automatically. No backend secrets are generated in the frontend.
 Existing generated apps are not overwritten or upgraded by this command.
-# Full-stack presets
+## Full-stack presets
 
 From a built source checkout:
 
@@ -288,3 +288,11 @@ aggregations use the request's tenant context. Platform requests cannot read the
 records. Native `raw.collection` operations bypass Mongoose and are reserved for
 explicit setup/migration code. Bulk writes, replacement updates and cross-collection
 aggregate stages are rejected unless implemented with their own isolation checks.
+
+## Complete command reference
+
+See the [main README](../../README.md#create-an-application) for every creator flag, app preset, generator command, environment setting and framework development command. Source checkout builds use the current code; registry creation uses the packages that have been published.
+
+## Initial tenant configuration
+
+Tenant-enabled starters include `TENANCY_BASE_DOMAIN=localhost` and blank `TENANCY_SUPERADMIN_EMAIL` / `TENANCY_SUPERADMIN_PASSWORD` fields in `api/.env` and `api/.env.example`. Fill the actual generated app's `api/.env`, configure `MONGODB_URI`, then run `npm run tenancy:setup` from its root. Keep the generated auth secrets. Editing `.env.example` or another app's `.env` does not configure the running app. Setup reports missing/invalid variable names without printing their values.

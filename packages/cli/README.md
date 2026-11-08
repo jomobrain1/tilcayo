@@ -88,7 +88,7 @@ npx tilcayo make:auth
 ```
 
 Generators refuse collisions and print integration steps. Auth needs
-`@tilcayo/auth`, MongoDB, environment configuration, and route registration.
+`@tilcayo/auth`, `@tilcayo/cloudinary`, MongoDB, environment configuration, and route registration.
 
 ## Relationships
 
@@ -123,16 +123,16 @@ Load referenced models before populating, for example by registering their route
 [Create an app](https://www.npmjs.com/package/create-tilcayo-app) ·
 [CLI](https://www.npmjs.com/package/@tilcayo/cli) ·
 [Authentication](https://www.npmjs.com/package/@tilcayo/auth)
-# Frontend and full-stack commands
+## Frontend and full-stack commands
 
 Run from the application root:
 
 ```sh
-tilcayo make:types Book title:string year:number? author:ref:Author
-tilcayo make:frontend Book title:string year:number? author:ref:Author
-tilcayo make:resource Book title:string year:number? author:ref:Author --fullstack
-tilcayo add:auth
-tilcayo add:admin
+npx tilcayo make:types Book title:string "year:number?" author:ref:Author
+npx tilcayo make:frontend Book title:string "year:number?" author:ref:Author
+npx tilcayo make:resource Book title:string "year:number?" author:ref:Author --fullstack
+npx tilcayo add:auth
+npx tilcayo add:admin
 ```
 
 Frontend resources live in `src/features/`. Full-stack generation expects `api/`
@@ -145,5 +145,9 @@ replaces only recognized, unchanged starter integration files and preserves othe
 pages/routes. It refuses customized integration files. `add:admin` requires auth
 and registers `/admin` routes. Run your package manager's install and build after
 either command. Assign roles through trusted server code and protect resource
-endpoints with server middleware. See [milestone details](../../FRONTEND-MILESTONES.docx).
+endpoints with server middleware. See the [complete command reference](../../README.md#generators).
 
+
+## Creator and workspace setup
+
+Tenancy is selected when creating a full-stack app with `--fullstack --auth --admin --tenancy`. The generated root provides `npm run tenancy:setup` for explicit Super Admin provisioning. There is no `add:tenancy` or Cloudinary-specific CLI command. Configure uploads in the generated API's `src/storage.ts` and backend `.env`. See the [project command reference](../../README.md) for every creator flag, environment setting and root development command.
