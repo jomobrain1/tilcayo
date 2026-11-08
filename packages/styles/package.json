@@ -1,6 +1,6 @@
 {
   "name": "@tilcayo/styles",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Lightweight, token-based CSS foundation for Tilcayo",
   "type": "module",
   "style": "./dist/index.css",
@@ -8,10 +8,16 @@
     ".": "./dist/index.css",
     "./index.css": "./dist/index.css"
   },
-  "sideEffects": ["**/*.css"],
-  "files": ["dist"],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "node scripts/build.mjs"
   },
-  "publishConfig": { "access": "public" }
+  "publishConfig": {
+    "access": "public"
+  }
 }

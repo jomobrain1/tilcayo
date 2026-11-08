@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { parseEnv } from 'node:util';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { once } from 'node:events';
@@ -14,6 +15,7 @@ import path from 'node:path';
 import { generateApp } from '../packages/create-tilcayo-app/dist/index.js';
 import { parseOptions } from '../packages/create-tilcayo-app/dist/options.js';
 import { make } from '../packages/cli/dist/index.js';
+import { installTenancy } from '../packages/create-tilcayo-app/dist/installTenancy.js';
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(import.meta.url);
 const compiler = path.join(path.dirname(require.resolve('typescript/package.json')), 'bin/tsc');
@@ -25,6 +27,27 @@ test('starter aliases preserve API creation and reject conflicting presets', () 
   assert.throws(() => parseOptions(['app', '--api', '--auth', '--admin']), /Admin requires/);
   assert.throws(() => parseOptions(['app', '--api', '--fullstack']), /conflicting/);
   assert.throws(() => parseOptions(['app', '--type', 'react', '--fullstack']), /conflicting/);
+});
+
+test('full-app enables the complete preset without yes and preserves installer choices', () => {
+  const parsed = parseOptions(['app', '--full-app']);
+  assert.deepEqual(parsed.options, { name: 'app', packageManager: 'npm', type: 'fullstack', auth: true, admin: true, tenancy: true, install: true });
+  assert.equal(parsed.yes, true);
+  assert.equal(parsed.missing.size, 0);
+  for (const args of [
+    ['app', '--full-app', '--no-install', '--package-manager', 'pnpm'],
+    ['app', '--package-manager', 'pnpm', '--no-install', '--full-app'],
+  ]) {
+    const result = parseOptions(args);
+    assert.equal(result.options.packageManager, 'pnpm');
+    assert.equal(result.options.install, false);
+  }
+  for (const args of [
+    ['app', '--full-app', '--no-auth'], ['app', '--no-auth', '--full-app'],
+    ['app', '--full-app', '--api'], ['app', '--type', 'react', '--full-app'],
+    ['app', '--full-app', '--full-app'],
+  ]) assert.throws(() => parseOptions(args), /conflict/i);
+  assert.equal(parseOptions(['app', '--full-app', '--fullstack', '--auth', '--admin', '--tenancy']).options.tenancy, true);
 });
 
 test('all full-stack presets compile and generate relationship CRUD', async t => {
@@ -118,7 +141,7 @@ test('tenancy starter compiles and future resources stay tenant scoped', async t
   assert.match(await readFile(path.join(root, 'api/src/scripts/setup-tenancy.ts'), 'utf8'), /TENANCY_SUPERADMIN_PASSWORD/);
   assert.ok(!(await readFile(path.join(root, 'api/src/scripts/setup-tenancy.ts'), 'utf8')).includes('12345678'));
   const setup = await readFile(path.join(root, 'api/src/scripts/setup-tenancy.ts'), 'utf8');
-  assert.match(setup, /bootstrapTenancy\(\{ email, password \}\)/);
+  assert.match(setup, /bootstrapTenancy\(\{ email: credentials.data.email, password: credentials.data.password \}\)/);
   assert.doesNotMatch(setup, /myapp|TENANCY_DEFAULT|collection\.updateMany/);
   assert.match(await readFile(path.join(root, 'api/src/scripts/seed-admin-demo.ts'), 'utf8'), /Set TENANCY_SEED_SLUG/);
   const workspace = await readFile(path.join(root, 'client/src/features/tenancy/workspace-switcher.tsx'), 'utf8');
@@ -130,4 +153,30 @@ test('tenancy starter compiles and future resources stay tenant scoped', async t
     try { execFileSync(process.execPath, [compiler, '-p', path.join(root, filename)], { encoding: 'utf8' }); }
     catch (error) { throw new Error(error.stdout || error.message); }
   }
+  for (const filename of ['api/.env', 'api/.env.example']) {
+    const values = parseEnv(await readFile(path.join(root, filename), 'utf8'));
+    assert.equal(values.TENANCY_BASE_DOMAIN, 'localhost');
+    assert.equal(values.TENANCY_SUPERADMIN_EMAIL, '');
+    assert.equal(values.TENANCY_SUPERADMIN_PASSWORD, '');
+  }
+  const cleanEnv = { ...process.env };
+  for (const key of ['MONGODB_URI', 'TENANCY_SUPERADMIN_EMAIL', 'TENANCY_SUPERADMIN_PASSWORD']) delete cleanEnv[key];
+  const invokeSetup = values => spawnSync(process.execPath, ['dist/scripts/setup-tenancy.js'], { cwd: path.join(root, 'api'), env: { ...cleanEnv, ...values }, encoding: 'utf8', timeout: 15000, windowsHide: true });
+  const missing = invokeSetup({});
+  assert.equal(missing.status, 1, missing.stderr);
+  assert.match(missing.stderr, /Missing settings in api\/.env: MONGODB_URI, TENANCY_SUPERADMIN_EMAIL, TENANCY_SUPERADMIN_PASSWORD/);
+  const invalid = invokeSetup({ MONGODB_URI: 'invalid://private-connection-marker', TENANCY_SUPERADMIN_EMAIL: 'not-an-email', TENANCY_SUPERADMIN_PASSWORD: 'short' });
+  assert.equal(invalid.status, 1, invalid.stderr);
+  assert.match(invalid.stderr, /Invalid settings in api\/.env: TENANCY_SUPERADMIN_EMAIL, TENANCY_SUPERADMIN_PASSWORD/);
+  assert.doesNotMatch(invalid.stderr, /not-an-email|private-connection-marker/);
+  const connection = invokeSetup({ MONGODB_URI: 'invalid://private-connection-marker', TENANCY_SUPERADMIN_EMAIL: 'setup@example.test', TENANCY_SUPERADMIN_PASSWORD: 'test-only-password' });
+  assert.equal(connection.status, 1, connection.stderr);
+  assert.match(connection.stderr, /Could not connect to MongoDB/);
+  assert.doesNotMatch(connection.stderr, /private-connection-marker|test-only-password/);
+  // Explicit upgrade runs preserve configured values and do not duplicate placeholders.
+  const envPath = path.join(root, 'api/.env');
+  const configured = (await readFile(envPath, 'utf8')).replace('TENANCY_BASE_DOMAIN=localhost', 'TENANCY_BASE_DOMAIN=example.test').replace('TENANCY_SUPERADMIN_EMAIL=\n', 'TENANCY_SUPERADMIN_EMAIL=setup@example.test\n').replace('TENANCY_SUPERADMIN_PASSWORD=\n', 'TENANCY_SUPERADMIN_PASSWORD=test-only-password\n');
+  await writeFile(envPath, configured);
+  await installTenancy(root);
+  assert.equal(await readFile(envPath, 'utf8'), configured);
 });

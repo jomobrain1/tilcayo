@@ -65,12 +65,17 @@ async function main() {
   }
   console.log(`\nNext:\n  cd ${options.name}`);
   if (!options.install) console.log(`  ${options.packageManager} install`);
+  if (options.tenancy) {
+    console.log("  # Configure MONGODB_URI and fill the blank TENANCY_SUPERADMIN_EMAIL and TENANCY_SUPERADMIN_PASSWORD in this app's api/.env");
+    console.log(`  ${options.packageManager} run tenancy:setup`);
+  }
   const cli = options.packageManager === "npm" ? "npx tilcayo" : `${options.packageManager} exec tilcayo`;
   if (options.type === "react" || options.type === "fullstack") console.log(`  ${options.packageManager} run dev`);
   else console.log(`  ${cli} dev\n\nWith Tilcayo on PATH, use tilcayo dev directly.`);
   if (options.type === "react" && options.auth) console.log("Open /login or /register. Start a Tilcayo auth API on port 9149; see README.md for setup and API URL configuration.");
   else if (options.type === "fullstack") console.log("Start MongoDB or update api/.env. The client proxies /api to the API on port 9149; see README.md.");
   else if (options.type === "api" || options.auth) console.log("Start MongoDB or update MONGODB_URI in .env before starting the API.");
+  if (options.tenancy) console.log("Run tenancy:setup for initial Super Admin setup only. On later starts, run dev without setup.");
 }
 
 main().catch((error: unknown) => {

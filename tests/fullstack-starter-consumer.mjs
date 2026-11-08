@@ -22,7 +22,7 @@ let passed = false;
 let server;
 try {
   const packages = {};
-  for (const name of ['core', 'auth', 'react', 'styles', 'ui', 'admin', 'cli', 'create-tilcayo-app']) {
+  for (const name of ['core', 'cloudinary', 'auth', 'react', 'styles', 'ui', 'admin', 'cli', 'create-tilcayo-app']) {
     const [pack] = JSON.parse(run(npm, ['pack', path.join(repo, 'packages', name), '--json', '--ignore-scripts']));
     assert.ok(pack.files.every(file => file.path.startsWith('dist/') || ['package.json', 'README.md'].includes(file.path)), name);
     packages[name === 'create-tilcayo-app' ? name : `@tilcayo/${name}`] = 'file:' + path.join(root, pack.filename).split(path.sep).join('/');

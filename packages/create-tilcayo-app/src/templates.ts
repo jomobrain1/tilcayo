@@ -11,9 +11,9 @@ export function templates(options: StarterOptions, localPackages: Record<string,
     const manifest = JSON.parse(files['package.json']);
     manifest.name = options.name;
     manifest.engines = { node: '^22.12.0 || >=24.0.0' };
-    manifest.dependencies['@tilcayo/styles'] = localPackages.styles ?? '^0.0.2';
-    manifest.dependencies['@tilcayo/react'] = localPackages.react ?? '^0.0.2';
-    manifest.dependencies['@tilcayo/ui'] = localPackages.ui ?? '^0.0.2';
+    manifest.dependencies['@tilcayo/styles'] = localPackages.styles ?? '^0.0.3';
+    manifest.dependencies['@tilcayo/react'] = localPackages.react ?? '^0.0.3';
+    manifest.dependencies['@tilcayo/ui'] = localPackages.ui ?? '^0.0.3';
     manifest.tilcayo = { type: 'react', auth: options.auth, admin: options.admin ?? false, packageManager: options.packageManager };
     files['package.json'] = JSON.stringify(manifest, null, 2) + '\n';
     if (options.packageManager === 'yarn') files['.yarnrc.yml'] = 'nodeLinker: node-modules\n';
@@ -25,7 +25,7 @@ export function templates(options: StarterOptions, localPackages: Record<string,
     }
     if (options.admin) {
       files['src/components/navigation.tsx'] = files['src/components/navigation.tsx'].replace('const adminEnabled = false', 'const adminEnabled = true');
-      manifest.dependencies['@tilcayo/admin'] = localPackages.admin ?? '^0.0.2';
+      manifest.dependencies['@tilcayo/admin'] = localPackages.admin ?? '^0.0.3';
       for (const file of adminFiles()) files[`src/${file.folder}/${file.name}`] = file.source;
       { const source = files['src/components/session-skeleton.tsx']; files['src/components/session-skeleton.tsx'] = "import { AdminSessionShell } from '../features/admin/session-shell';\n" + source.replace("  const { pathname } = useLocation()", "  const { pathname } = useLocation()\n  if (/^\\/admin(?:\\/|$)/.test(pathname)) return <AdminSessionShell />"); }
       files['src/routes.tsx'] = "import { adminRoutes } from './features/admin/admin.routes';\n" + files['src/routes.tsx'].replace('export const routes: RouteObject[] = [', 'export const routes: RouteObject[] = [\n  ...adminRoutes,');
@@ -44,8 +44,8 @@ export function templates(options: StarterOptions, localPackages: Record<string,
       engines: { node: ">=22.9.0" },
       tilcayo: { database: mongo ? "mongo" : "none", type: options.type, packageManager: options.packageManager },
       scripts: { dev: "tilcayo dev", build: "tilcayo build", start: "tilcayo start", routes: "tilcayo routes:list", ...(options.admin ? { 'seed:demo': 'node --env-file-if-exists=.env dist/scripts/seed-admin-demo.js' } : {}) },
-      dependencies: { "@tilcayo/core": localPackages.core ?? "^0.0.2", ...(options.auth ? { "@tilcayo/auth": localPackages.auth ?? "^0.0.2", "@tilcayo/cloudinary": localPackages.cloudinary ?? "^0.0.2" } : {}), ...(mongo ? { mongoose: localPackages.mongoose ?? "^9.10.2" } : {}), zod: localPackages.zod ?? "^4.0.0" },
-      devDependencies: { "@tilcayo/cli": localPackages.cli ?? "^0.0.2", "@types/node": "^26.6.3", typescript: "^7.0.2", nodemon: "^3.1.14" },
+      dependencies: { "@tilcayo/core": localPackages.core ?? "^0.0.3", ...(options.auth ? { "@tilcayo/auth": localPackages.auth ?? "^0.0.3", "@tilcayo/cloudinary": localPackages.cloudinary ?? "^0.0.3" } : {}), ...(mongo ? { mongoose: localPackages.mongoose ?? "^9.10.2" } : {}), zod: localPackages.zod ?? "^4.0.0" },
+      devDependencies: { "@tilcayo/cli": localPackages.cli ?? "^0.0.3", "@types/node": "^26.6.3", typescript: "^7.0.2", nodemon: "^3.1.14" },
     }),
     "tsconfig.json": json({ compilerOptions: { target: "ES2022", module: "NodeNext", moduleResolution: "NodeNext", strict: true, esModuleInterop: true, skipLibCheck: true, forceConsistentCasingInFileNames: true, rootDir: "src", outDir: "dist", types: ["node"] }, include: ["src/**/*.ts"] }),
     ".gitignore": "node_modules/\ndist/\n.env\n.env.*\n!.env.example\n*.log\n.DS_Store\n",

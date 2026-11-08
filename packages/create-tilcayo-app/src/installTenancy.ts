@@ -1,11 +1,19 @@
 import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { parseEnv } from 'node:util';
 
 /** Applied only after generating a full-stack auth/admin app. Also used for explicit upgrades. */
 export async function installTenancy(root: string) {
   const edit = async (relative: string, update: (source: string) => string) => {
     const file = path.join(root, relative); await writeFile(file, update(await readFile(file, 'utf8')));
   };
+  for (const file of ['api/.env', 'api/.env.example']) await edit(file, source => {
+    const existing = parseEnv(source);
+    const defaults = { TENANCY_BASE_DOMAIN: 'localhost', TENANCY_SUPERADMIN_EMAIL: '', TENANCY_SUPERADMIN_PASSWORD: '' };
+    const missing = Object.entries(defaults).filter(([key]) => !Object.hasOwn(existing, key));
+    if (!missing.length) return source;
+    return source.trimEnd() + '\n\n# Tenant workspaces\n# Fill the Super Admin values before running npm run tenancy:setup.\n' + missing.map(([key, value]) => key + '=' + value).join('\n') + '\n';
+  });
   for (const part of ['', 'api', 'client']) await edit(path.join(part, 'package.json'), source => {
     const pkg = JSON.parse(source); pkg.tilcayo = { ...pkg.tilcayo, tenancy: true };
     if (part === 'api') pkg.scripts['tenancy:setup'] = 'node --env-file-if-exists=.env dist/scripts/setup-tenancy.js';
@@ -46,16 +54,26 @@ export async function installTenancy(root: string) {
   try { await edit(demoFile, source => source.includes('runInTenantScope') ? source : "import { Tenant } from '@tilcayo/auth';\nimport { runInTenantScope } from '@tilcayo/core';\n" + source.replace('  try {', "  try {\n  const slug = process.env.TENANCY_SEED_SLUG;\n  if (!slug) throw new Error('Set TENANCY_SEED_SLUG to a tenant created in Tenant administration.');\n  const tenant = await Tenant.firstOrFail({ slug });\n  await runInTenantScope({ enabled: true, tenantId: String(tenant._id) }, async () => {").replace('  } finally {', '  }); } finally {')); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
   await mkdir(path.join(root, 'api/src/scripts'), { recursive: true });
   await writeFile(path.join(root, 'api/src/scripts/setup-tenancy.ts'), `import { connectMongo, disconnectMongo } from '@tilcayo/core';
-import { bootstrapTenancy } from '@tilcayo/auth';
+import { bootstrapTenancy, registerSchema } from '@tilcayo/auth';
 ${models.map(name => `import { ${name} } from '../models/${name}.js';`).join('\n')}
+
+class SetupError extends Error {}
 
 async function main() {
   const email = process.env.TENANCY_SUPERADMIN_EMAIL;
   const password = process.env.TENANCY_SUPERADMIN_PASSWORD;
-  if (!email || !password) throw new Error('Set TENANCY_SUPERADMIN_EMAIL and TENANCY_SUPERADMIN_PASSWORD for this setup command.');
-  await connectMongo(process.env.MONGODB_URI || '', { serverSelectionTimeoutMS: 10000, autoIndex: false });
+  const uri = process.env.MONGODB_URI;
+  const missing = ['MONGODB_URI', 'TENANCY_SUPERADMIN_EMAIL', 'TENANCY_SUPERADMIN_PASSWORD'].filter(key => !process.env[key]?.trim());
+  if (missing.length) throw new SetupError('Missing settings in api/.env: ' + missing.join(', ') + '. Fill them before running npm run tenancy:setup.');
+  const credentials = registerSchema.safeParse({ name: 'Platform administrator', email, password });
+  if (!credentials.success) {
+    const fields = [...new Set(credentials.error.issues.map(issue => issue.path[0] === 'email' ? 'TENANCY_SUPERADMIN_EMAIL' : 'TENANCY_SUPERADMIN_PASSWORD'))];
+    throw new SetupError('Invalid settings in api/.env: ' + fields.join(', ') + '. Use a valid email and a password of at least 8 characters and at most 72 UTF-8 bytes.');
+  }
+  try { await connectMongo(uri!, { serverSelectionTimeoutMS: 10000, autoIndex: false }); }
+  catch { await disconnectMongo().catch(() => undefined); throw new SetupError('Could not connect to MongoDB. Check MONGODB_URI in api/.env, database availability and network access.'); }
   try {
-    await bootstrapTenancy({ email, password });
+    await bootstrapTenancy({ email: credentials.data.email, password: credentials.data.password });
     // Setup does not create a tenant or change ownership of existing records.
     // Driver access is limited to this offline setup command, not request handlers.
     for (const model of [${models.join(', ')}]) {
@@ -66,6 +84,9 @@ async function main() {
     console.log('Super Admin ready. Create tenants and assign administrators in Tenant administration on the main domain.');
   } finally { await disconnectMongo(); }
 }
-main().catch(() => { console.error('Tenancy setup failed. Check bootstrap inputs, MongoDB connectivity and workspace conflicts.'); process.exitCode = 1; });
+main().catch(error => {
+  console.error(error instanceof SetupError ? error.message : 'Tenancy setup failed. Check database permissions and existing account or workspace conflicts.');
+  process.exitCode = 1;
+});
 `);
 }

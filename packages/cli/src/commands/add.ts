@@ -30,7 +30,7 @@ async function dependency(root: string, name: string): Promise<string> {
     const manifest = await manifestAt(checkout);
     if (manifest.name === "tilcayo") return "file:" + path.relative(root, path.join(checkout, "packages", name)).split(path.sep).join("/");
   } catch { /* Not running in the source checkout. */ }
-  return "^0.0.2";
+  return "^0.0.3";
 }
 
 async function addDependencies(manifest: Manifest, root: string, names: string[]): Promise<void> {

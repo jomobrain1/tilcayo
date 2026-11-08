@@ -46,6 +46,21 @@ test("starter flags validate names, choices and conflicts before writing", async
   assert.deepEqual(await readdir(root), []);
 });
 
+test("tenant starter next steps explain configuration and setup before starting", async t => {
+  const root = await fixture(t);
+  const complete = run(creator, ['complete', '--full-app', '--no-install'], root);
+  assert.equal(complete.status, 0, complete.stderr);
+  const next = complete.stdout.slice(complete.stdout.indexOf('Next:'));
+  const steps = ['cd complete', 'npm install', 'Configure MONGODB_URI', 'npm run tenancy:setup', 'npm run dev'];
+  let previous = -1;
+  for (const step of steps) { const index = next.indexOf(step); assert.ok(index > previous, step); previous = index; }
+  assert.match(next, /TENANCY_SUPERADMIN_EMAIL and TENANCY_SUPERADMIN_PASSWORD/);
+  assert.match(next, /initial Super Admin setup only/);
+  const ordinary = run(creator, ['ordinary', '--fullstack', '--auth', '--admin', '--no-install', '--yes'], root);
+  assert.equal(ordinary.status, 0, ordinary.stderr);
+  assert.ok(!ordinary.stdout.includes('run tenancy:setup'));
+});
+
 test("starter generates every API/auth variant that compiles and lists its registered routes", async (t) => {
   const root = await fixture(t);
   for (const type of ["api", "minimal"]) {
@@ -77,9 +92,10 @@ test("starter generates every API/auth variant that compiles and lists its regis
       const listed = run(cli, ["routes:list", "--json"], target);
       assert.equal(listed.status, 0, listed.stderr);
       const routes = JSON.parse(listed.stdout);
-      assert.equal(routes.length, 1 + (type === "api" ? 5 : 0) + (auth ? 9 : 0));
+      assert.equal(routes.length, 1 + (type === "api" ? 5 : 0) + (auth ? 12 : 0));
       assert.ok(routes.some((route) => route.path === "/health"));
       assert.equal(routes.some((route) => route.path === "/api/auth/me"), auth);
+      assert.equal(routes.some(route => route.path === "/api/auth/avatar/authorize"), auth);
       if (type === "minimal" && !auth) {
         const { default: app } = await import(pathToFileURL(path.join(target, "dist/app.js")).href);
         const server = app.listen(0);
@@ -131,9 +147,9 @@ test("noninteractive CLI supports each manager, skips installation and keeps sec
 test("published starter templates keep registry dependencies", () => {
   const files = templates({ name: "published-app", type: "api", auth: true, packageManager: "npm", install: true });
   const manifest = JSON.parse(files["package.json"]);
-  assert.equal(manifest.dependencies["@tilcayo/core"], "^0.0.2");
-  assert.equal(manifest.dependencies["@tilcayo/auth"], "^0.0.2");
-  assert.equal(manifest.devDependencies["@tilcayo/cli"], "^0.0.2");
+  assert.equal(manifest.dependencies["@tilcayo/core"], "^0.0.3");
+  assert.equal(manifest.dependencies["@tilcayo/auth"], "^0.0.3");
+  assert.equal(manifest.devDependencies["@tilcayo/cli"], "^0.0.3");
 });
 
 test("React starter includes the client, local styles, and no backend secrets", async (t) => {
@@ -162,8 +178,8 @@ test("React starter includes the client, local styles, and no backend secrets", 
       assert.equal(await readFile(path.join(target, file), 'utf8'), await readFile(path.join(repo, 'client', file), 'utf8'));
     }
     const registry = JSON.parse(templates(options)['package.json']);
-    assert.equal(registry.dependencies['@tilcayo/styles'], '^0.0.2');
-    assert.equal(registry.dependencies['@tilcayo/react'], '^0.0.2');
+    assert.equal(registry.dependencies['@tilcayo/styles'], '^0.0.3');
+    assert.equal(registry.dependencies['@tilcayo/react'], '^0.0.3');
     assert.ok(!JSON.stringify(registry).includes('file:'));
     await assert.rejects(() => generateApp(options, root), /already exists/);
   }

@@ -13,6 +13,7 @@ export const help = `Usage: create-tilcayo-app [project-name] [options]
   --package-manager npm|pnpm|yarn
   --type api|minimal|react|fullstack
   --api / --fullstack     Shortcuts for application type
+  --full-app             Full stack, auth, admin and tenancy; no prompts, npm by default
   --auth / --no-auth      Include backend auth or React auth pages and route guards
   --admin                Add an admin shell (requires --auth and React/fullstack)
   --tenancy              Subdomain workspaces (requires --fullstack --auth --admin)
@@ -42,6 +43,7 @@ export function parseOptions(args: string[]): { options: StarterOptions; missing
   const missing = new Set(["name", "packageManager", "type", "auth"]);
   const seen = new Set<string>();
   let yes = false;
+  let fullApp = false;
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (!arg.startsWith("-")) {
@@ -53,6 +55,7 @@ export function parseOptions(args: string[]): { options: StarterOptions; missing
     const key = arg === "--no-auth" ? "--auth" : ["--api", "--fullstack"].includes(arg) ? "--type" : arg;
     if (seen.has(key)) throw new Error(`Duplicate or conflicting option: ${arg}`);
     seen.add(key);
+    if (arg === "--full-app") { fullApp = true; yes = true; continue; }
     if (arg === "--yes" || arg === "-y") { yes = true; continue; }
     if (arg === "--no-install") { options.install = false; continue; }
     if (arg === "--tenancy") { options.tenancy = true; continue; }
@@ -80,6 +83,17 @@ export function parseOptions(args: string[]): { options: StarterOptions; missing
       continue;
     }
     throw new Error(`Unknown option: ${arg}. Run create-tilcayo-app --help.`);
+  }
+  if (fullApp) {
+    if (seen.has("--type") && options.type !== "fullstack") throw new Error("--full-app conflicts with the selected application type.");
+    if (seen.has("--auth") && !options.auth) throw new Error("--full-app conflicts with --no-auth.");
+    options.type = "fullstack";
+    options.auth = true;
+    options.admin = true;
+    options.tenancy = true;
+    missing.delete("type");
+    missing.delete("auth");
+    missing.delete("packageManager");
   }
   validateOptions(options);
   return { options, missing, yes };

@@ -34,7 +34,7 @@ export default defineConfig({
       build: "npm run build --workspaces", start: "npm run start --workspace api", routes: "npm run routes --workspace api",
       ...(options.admin ? { 'seed:demo': 'npm run build --workspace api && npm run seed:demo --workspace api', 'seed:demo:remove': 'npm run build --workspace api && npm run seed:demo --workspace api -- --remove' } : {}),
     },
-    devDependencies: { "@tilcayo/cli": localPackages.rootCli ?? "^0.0.2" },
+    devDependencies: { "@tilcayo/cli": localPackages.rootCli ?? "^0.0.3" },
   }, null, 2) + "\n";
   files[".gitignore"] = "node_modules/\n**/dist/\n.env\n.env.*\n**/.env\n**/.env.*\n!**/.env.example\n*.log\n";
   if (options.packageManager === "yarn") files[".yarnrc.yml"] = "nodeLinker: node-modules\n";
