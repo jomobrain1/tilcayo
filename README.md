@@ -28,7 +28,9 @@ Commands use `npm` and `npx`. If Windows PowerShell blocks them, use `npm.cmd` a
 ```bash
 # Create the complete app: API, React, auth, admin and tenants
 npm create tilcayo-app@latest my-app -- --full-app
+```
 
+```bash
 # Enter your app
 cd my-app
 ```
@@ -49,7 +51,9 @@ Keep the generated `AUTH_ACCESS_SECRET` and `AUTH_REFRESH_SECRET` values.
 ```bash
 # Create your initial Super Admin
 npm run tenancy:setup
+```
 
+```bash
 # Start the API and frontend together
 npm run dev
 ```
@@ -65,16 +69,24 @@ Choose one preset. Each command creates a separate app; existing directories are
 ```bash
 # API only
 npm create tilcayo-app@latest my-api -- --api --yes
+```
 
+```bash
 # API with authentication
 npm create tilcayo-app@latest secure-api -- --api --auth --yes
+```
 
+```bash
 # Minimal server without MongoDB
 npm create tilcayo-app@latest tiny-server -- --type minimal --no-auth --yes
+```
 
+```bash
 # React frontend only
 npm create tilcayo-app@latest my-web -- --type react --yes
+```
 
+```bash
 # Fullstack with auth and admin, without tenancy
 npm create tilcayo-app@latest managed-app -- --fullstack --auth --admin --yes
 ```
@@ -84,13 +96,19 @@ Additional presets:
 ```bash
 # React frontend with authentication pages; connect a compatible API
 npm create tilcayo-app@latest auth-web -- --type react --auth --yes
+```
 
+```bash
 # React frontend with auth and admin screens; connect a compatible API
 npm create tilcayo-app@latest admin-web -- --type react --auth --admin --yes
+```
 
+```bash
 # Fullstack without authentication or admin
 npm create tilcayo-app@latest basic-app -- --fullstack --yes
+```
 
+```bash
 # Complete app using the individual options
 npm create tilcayo-app@latest tenant-app -- --fullstack --auth --admin --tenancy --yes
 ```
@@ -115,13 +133,17 @@ npm create tilcayo-app@latest tenant-app -- --fullstack --auth --admin --tenancy
 ```bash
 # Use pnpm for the complete app
 npm create tilcayo-app@latest team-app -- --full-app --package-manager pnpm
+```
 
+```bash
 # Generate the complete app, but install and build later
 npm create tilcayo-app@latest draft-app -- --full-app --no-install
 cd draft-app
 npm install
 npm run build
+```
 
+```bash
 # Show all creator options
 npm create tilcayo-app@latest -- --help
 ```
@@ -164,22 +186,34 @@ Run inside `my-app/`. The separate dev commands are alternatives to the combined
 ```bash
 # Start API and frontend together
 npm run dev
+```
 
+```bash
 # Start only the API
 npm run dev:api
+```
 
+```bash
 # Start only the frontend in a separate terminal
 npm run dev:client
+```
 
+```bash
 # Build both API and frontend
 npm run build
+```
 
+```bash
 # Start the built API
 npm start
+```
 
+```bash
 # List registered backend routes after building
 npm run routes
+```
 
+```bash
 # Lint frontend code
 npm run lint --workspace client
 ```
@@ -193,16 +227,24 @@ Run inside `my-app/api/`, or the root of a standalone API app.
 ```bash
 # Compile, start, watch and restart the API
 npx tilcayo dev
+```
 
+```bash
 # Compile the API to dist/
 npx tilcayo build
+```
 
+```bash
 # Start the compiled API with .env
 npx tilcayo start
+```
 
+```bash
 # Build once and start without watching
 npx tilcayo dev:serve
+```
 
+```bash
 # Show CLI commands
 npx tilcayo --help
 ```
@@ -216,13 +258,19 @@ Run inside `my-app/client/`, or the root of a standalone React app.
 ```bash
 # Start the frontend dev server
 npm run dev
+```
 
+```bash
 # Build the frontend to dist/
 npm run build
+```
 
+```bash
 # Check frontend code
 npm run lint
+```
 
+```bash
 # Preview an existing production build locally
 npm run preview
 ```
@@ -234,16 +282,24 @@ Run inside the API directory after building.
 ```bash
 # List all routes
 npx tilcayo routes:list
+```
 
+```bash
 # Filter by HTTP method
 npx tilcayo routes:list --method GET
+```
 
+```bash
 # Filter by URL path
 npx tilcayo routes:list --path /api/auth
+```
 
+```bash
 # Output JSON
 npx tilcayo routes:list --json
+```
 
+```bash
 # Choose the compiled app and environment file explicitly
 npx tilcayo routes:list --entry dist/app.js --env-file .env
 ```
@@ -272,11 +328,15 @@ Run inside the API directory. Choose resources that do not already exist; the ad
 ```bash
 # Generate a model, controller, validator and routes
 npx tilcayo make:resource Article title:string published:boolean
+```
 
+```bash
 # Generate related resources
 npx tilcayo make:resource Author name:string
 npx tilcayo make:resource Book title:string author:ref:Author "year:number?"
+```
 
+```bash
 # Explicitly select MongoDB
 npx tilcayo make:resource InventoryItem name:string quantity:number --mongodb
 ```
@@ -288,19 +348,29 @@ These commands are an alternative to generating the same feature with `make:reso
 ```bash
 # Generate a model
 npx tilcayo make:model Customer name:string email:string
+```
 
+```bash
 # Generate a working CRUD controller for that model
 npx tilcayo make:controller customers --resource name:string email:string
+```
 
+```bash
 # Generate request validation
 npx tilcayo make:validator customers name:string email:string
+```
 
+```bash
 # Generate a resource route module
 npx tilcayo make:route customers --resource
+```
 
+```bash
 # Generate a service
 npx tilcayo make:service reports
+```
 
+```bash
 # Generate a plain controller with placeholder handlers
 npx tilcayo make:controller reports
 ```
@@ -312,7 +382,9 @@ Run inside a React app. These examples are alternatives when they target the sam
 ```bash
 # Generate resource types only
 npx tilcayo make:types Book title:string "year:number?" author:ref:Author
+```
 
+```bash
 # Generate types, API integration, forms and CRUD pages
 npx tilcayo make:frontend Book title:string "year:number?" author:ref:Author
 ```
@@ -381,7 +453,9 @@ The complete app already includes auth and admin. For smaller generated apps, ad
 npx tilcayo add:auth
 npm install
 npm run build
+```
 
+```bash
 # Add admin screens to an auth-enabled React or full-stack starter
 npx tilcayo add:admin
 npm install
@@ -395,7 +469,9 @@ For low-level backend auth scaffolding instead of `add:auth`:
 ```bash
 # Install backend auth and storage dependencies in your API app
 npm install @tilcayo/auth @tilcayo/cloudinary
+```
 
+```bash
 # Generate auth configuration, controllers, validators and routes
 npx tilcayo make:auth
 ```
@@ -433,10 +509,14 @@ Optional demo data commands, from the app root:
 ```powershell
 # Select an existing tenant for demo data
 $env:TENANCY_SEED_SLUG = "sunrise"
+```
 
+```powershell
 # Add demo records
 npm run seed:demo
+```
 
+```powershell
 # Remove demo records
 npm run seed:demo:remove
 ```
