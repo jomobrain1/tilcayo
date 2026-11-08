@@ -25,7 +25,7 @@ Use Node.js **22.12+ or 24+**, npm and an accessible MongoDB database. Install f
 
 Commands use `npm` and `npx`. If Windows PowerShell blocks them, use `npm.cmd` and `npx.cmd` instead.
 
-```powershell
+```bash
 # Create the complete app: API, React, auth, admin and tenants
 npm create tilcayo-app@latest my-app -- --full-app
 
@@ -37,7 +37,7 @@ cd my-app
 
 Edit **`api/.env` inside your newly generated app**. The installer includes blank Super Admin fields; fill them before setup. Editing the framework repository's `.env`, another example app, or `.env.example` will not configure this app. Replace these placeholders:
 
-```dotenv
+```ini
 MONGODB_URI=your_mongodb_connection_string
 TENANCY_BASE_DOMAIN=localhost
 TENANCY_SUPERADMIN_EMAIL=your_email
@@ -46,7 +46,7 @@ TENANCY_SUPERADMIN_PASSWORD=your_chosen_strong_password
 
 Keep the generated `AUTH_ACCESS_SECRET` and `AUTH_REFRESH_SECRET` values.
 
-```powershell
+```bash
 # Create your initial Super Admin
 npm run tenancy:setup
 
@@ -62,7 +62,7 @@ The API defaults to port `9149`; the frontend proxies `/api` to it. Configure Cl
 
 Choose one preset. Each command creates a separate app; existing directories are never overwritten.
 
-```powershell
+```bash
 # API only
 npm create tilcayo-app@latest my-api -- --api --yes
 
@@ -81,7 +81,7 @@ npm create tilcayo-app@latest managed-app -- --fullstack --auth --admin --yes
 
 Additional presets:
 
-```powershell
+```bash
 # React frontend with authentication pages; connect a compatible API
 npm create tilcayo-app@latest auth-web -- --type react --auth --yes
 
@@ -112,7 +112,7 @@ npm create tilcayo-app@latest tenant-app -- --fullstack --auth --admin --tenancy
 
 `--full-app` accepts package-manager and installation options. It rejects incompatible choices such as `--no-auth` or `--type react`.
 
-```powershell
+```bash
 # Use pnpm for the complete app
 npm create tilcayo-app@latest team-app -- --full-app --package-manager pnpm
 
@@ -161,7 +161,7 @@ Edit your generated application's source. Its npm dependencies supply the reusab
 
 Run inside `my-app/`. The separate dev commands are alternatives to the combined command.
 
-```powershell
+```bash
 # Start API and frontend together
 npm run dev
 
@@ -190,7 +190,7 @@ npm run lint --workspace client
 
 Run inside `my-app/api/`, or the root of a standalone API app.
 
-```powershell
+```bash
 # Compile, start, watch and restart the API
 npx tilcayo dev
 
@@ -213,7 +213,7 @@ Stop an existing API before starting another on the same port.
 
 Run inside `my-app/client/`, or the root of a standalone React app.
 
-```powershell
+```bash
 # Start the frontend dev server
 npm run dev
 
@@ -231,7 +231,7 @@ npm run preview
 
 Run inside the API directory after building.
 
-```powershell
+```bash
 # List all routes
 npx tilcayo routes:list
 
@@ -258,7 +258,7 @@ Generators create editable source and print registration steps. They refuse exis
 
 Run from the full-stack app root.
 
-```powershell
+```bash
 # Generate a complete Project CRUD feature
 npx tilcayo make:resource Project title:string active:boolean --fullstack
 ```
@@ -269,7 +269,7 @@ Register the generated API route in `api/src/app.ts` and the frontend route arra
 
 Run inside the API directory. Choose resources that do not already exist; the admin preset already includes a product catalog.
 
-```powershell
+```bash
 # Generate a model, controller, validator and routes
 npx tilcayo make:resource Article title:string published:boolean
 
@@ -285,7 +285,7 @@ npx tilcayo make:resource InventoryItem name:string quantity:number --mongodb
 
 These commands are an alternative to generating the same feature with `make:resource`.
 
-```powershell
+```bash
 # Generate a model
 npx tilcayo make:model Customer name:string email:string
 
@@ -309,7 +309,7 @@ npx tilcayo make:controller reports
 
 Run inside a React app. These examples are alternatives when they target the same files.
 
-```powershell
+```bash
 # Generate resource types only
 npx tilcayo make:types Book title:string "year:number?" author:ref:Author
 
@@ -334,7 +334,7 @@ Register frontend routes and connect the matching backend API.
 
 Quote optional fields containing `?`. Referenced models use PascalCase. References validate ID shape; they do not enforce target existence or cascade deletion.
 
-```powershell
+```bash
 # Use comma-separated fields instead of positional fields
 npx tilcayo make:model Customer --fields "name:string,email:string"
 ```
@@ -345,7 +345,7 @@ Do not combine `--fields` with positional fields. `--resource` applies to contro
 
 Register a generated backend route module in `src/app.ts`:
 
-```ts
+```typescript
 import articlesRoutes from './routes/articles.routes.js';
 
 app.routes(articlesRoutes);
@@ -357,7 +357,7 @@ Generated resource routes need server middleware for authentication and authoriz
 
 Example custom route with Zod validation:
 
-```ts
+```typescript
 import { defineRoutes } from '@tilcayo/core';
 import { z } from 'zod';
 
@@ -376,7 +376,7 @@ See the [core guide](packages/core/README.md) for middleware, errors, pagination
 
 The complete app already includes auth and admin. For smaller generated apps, add them explicitly:
 
-```powershell
+```bash
 # Add authentication to a recognized API, React or full-stack starter
 npx tilcayo add:auth
 npm install
@@ -392,7 +392,7 @@ Installers refuse collisions and customized integration files. Run them from the
 
 For low-level backend auth scaffolding instead of `add:auth`:
 
-```powershell
+```bash
 # Install backend auth and storage dependencies in your API app
 npm install @tilcayo/auth @tilcayo/cloudinary
 
@@ -412,7 +412,7 @@ The `--full-app` preset includes tenancy. There is no separate `add:tenancy` com
 
 After setting the setup credentials in `api/.env`, run from the app root:
 
-```powershell
+```bash
 # Provision the initial Super Admin
 npm run tenancy:setup
 ```
@@ -469,7 +469,7 @@ Backend settings belong in `api/.env` for full-stack apps or `.env` for standalo
 
 Set these backend values to enable Cloudinary uploads:
 
-```dotenv
+```ini
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET_KEY=your_api_secret
