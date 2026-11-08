@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>Tilcayo · README</title><style>:root{font-family:Inter,"Segoe UI",system-ui,sans-serif;color:#24292f;background:#fff;font-synthesis:none;line-height:1.65;font-size:15px}
+*{box-sizing:border-box}body{margin:0}a{color:#0969da;text-underline-offset:3px}a:hover{text-decoration-thickness:2px}
+.reader-toolbar{max-width:960px;margin:auto;padding:20px 32px 14px;display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280}.reader-toolbar a{color:inherit;text-decoration:none}.reader-toolbar a:hover{color:#0969da}
+main{max-width:960px;margin:0 auto;padding:18px 32px 64px;overflow-wrap:anywhere}h1{font-size:36px;letter-spacing:-.035em;line-height:1.2;margin:18px 0}h2{font-size:25px;letter-spacing:-.025em;margin:42px 0 16px;padding-bottom:9px;border-bottom:1px solid #e5e7eb}h3{font-size:19px;margin:28px 0 12px}h1,h2,h3{scroll-margin-top:24px;color:#111827}p{margin:14px 0}li{margin:4px 0}ul,ol{padding-left:24px}strong{font-weight:650}
+table{display:block;max-width:100%;overflow:auto;border-collapse:collapse;margin:18px 0;font-size:14px}th,td{border:1px solid #dce1e7;padding:9px 12px;text-align:left;vertical-align:top}th{background:#f6f8fa}tr:nth-child(even) td{background:#fafbfc}
+code{font-family:"Cascadia Code",Consolas,"Liberation Mono",monospace;font-size:.9em}p code,li code,td code,th code{padding:2px 5px;border-radius:4px;background:#f0f2f5;color:#24292f;overflow-wrap:anywhere}
+.code-panel{position:relative;margin:18px 0 24px;max-width:100%;min-width:0;overflow:hidden;border:1px solid #363636;border-radius:2px;background:#1e1e1e;color:#d4d4d4;box-shadow:none;overflow-wrap:normal}
+.code-panel::before{content:"";position:absolute;inset:0 auto 0 0;width:23px;border-right:1px solid #363636;background:#1e1e1e;pointer-events:none}
+.copy-code{position:absolute;top:7px;right:8px;z-index:2;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:73px;min-height:28px;padding:4px 9px;border:1px solid #454545;border-radius:4px;background:#252526;color:#d4d4d4;font:12px "Segoe UI",system-ui,sans-serif;cursor:pointer;opacity:0}.code-panel:hover .copy-code,.code-panel:focus-within .copy-code{opacity:1}.copy-code:hover{background:#3b3b3e;border-color:#686868}.copy-code:focus-visible{outline:2px solid #75beff;outline-offset:2px}.copy-code[data-state="copied"]{color:#b5cea8;border-color:#647959}.copy-code[data-state="error"]{color:#f48771}.copy-code:disabled{cursor:wait}
+.code-panel pre{margin:0;padding:12px 96px 14px 34px;max-width:100%;overflow-x:auto;font:500 14px/1.65 Consolas,"Cascadia Code","Liberation Mono",monospace;tab-size:2;white-space:pre;scrollbar-color:#555 #1e1e1e;scrollbar-width:thin}.code-panel pre code{font:inherit;background:none;border:0;padding:0}.code-panel pre ::selection{background:#264f78}.code-panel pre::-webkit-scrollbar{height:8px}.code-panel pre::-webkit-scrollbar-thumb{background:#555;border-radius:3px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:600px){:root{font-size:14px}.reader-toolbar{padding:15px 18px 11px}main{padding:12px 18px 40px}h1{font-size:30px}h2{font-size:22px}.code-panel pre{padding:12px 90px 14px 30px;font-size:12px}.copy-code{opacity:1}}
+@media(prefers-reduced-motion:no-preference){.copy-code{transition:background .12s,border-color .12s}}
+</style></head>
+<body><header class="reader-toolbar"><a href="README.md">README.md</a><span>VS Code Dark+</span></header><main><h1 id="tilcayo">Tilcayo</h1>
+<p>A TypeScript toolkit for building APIs and full-stack applications with Node.js, Express, MongoDB, Zod and React.</p>
+<p>Tilcayo uses plain functions, explicit routes and editable generated code. It includes authentication, tenant workspaces, admin screens, a reusable component library and Cloudinary uploads. MongoDB is the supported database adapter.</p>
+<h2 id="contents">Contents</h2>
+<ul>
+<li><a href="#quick-start">Quick start</a></li>
+<li><a href="#create-an-application">Create an application</a></li>
+<li><a href="#project-structure">Project structure</a></li>
+<li><a href="#development-commands">Development commands</a></li>
+<li><a href="#generators">Generators</a></li>
+<li><a href="#routes-and-validation">Routes and validation</a></li>
+<li><a href="#authentication-and-administration">Authentication and administration</a></li>
+<li><a href="#tenant-workspaces">Tenant workspaces</a></li>
+<li><a href="#environment-configuration">Environment configuration</a></li>
+<li><a href="#uploads">Uploads</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#package-guides">Package guides</a></li>
+</ul>
+<h2 id="quick-start">Quick start</h2>
+<p>Use Node.js <strong>22.12+ or 24+</strong>, npm and an accessible MongoDB database. Install from npm; no framework checkout or separate package setup is required.</p>
+<p>Commands use <code>npm</code> and <code>npx</code>. If Windows PowerShell blocks them, use <code>npm.cmd</code> and <code>npx.cmd</code> instead.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="0" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Create the complete app: API, React, auth, admin and tenants</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> my-app</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --full-app</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="1" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Enter your app</span></span>
+<span class="line"><span style="color:#DCDCAA">cd</span><span style="color:#CE9178"> my-app</span></span></code></pre>
+</section>
+<p><code>--full-app</code> installs dependencies and builds the app without requiring <code>--yes</code>. It includes dashboards, profile settings, Elements and upload support.</p>
+<p>Edit <strong><code>api/.env</code> inside your newly generated app</strong>. The installer includes blank Super Admin fields; fill them before setup. Editing the framework repository&#39;s <code>.env</code>, another example app, or <code>.env.example</code> will not configure this app. Replace these placeholders:</p>
+<section class="code-panel" aria-label="Configuration code block">
+<button type="button" class="copy-code" data-code-index="2" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#569CD6">MONGODB_URI</span><span style="color:#D4D4D4">=your_mongodb_connection_string</span></span>
+<span class="line"><span style="color:#569CD6">TENANCY_BASE_DOMAIN</span><span style="color:#D4D4D4">=localhost</span></span>
+<span class="line"><span style="color:#569CD6">TENANCY_SUPERADMIN_EMAIL</span><span style="color:#D4D4D4">=your_email</span></span>
+<span class="line"><span style="color:#569CD6">TENANCY_SUPERADMIN_PASSWORD</span><span style="color:#D4D4D4">=your_chosen_strong_password</span></span></code></pre>
+</section>
+<p>Keep the generated <code>AUTH_ACCESS_SECRET</code> and <code>AUTH_REFRESH_SECRET</code> values.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="3" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Create your initial Super Admin</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> tenancy:setup</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="4" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Start the API and frontend together</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> dev</span></span></code></pre>
+</section>
+<p>Open the frontend URL printed by Vite. Sign in with your Super Admin account, open <strong>Tenant administration</strong> from the profile menu, then create tenants and assign their administrators. No default tenant is created.</p>
+<p>The API defaults to port <code>9149</code>; the frontend proxies <code>/api</code> to it. Configure Cloudinary when you want real uploads and SMTP when you want password recovery emails.</p>
+<h2 id="create-an-application">Create an application</h2>
+<p>Choose one preset. Each command creates a separate app; existing directories are never overwritten.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="5" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># API only</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> my-api</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --api</span><span style="color:#569CD6"> --yes</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="6" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># API with authentication</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> secure-api</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --api</span><span style="color:#569CD6"> --auth</span><span style="color:#569CD6"> --yes</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="7" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Minimal server without MongoDB</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> tiny-server</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --type</span><span style="color:#CE9178"> minimal</span><span style="color:#569CD6"> --no-auth</span><span style="color:#569CD6"> --yes</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="8" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># React frontend only</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> my-web</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --type</span><span style="color:#CE9178"> react</span><span style="color:#569CD6"> --yes</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="9" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Fullstack with auth and admin, without tenancy</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> managed-app</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --fullstack</span><span style="color:#569CD6"> --auth</span><span style="color:#569CD6"> --admin</span><span style="color:#569CD6"> --yes</span></span></code></pre>
+</section>
+<p>Additional presets:</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="10" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># React frontend with authentication pages; connect a compatible API</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> auth-web</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --type</span><span style="color:#CE9178"> react</span><span style="color:#569CD6"> --auth</span><span style="color:#569CD6"> --yes</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="11" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># React frontend with auth and admin screens; connect a compatible API</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> admin-web</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --type</span><span style="color:#CE9178"> react</span><span style="color:#569CD6"> --auth</span><span style="color:#569CD6"> --admin</span><span style="color:#569CD6"> --yes</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="12" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Fullstack without authentication or admin</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> basic-app</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --fullstack</span><span style="color:#569CD6"> --yes</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="13" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Complete app using the individual options</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> tenant-app</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --fullstack</span><span style="color:#569CD6"> --auth</span><span style="color:#569CD6"> --admin</span><span style="color:#569CD6"> --tenancy</span><span style="color:#569CD6"> --yes</span></span></code></pre>
+</section>
+<h3 id="creator-options">Creator options</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--full-app</code></td>
+<td>Fullstack, auth, admin and tenancy; npm by default, no prompts</td>
+</tr>
+<tr>
+<td>`--type api</td>
+<td>minimal</td>
+</tr>
+<tr>
+<td><code>--api</code>, <code>--fullstack</code></td>
+<td>Shortcuts for the corresponding app type</td>
+</tr>
+<tr>
+<td><code>--auth</code>, <code>--no-auth</code></td>
+<td>Include or exclude authentication</td>
+</tr>
+<tr>
+<td><code>--admin</code></td>
+<td>Include admin screens; requires auth and React/fullstack</td>
+</tr>
+<tr>
+<td><code>--tenancy</code></td>
+<td>Include tenant workspaces; requires fullstack, auth and admin</td>
+</tr>
+<tr>
+<td>`--package-manager npm</td>
+<td>pnpm</td>
+</tr>
+<tr>
+<td><code>--no-install</code></td>
+<td>Generate files without installation or automatic build</td>
+</tr>
+<tr>
+<td><code>--yes</code>, <code>-y</code></td>
+<td>Use defaults for unanswered choices</td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>Show creator help</td>
+</tr>
+</tbody></table>
+<p><code>--full-app</code> accepts package-manager and installation options. It rejects incompatible choices such as <code>--no-auth</code> or <code>--type react</code>.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="14" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Use pnpm for the complete app</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> team-app</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --full-app</span><span style="color:#569CD6"> --package-manager</span><span style="color:#CE9178"> pnpm</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="15" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate the complete app, but install and build later</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#CE9178"> draft-app</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --full-app</span><span style="color:#569CD6"> --no-install</span></span>
+<span class="line"><span style="color:#DCDCAA">cd</span><span style="color:#CE9178"> draft-app</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> install</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> build</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="16" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Show all creator options</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> create</span><span style="color:#CE9178"> tilcayo-app@latest</span><span style="color:#569CD6"> --</span><span style="color:#569CD6"> --help</span></span></code></pre>
+</section>
+<h2 id="project-structure">Project structure</h2>
+<p>A complete generated app contains:</p>
+<section class="code-panel" aria-label="Text code block">
+<button type="button" class="copy-code" data-code-index="17" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span>my-app/</span></span>
+<span class="line"><span>  api/</span></span>
+<span class="line"><span>    src/app.ts          # Register API routes and middleware</span></span>
+<span class="line"><span>    src/index.ts        # Database connection and server lifecycle</span></span>
+<span class="line"><span>    src/auth.ts         # Authentication configuration</span></span>
+<span class="line"><span>    src/storage.ts      # Cloudinary upload profiles</span></span>
+<span class="line"><span>    src/models/</span></span>
+<span class="line"><span>    src/controllers/</span></span>
+<span class="line"><span>    src/routes/</span></span>
+<span class="line"><span>    src/validators/</span></span>
+<span class="line"><span>    src/services/</span></span>
+<span class="line"><span>    .env                # Private backend configuration</span></span>
+<span class="line"><span>  client/</span></span>
+<span class="line"><span>    src/app/            # API, auth and Redux setup</span></span>
+<span class="line"><span>    src/components/</span></span>
+<span class="line"><span>    src/features/</span></span>
+<span class="line"><span>    src/pages/</span></span>
+<span class="line"><span>    src/routes.tsx      # Frontend routes</span></span>
+<span class="line"><span>  scripts/dev.mjs       # Start both halves</span></span>
+<span class="line"><span>  package.json</span></span></code></pre>
+</section>
+<p>Edit your generated application&#39;s source. Its npm dependencies supply the reusable framework; you do not run the nine packages separately.</p>
+<h2 id="development-commands">Development commands</h2>
+<h3 id="full-stack-app-root">Full-stack app root</h3>
+<p>Run inside <code>my-app/</code>. The separate dev commands are alternatives to the combined command.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="18" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Start API and frontend together</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> dev</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="19" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Start only the API</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> dev:api</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="20" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Start only the frontend in a separate terminal</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> dev:client</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="21" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Build both API and frontend</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> build</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="22" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Start the built API</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> start</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="23" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># List registered backend routes after building</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> routes</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="24" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Lint frontend code</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> lint</span><span style="color:#569CD6"> --workspace</span><span style="color:#CE9178"> client</span></span></code></pre>
+</section>
+<p><code>npm start</code> runs the API only. Host <code>client/dist</code> separately with SPA fallback and an <code>/api</code> proxy for production.</p>
+<h3 id="api-directory">API directory</h3>
+<p>Run inside <code>my-app/api/</code>, or the root of a standalone API app.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="25" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Compile, start, watch and restart the API</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> dev</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="26" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Compile the API to dist/</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> build</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="27" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Start the compiled API with .env</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> start</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="28" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Build once and start without watching</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> dev:serve</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="29" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Show CLI commands</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#569CD6"> --help</span></span></code></pre>
+</section>
+<p>Stop an existing API before starting another on the same port.</p>
+<h3 id="frontend-directory">Frontend directory</h3>
+<p>Run inside <code>my-app/client/</code>, or the root of a standalone React app.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="30" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Start the frontend dev server</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> dev</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="31" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Build the frontend to dist/</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> build</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="32" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Check frontend code</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> lint</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="33" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Preview an existing production build locally</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> preview</span></span></code></pre>
+</section>
+<h3 id="inspect-api-routes">Inspect API routes</h3>
+<p>Run inside the API directory after building.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="34" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># List all routes</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> routes:list</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="35" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Filter by HTTP method</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> routes:list</span><span style="color:#569CD6"> --method</span><span style="color:#CE9178"> GET</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="36" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Filter by URL path</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> routes:list</span><span style="color:#569CD6"> --path</span><span style="color:#CE9178"> /api/auth</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="37" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Output JSON</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> routes:list</span><span style="color:#569CD6"> --json</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="38" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Choose the compiled app and environment file explicitly</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> routes:list</span><span style="color:#569CD6"> --entry</span><span style="color:#CE9178"> dist/app.js</span><span style="color:#569CD6"> --env-file</span><span style="color:#CE9178"> .env</span></span></code></pre>
+</section>
+<p><code>--entry</code> defaults to <code>dist/app.js</code>. That module must export the app without connecting MongoDB or starting a listener.</p>
+<h2 id="generators">Generators</h2>
+<p>Generators create editable source and print registration steps. They refuse existing target files.</p>
+<h3 id="generate-both-api-and-frontend">Generate both API and frontend</h3>
+<p>Run from the full-stack app root.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="39" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate a complete Project CRUD feature</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:resource</span><span style="color:#CE9178"> Project</span><span style="color:#CE9178"> title:string</span><span style="color:#CE9178"> active:boolean</span><span style="color:#569CD6"> --fullstack</span></span></code></pre>
+</section>
+<p>Register the generated API route in <code>api/src/app.ts</code> and the frontend route array in <code>client/src/routes.tsx</code>, following the printed instructions.</p>
+<h3 id="generate-backend-resources">Generate backend resources</h3>
+<p>Run inside the API directory. Choose resources that do not already exist; the admin preset already includes a product catalog.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="40" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate a model, controller, validator and routes</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:resource</span><span style="color:#CE9178"> Article</span><span style="color:#CE9178"> title:string</span><span style="color:#CE9178"> published:boolean</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="41" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate related resources</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:resource</span><span style="color:#CE9178"> Author</span><span style="color:#CE9178"> name:string</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:resource</span><span style="color:#CE9178"> Book</span><span style="color:#CE9178"> title:string</span><span style="color:#CE9178"> author:ref:Author</span><span style="color:#CE9178"> "year:number?"</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="42" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Explicitly select MongoDB</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:resource</span><span style="color:#CE9178"> InventoryItem</span><span style="color:#CE9178"> name:string</span><span style="color:#CE9178"> quantity:number</span><span style="color:#569CD6"> --mongodb</span></span></code></pre>
+</section>
+<h3 id="generate-individual-backend-files">Generate individual backend files</h3>
+<p>These commands are an alternative to generating the same feature with <code>make:resource</code>.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="43" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate a model</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:model</span><span style="color:#CE9178"> Customer</span><span style="color:#CE9178"> name:string</span><span style="color:#CE9178"> email:string</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="44" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate a working CRUD controller for that model</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:controller</span><span style="color:#CE9178"> customers</span><span style="color:#569CD6"> --resource</span><span style="color:#CE9178"> name:string</span><span style="color:#CE9178"> email:string</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="45" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate request validation</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:validator</span><span style="color:#CE9178"> customers</span><span style="color:#CE9178"> name:string</span><span style="color:#CE9178"> email:string</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="46" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate a resource route module</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:route</span><span style="color:#CE9178"> customers</span><span style="color:#569CD6"> --resource</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="47" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate a service</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:service</span><span style="color:#CE9178"> reports</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="48" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate a plain controller with placeholder handlers</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:controller</span><span style="color:#CE9178"> reports</span></span></code></pre>
+</section>
+<h3 id="generate-frontend-files">Generate frontend files</h3>
+<p>Run inside a React app. These examples are alternatives when they target the same files.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="49" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate resource types only</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:types</span><span style="color:#CE9178"> Book</span><span style="color:#CE9178"> title:string</span><span style="color:#CE9178"> "year:number?"</span><span style="color:#CE9178"> author:ref:Author</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="50" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate types, API integration, forms and CRUD pages</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:frontend</span><span style="color:#CE9178"> Book</span><span style="color:#CE9178"> title:string</span><span style="color:#CE9178"> "year:number?"</span><span style="color:#CE9178"> author:ref:Author</span></span></code></pre>
+</section>
+<p>Register frontend routes and connect the matching backend API.</p>
+<h3 id="field-syntax">Field syntax</h3>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>name:string</code></td>
+<td>Required nonempty string</td>
+</tr>
+<tr>
+<td><code>price:number</code></td>
+<td>JSON number</td>
+</tr>
+<tr>
+<td><code>active:boolean</code></td>
+<td>JSON boolean</td>
+</tr>
+<tr>
+<td><code>publishedAt:date</code></td>
+<td>ISO timestamp with timezone</td>
+</tr>
+<tr>
+<td><code>&quot;year:number?&quot;</code> or <code>&quot;year?:number&quot;</code></td>
+<td>Optional field</td>
+</tr>
+<tr>
+<td><code>author:ref:Author</code></td>
+<td>One MongoDB ObjectId reference</td>
+</tr>
+<tr>
+<td><code>tags:refs:Tag</code></td>
+<td>Array of ObjectId references</td>
+</tr>
+<tr>
+<td><code>&quot;author:ref:Author?&quot;</code></td>
+<td>Optional reference</td>
+</tr>
+</tbody></table>
+<p>Quote optional fields containing <code>?</code>. Referenced models use PascalCase. References validate ID shape; they do not enforce target existence or cascade deletion.</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="51" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Use comma-separated fields instead of positional fields</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:model</span><span style="color:#CE9178"> Customer</span><span style="color:#569CD6"> --fields</span><span style="color:#CE9178"> "name:string,email:string"</span></span></code></pre>
+</section>
+<p>Do not combine <code>--fields</code> with positional fields. <code>--resource</code> applies to controllers/routes; <code>--fullstack</code> applies to resource generation. Legacy <code>--mongo</code> and <code>--crud</code> aliases remain supported.</p>
+<h2 id="routes-and-validation">Routes and validation</h2>
+<p>Register a generated backend route module in <code>src/app.ts</code>:</p>
+<section class="code-panel" aria-label="TypeScript code block">
+<button type="button" class="copy-code" data-code-index="52" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#C586C0">import</span><span style="color:#9CDCFE"> articlesRoutes</span><span style="color:#C586C0"> from</span><span style="color:#CE9178"> './routes/articles.routes.js'</span><span style="color:#D4D4D4">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#9CDCFE">app</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">routes</span><span style="color:#D4D4D4">(</span><span style="color:#9CDCFE">articlesRoutes</span><span style="color:#D4D4D4">);</span></span></code></pre>
+</section>
+<p>Backend resources provide <code>GET /articles</code>, <code>POST /articles</code>, and <code>GET</code>, <code>PUT</code>, <code>DELETE /articles/:id</code>. Full-stack generation prefixes API routes with <code>/api</code>.</p>
+<p>Generated resource routes need server middleware for authentication and authorization. In tenant-enabled apps, tenant middleware also enforces workspace access and model scope.</p>
+<p>Example custom route with Zod validation:</p>
+<section class="code-panel" aria-label="TypeScript code block">
+<button type="button" class="copy-code" data-code-index="53" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#C586C0">import</span><span style="color:#FFD700"> { </span><span style="color:#9CDCFE">defineRoutes</span><span style="color:#FFD700"> } </span><span style="color:#C586C0">from</span><span style="color:#CE9178"> '@tilcayo/core'</span><span style="color:#D4D4D4">;</span></span>
+<span class="line"><span style="color:#C586C0">import</span><span style="color:#FFD700"> { </span><span style="color:#9CDCFE">z</span><span style="color:#FFD700"> } </span><span style="color:#C586C0">from</span><span style="color:#CE9178"> 'zod'</span><span style="color:#D4D4D4">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#C586C0">export</span><span style="color:#C586C0"> default</span><span style="color:#DCDCAA"> defineRoutes</span><span style="color:#D4D4D4">(</span><span style="color:#9CDCFE">router</span><span style="color:#569CD6"> =></span><span style="color:#FFD700"> {</span></span>
+<span class="line"><span style="color:#9CDCFE">  router</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">post</span><span style="color:#D4D4D4">&#x3C;{ </span><span style="color:#9CDCFE">name</span><span style="color:#D4D4D4">: </span><span style="color:#4EC9B0">string</span><span style="color:#D4D4D4"> }>(</span><span style="color:#CE9178">'/greet'</span><span style="color:#D4D4D4">, </span><span style="color:#9CDCFE">ctx</span><span style="color:#569CD6"> =></span><span style="color:#9CDCFE"> ctx</span><span style="color:#D4D4D4">.</span><span style="color:#9CDCFE">response</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">success</span><span style="color:#D4D4D4">({</span></span>
+<span class="line"><span style="color:#9CDCFE">    greeting:</span><span style="color:#CE9178"> `Hello, </span><span style="color:#569CD6">${</span><span style="color:#9CDCFE">ctx</span><span style="color:#D4D4D4">.</span><span style="color:#9CDCFE">body</span><span style="color:#D4D4D4">.</span><span style="color:#9CDCFE">name</span><span style="color:#FFD700">}</span><span style="color:#CE9178">`</span><span style="color:#D4D4D4">,</span></span>
+<span class="line"><span style="color:#D4D4D4">  }), {</span></span>
+<span class="line"><span style="color:#9CDCFE">    validate:</span><span style="color:#FFD700"> { </span><span style="color:#9CDCFE">body:</span><span style="color:#9CDCFE"> z</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">object</span><span style="color:#D4D4D4">({ </span><span style="color:#9CDCFE">name:</span><span style="color:#9CDCFE"> z</span><span style="color:#D4D4D4">.</span><span style="color:#DCDCAA">string</span><span style="color:#D4D4D4">().</span><span style="color:#DCDCAA">min</span><span style="color:#D4D4D4">(</span><span style="color:#B5CEA8">1</span><span style="color:#D4D4D4">) }) },</span></span>
+<span class="line"><span style="color:#D4D4D4">  });</span></span>
+<span class="line"><span style="color:#D4D4D4">});</span></span></code></pre>
+</section>
+<p>See the <a href="packages/core/README.md">core guide</a> for middleware, errors, pagination and MongoDB helpers.</p>
+<h2 id="authentication-and-administration">Authentication and administration</h2>
+<p>The complete app already includes auth and admin. For smaller generated apps, add them explicitly:</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="54" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Add authentication to a recognized API, React or full-stack starter</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> add:auth</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> install</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> build</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="55" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Add admin screens to an auth-enabled React or full-stack starter</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> add:admin</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> install</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> build</span></span></code></pre>
+</section>
+<p>Installers refuse collisions and customized integration files. Run them from the relevant generated app root.</p>
+<p>For low-level backend auth scaffolding instead of <code>add:auth</code>:</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="56" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Install backend auth and storage dependencies in your API app</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> install</span><span style="color:#CE9178"> @tilcayo/auth</span><span style="color:#CE9178"> @tilcayo/cloudinary</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="57" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Generate auth configuration, controllers, validators and routes</span></span>
+<span class="line"><span style="color:#DCDCAA">npx</span><span style="color:#CE9178"> tilcayo</span><span style="color:#CE9178"> make:auth</span></span></code></pre>
+</section>
+<p>Register the generated routes as printed. Do not also register <code>auth.routes</code>. Missing auth secrets are generated; existing nonempty values are preserved.</p>
+<p>Registration creates ordinary users. Administrator roles must be assigned through trusted server code or authorized management screens. Permission checks belong on the API as well as the frontend.</p>
+<p>Full-stack starters restore sessions using an HttpOnly refresh cookie; access tokens stay in memory. Standalone API/frontend combinations need matching cookie-session settings and a suitable same-origin proxy.</p>
+<h2 id="tenant-workspaces">Tenant workspaces</h2>
+<p>The <code>--full-app</code> preset includes tenancy. There is no separate <code>add:tenancy</code> command.</p>
+<p>After setting the setup credentials in <code>api/.env</code>, run from the app root:</p>
+<section class="code-panel" aria-label="Bash code block">
+<button type="button" class="copy-code" data-code-index="58" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Provision the initial Super Admin</span></span>
+<span class="line"><span style="color:#DCDCAA">npm</span><span style="color:#CE9178"> run</span><span style="color:#CE9178"> tenancy:setup</span></span></code></pre>
+</section>
+<p>Re-running setup resets that account&#39;s password and revokes its existing sessions. It does not create a default tenant or migrate records. Remove the bootstrap password from persistent configuration after setup.</p>
+<ol>
+<li>Sign in on the main frontend address printed by Vite.</li>
+<li>Open <strong>Tenant administration</strong> from the profile menu at <code>/admin/workspaces</code>.</li>
+<li>Create a tenant and assign its administrator.</li>
+<li>Open its address, such as <code>http://sunrise.localhost:5173</code>, using Vite&#39;s actual port.</li>
+</ol>
+<p>Users can register on the main site or a tenant site. Tenant registration grants ordinary membership; existing accounts join using their existing password. Membership roles are separate for each tenant. A Super Admin needs assigned membership to enter a tenant workspace.</p>
+<p>Tenant administrators manage their own users, roles, products, orders and Trash. Suspending a membership affects that workspace; suspending a global account affects all workspaces. Soft deletion retains records for restoration.</p>
+<p>Optional demo data commands, from the app root:</p>
+<section class="code-panel" aria-label="PowerShell code block">
+<button type="button" class="copy-code" data-code-index="59" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Select an existing tenant for demo data</span></span>
+<span class="line"><span style="color:#9CDCFE">$env:TENANCY_SEED_SLUG</span><span style="color:#D4D4D4"> = </span><span style="color:#CE9178">"sunrise"</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="PowerShell code block">
+<button type="button" class="copy-code" data-code-index="60" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Add demo records</span></span>
+<span class="line"><span style="color:#D4D4D4">npm run seed:demo</span></span></code></pre>
+</section>
+<section class="code-panel" aria-label="PowerShell code block">
+<button type="button" class="copy-code" data-code-index="61" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#6A9955"># Remove demo records</span></span>
+<span class="line"><span style="color:#D4D4D4">npm run seed:demo:remove</span></span></code></pre>
+</section>
+<p>For production, configure wildcard DNS, HTTPS and a Host-preserving same-origin <code>/api</code> proxy. Each workspace hostname has its own session cookie.</p>
+<h2 id="environment-configuration">Environment configuration</h2>
+<p>Backend settings belong in <code>api/.env</code> for full-stack apps or <code>.env</code> for standalone APIs. Commit safe placeholders in <code>.env.example</code>, not actual credentials.</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>PORT</code></td>
+<td>API port; default <code>9149</code></td>
+</tr>
+<tr>
+<td><code>MONGODB_URI</code></td>
+<td>MongoDB connection string</td>
+</tr>
+<tr>
+<td><code>AUTH_ACCESS_SECRET</code></td>
+<td>Generated access-token signing secret</td>
+</tr>
+<tr>
+<td><code>AUTH_REFRESH_SECRET</code></td>
+<td>Different generated refresh-token signing secret</td>
+</tr>
+<tr>
+<td><code>AUTH_COOKIE_SESSION</code></td>
+<td>Cookie-session setting in standalone generated auth APIs</td>
+</tr>
+<tr>
+<td><code>MAIL_USER</code>, <code>MAIL_PASS</code></td>
+<td>Password recovery email credentials</td>
+</tr>
+<tr>
+<td><code>MAIL_HOST</code>, <code>MAIL_PORT</code>, <code>MAIL_SECURE</code>, <code>MAIL_FROM</code></td>
+<td>SMTP settings</td>
+</tr>
+<tr>
+<td><code>CLOUDINARY_CLOUD_NAME</code></td>
+<td>Cloudinary environment name</td>
+</tr>
+<tr>
+<td><code>CLOUDINARY_API_KEY</code></td>
+<td>Cloudinary API key</td>
+</tr>
+<tr>
+<td><code>CLOUDINARY_API_SECRET_KEY</code></td>
+<td>Cloudinary secret; storage config also accepts <code>CLOUDINARY_API_SECRET</code></td>
+</tr>
+<tr>
+<td><code>TENANCY_BASE_DOMAIN</code></td>
+<td>Workspace base domain; local default <code>localhost</code></td>
+</tr>
+<tr>
+<td><code>TENANCY_SUPERADMIN_EMAIL</code>, <code>TENANCY_SUPERADMIN_PASSWORD</code></td>
+<td>Initial Super Admin setup credentials</td>
+</tr>
+<tr>
+<td><code>TENANCY_SEED_SLUG</code></td>
+<td>Existing tenant for optional demo data</td>
+</tr>
+</tbody></table>
+<p><code>VITE_API_URL</code> is public frontend configuration, normally <code>/api</code>. <code>API_PROXY_TARGET</code> changes the dev proxy&#39;s backend target from <code>http://127.0.0.1:9149</code>. Keep signing, mail and Cloudinary secrets out of <code>VITE_*</code> variables.</p>
+<h2 id="uploads">Uploads</h2>
+<p>Set these backend values to enable Cloudinary uploads:</p>
+<section class="code-panel" aria-label="Configuration code block">
+<button type="button" class="copy-code" data-code-index="62" aria-label="Copy code"><svg aria-hidden="true" viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M12 4V3H3v9h1"/></svg><span>Copy</span></button>
+<pre class="shiki dark-plus" style="background-color:#1E1E1E;color:#D4D4D4" tabindex="0"><code><span class="line"><span style="color:#569CD6">CLOUDINARY_CLOUD_NAME</span><span style="color:#D4D4D4">=your_cloud_name</span></span>
+<span class="line"><span style="color:#569CD6">CLOUDINARY_API_KEY</span><span style="color:#D4D4D4">=your_api_key</span></span>
+<span class="line"><span style="color:#569CD6">CLOUDINARY_API_SECRET_KEY</span><span style="color:#D4D4D4">=your_api_secret</span></span></code></pre>
+</section>
+<p>Restart the API after changing configuration. Upload profiles live in <code>api/src/storage.ts</code> in a full-stack app.</p>
+<table>
+<thead>
+<tr>
+<th>Default profile</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>avatar</code></td>
+<td>Public JPG/PNG/WebP profile photos, up to 2 MB</td>
+</tr>
+<tr>
+<td><code>productImage</code></td>
+<td>Public product images, up to 5 MB</td>
+</tr>
+<tr>
+<td><code>document</code></td>
+<td>Authenticated PDF/DOCX/XLSX/ZIP documents, up to 20 MB</td>
+</tr>
+</tbody></table>
+<p>Profile-photo uploads are connected to Profile &amp; settings and admin profiles. The other profiles are available for your own features. Elements includes local upload demos with copyable code; demo files stay in the browser.</p>
+<p>The backend package exposes <code>validateFile</code>, <code>authorizeUpload</code>, <code>completeUpload</code>, <code>upload</code>, <code>getDownloadUrl</code> and <code>delete</code>. See the <a href="packages/cloudinary/README.md">Cloudinary guide</a> and <a href="packages/ui/README.md">UI guide</a>.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Check</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PowerShell blocks npm</td>
+<td>Use <code>npm.cmd</code> / <code>npx.cmd</code></td>
+</tr>
+<tr>
+<td>Creator does not recognize <code>--full-app</code></td>
+<td>Use <code>create-tilcayo-app@latest</code>; the shortcut requires version <code>0.0.4</code> or newer</td>
+</tr>
+<tr>
+<td>Tenancy setup reports missing settings</td>
+<td>Fill the named variables in this generated app&#39;s <code>api/.env</code>, then rerun setup</td>
+</tr>
+<tr>
+<td>MongoDB connection fails</td>
+<td>Check the connection string, database availability and network access</td>
+</tr>
+<tr>
+<td>API port is occupied</td>
+<td>Stop the previous API or change <code>PORT</code> and <code>API_PROXY_TARGET</code></td>
+</tr>
+<tr>
+<td>A generated route returns 404</td>
+<td>Register the backend/frontend routes and rebuild</td>
+</tr>
+<tr>
+<td>Generator reports an existing file</td>
+<td>Edit that feature or choose another name</td>
+</tr>
+<tr>
+<td>Existing app still has older UI</td>
+<td>Creating an app does not upgrade an existing app&#39;s source files</td>
+</tr>
+<tr>
+<td>Refresh returns to login</td>
+<td>Check cookie-session settings and the same-origin proxy</td>
+</tr>
+<tr>
+<td>Upload reports storage is not configured</td>
+<td>Set backend Cloudinary variables and restart the API</td>
+</tr>
+<tr>
+<td>Tenant page is forbidden</td>
+<td>Check hostname, tenant status, membership and permissions</td>
+</tr>
+</tbody></table>
+<h2 id="package-guides">Package guides</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Guide</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>@tilcayo/core</code></td>
+<td><a href="packages/core/README.md">API runtime and MongoDB</a></td>
+</tr>
+<tr>
+<td><code>@tilcayo/auth</code></td>
+<td><a href="packages/auth/README.md">Authentication and tenancy</a></td>
+</tr>
+<tr>
+<td><code>@tilcayo/cloudinary</code></td>
+<td><a href="packages/cloudinary/README.md">Cloudinary storage</a></td>
+</tr>
+<tr>
+<td><code>@tilcayo/react</code></td>
+<td><a href="packages/react/README.md">React API and auth integration</a></td>
+</tr>
+<tr>
+<td><code>@tilcayo/ui</code></td>
+<td><a href="packages/ui/README.md">Reusable React components</a></td>
+</tr>
+<tr>
+<td><code>@tilcayo/styles</code></td>
+<td><a href="packages/styles/README.md">Shared CSS</a></td>
+</tr>
+<tr>
+<td><code>@tilcayo/admin</code></td>
+<td><a href="packages/admin/README.md">Admin components</a></td>
+</tr>
+<tr>
+<td><code>@tilcayo/cli</code></td>
+<td><a href="packages/cli/README.md">Commands and generators</a></td>
+</tr>
+<tr>
+<td><code>create-tilcayo-app</code></td>
+<td><a href="packages/create-tilcayo-app/README.md">App creator</a></td>
+</tr>
+</tbody></table>
+</main><p id="copy-status" class="sr-only" role="status" aria-live="polite"></p><script type="application/json" id="readme-snippets">["# Create the complete app: API, React, auth, admin and tenants\nnpm create tilcayo-app@latest my-app -- --full-app","# Enter your app\ncd my-app","MONGODB_URI=your_mongodb_connection_string\nTENANCY_BASE_DOMAIN=localhost\nTENANCY_SUPERADMIN_EMAIL=your_email\nTENANCY_SUPERADMIN_PASSWORD=your_chosen_strong_password","# Create your initial Super Admin\nnpm run tenancy:setup","# Start the API and frontend together\nnpm run dev","# API only\nnpm create tilcayo-app@latest my-api -- --api --yes","# API with authentication\nnpm create tilcayo-app@latest secure-api -- --api --auth --yes","# Minimal server without MongoDB\nnpm create tilcayo-app@latest tiny-server -- --type minimal --no-auth --yes","# React frontend only\nnpm create tilcayo-app@latest my-web -- --type react --yes","# Fullstack with auth and admin, without tenancy\nnpm create tilcayo-app@latest managed-app -- --fullstack --auth --admin --yes","# React frontend with authentication pages; connect a compatible API\nnpm create tilcayo-app@latest auth-web -- --type react --auth --yes","# React frontend with auth and admin screens; connect a compatible API\nnpm create tilcayo-app@latest admin-web -- --type react --auth --admin --yes","# Fullstack without authentication or admin\nnpm create tilcayo-app@latest basic-app -- --fullstack --yes","# Complete app using the individual options\nnpm create tilcayo-app@latest tenant-app -- --fullstack --auth --admin --tenancy --yes","# Use pnpm for the complete app\nnpm create tilcayo-app@latest team-app -- --full-app --package-manager pnpm","# Generate the complete app, but install and build later\nnpm create tilcayo-app@latest draft-app -- --full-app --no-install\ncd draft-app\nnpm install\nnpm run build","# Show all creator options\nnpm create tilcayo-app@latest -- --help","my-app/\n  api/\n    src/app.ts          # Register API routes and middleware\n    src/index.ts        # Database connection and server lifecycle\n    src/auth.ts         # Authentication configuration\n    src/storage.ts      # Cloudinary upload profiles\n    src/models/\n    src/controllers/\n    src/routes/\n    src/validators/\n    src/services/\n    .env                # Private backend configuration\n  client/\n    src/app/            # API, auth and Redux setup\n    src/components/\n    src/features/\n    src/pages/\n    src/routes.tsx      # Frontend routes\n  scripts/dev.mjs       # Start both halves\n  package.json","# Start API and frontend together\nnpm run dev","# Start only the API\nnpm run dev:api","# Start only the frontend in a separate terminal\nnpm run dev:client","# Build both API and frontend\nnpm run build","# Start the built API\nnpm start","# List registered backend routes after building\nnpm run routes","# Lint frontend code\nnpm run lint --workspace client","# Compile, start, watch and restart the API\nnpx tilcayo dev","# Compile the API to dist/\nnpx tilcayo build","# Start the compiled API with .env\nnpx tilcayo start","# Build once and start without watching\nnpx tilcayo dev:serve","# Show CLI commands\nnpx tilcayo --help","# Start the frontend dev server\nnpm run dev","# Build the frontend to dist/\nnpm run build","# Check frontend code\nnpm run lint","# Preview an existing production build locally\nnpm run preview","# List all routes\nnpx tilcayo routes:list","# Filter by HTTP method\nnpx tilcayo routes:list --method GET","# Filter by URL path\nnpx tilcayo routes:list --path /api/auth","# Output JSON\nnpx tilcayo routes:list --json","# Choose the compiled app and environment file explicitly\nnpx tilcayo routes:list --entry dist/app.js --env-file .env","# Generate a complete Project CRUD feature\nnpx tilcayo make:resource Project title:string active:boolean --fullstack","# Generate a model, controller, validator and routes\nnpx tilcayo make:resource Article title:string published:boolean","# Generate related resources\nnpx tilcayo make:resource Author name:string\nnpx tilcayo make:resource Book title:string author:ref:Author \"year:number?\"","# Explicitly select MongoDB\nnpx tilcayo make:resource InventoryItem name:string quantity:number --mongodb","# Generate a model\nnpx tilcayo make:model Customer name:string email:string","# Generate a working CRUD controller for that model\nnpx tilcayo make:controller customers --resource name:string email:string","# Generate request validation\nnpx tilcayo make:validator customers name:string email:string","# Generate a resource route module\nnpx tilcayo make:route customers --resource","# Generate a service\nnpx tilcayo make:service reports","# Generate a plain controller with placeholder handlers\nnpx tilcayo make:controller reports","# Generate resource types only\nnpx tilcayo make:types Book title:string \"year:number?\" author:ref:Author","# Generate types, API integration, forms and CRUD pages\nnpx tilcayo make:frontend Book title:string \"year:number?\" author:ref:Author","# Use comma-separated fields instead of positional fields\nnpx tilcayo make:model Customer --fields \"name:string,email:string\"","import articlesRoutes from './routes/articles.routes.js';\n\napp.routes(articlesRoutes);","import { defineRoutes } from '@tilcayo/core';\nimport { z } from 'zod';\n\nexport default defineRoutes(router => {\n  router.post\u003c{ name: string }>('/greet', ctx => ctx.response.success({\n    greeting: `Hello, ${ctx.body.name}`,\n  }), {\n    validate: { body: z.object({ name: z.string().min(1) }) },\n  });\n});","# Add authentication to a recognized API, React or full-stack starter\nnpx tilcayo add:auth\nnpm install\nnpm run build","# Add admin screens to an auth-enabled React or full-stack starter\nnpx tilcayo add:admin\nnpm install\nnpm run build","# Install backend auth and storage dependencies in your API app\nnpm install @tilcayo/auth @tilcayo/cloudinary","# Generate auth configuration, controllers, validators and routes\nnpx tilcayo make:auth","# Provision the initial Super Admin\nnpm run tenancy:setup","# Select an existing tenant for demo data\n$env:TENANCY_SEED_SLUG = \"sunrise\"","# Add demo records\nnpm run seed:demo","# Remove demo records\nnpm run seed:demo:remove","CLOUDINARY_CLOUD_NAME=your_cloud_name\nCLOUDINARY_API_KEY=your_api_key\nCLOUDINARY_API_SECRET_KEY=your_api_secret"]</script><script>(() => {
+  const snippets = JSON.parse(document.getElementById('readme-snippets').textContent);
+  const status = document.getElementById('copy-status');
+  const timers = new WeakMap();
+  async function copy(text) {
+    try {
+      if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); return; }
+    } catch { /* File previews and denied clipboard permission can use selection-based copying. */ }
+    const previous = document.activeElement;
+    const field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    field.style.cssText = 'position:fixed;left:-9999px;top:0';
+    document.body.append(field);
+    try {
+      field.select();
+      if (!document.execCommand('copy')) throw new Error('Copy unavailable');
+    } finally { field.remove(); previous?.focus(); }
+  }
+  document.addEventListener('click', async event => {
+    const button = event.target instanceof Element ? event.target.closest('button[data-code-index]') : null;
+    if (!button || button.disabled) return;
+    const index = Number(button.dataset.codeIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= snippets.length) return;
+    clearTimeout(timers.get(button));
+    const label = button.querySelector('span');
+    button.disabled = true;
+    status.textContent = '';
+    try {
+      await copy(snippets[index]);
+      label.textContent = 'Copied';
+      button.dataset.state = 'copied';
+      status.textContent = 'Code copied.';
+    } catch {
+      label.textContent = 'Copy failed';
+      button.dataset.state = 'error';
+      status.textContent = 'Copy is unavailable. Select the code and copy it manually.';
+    } finally { button.disabled = false; }
+    timers.set(button, setTimeout(() => { label.textContent = 'Copy'; delete button.dataset.state; }, 2000));
+  });
+})();
+</script></body></html>
