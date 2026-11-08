@@ -19,6 +19,10 @@ Tilcayo uses plain functions, explicit routes and editable generated code. It in
 - [Troubleshooting](#troubleshooting)
 - [Package guides](#package-guides)
 
+<!-- styled-readme-link:start -->
+For the VS Code Dark+ view with individual Copy buttons, download [README.html](README.html) and open it in a browser.
+<!-- styled-readme-link:end -->
+
 ## Quick start
 
 Use Node.js **22.12+ or 24+**, npm and an accessible MongoDB database. Install from npm; no framework checkout or separate package setup is required.
